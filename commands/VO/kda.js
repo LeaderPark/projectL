@@ -13,3 +13,5 @@ class Kda {
     this.ratio = ((this.kills + this.assistances) / 2).toFixed(1);
   }
 }
+
+export default Kda;

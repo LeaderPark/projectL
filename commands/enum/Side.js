@@ -1,4 +1,6 @@
-const Side = {
-  [100]: "Purple",
-  [200]: "Blue",
+export const Side = {
+  // [100]: "Purple",
+  // [200]: "Blue",
+  PURPLE: 100,
+  BLUE: 200,
 };

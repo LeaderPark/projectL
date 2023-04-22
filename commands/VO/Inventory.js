@@ -14,3 +14,5 @@ class Inventory {
     this.trinket = items[3];
   }
 }
+
+export default Inventory;

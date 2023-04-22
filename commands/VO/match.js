@@ -1,7 +1,7 @@
 class Match {
   /**
    *
-   * @param {Date} gameLength
+   * @param {int} gameLength
    * @param {string} gameVersion
    * @param {Team} purpleTeam
    * @param {Team} blueTeam
@@ -24,3 +24,5 @@ class Match {
     //   this.blueTeam.result === RESULT.VICTORY ? this.purpleTeam : this.blueTeam;
   }
 }
+
+export default Match;

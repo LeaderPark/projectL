@@ -11,3 +11,5 @@ class Team {
     this.players = players;
   }
 }
+
+export default Team;

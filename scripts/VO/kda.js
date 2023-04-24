@@ -14,4 +14,4 @@ class Kda {
   }
 }
 
-export default Kda;
+module.exports = Kda;

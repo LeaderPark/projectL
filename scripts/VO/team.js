@@ -12,4 +12,4 @@ class Team {
   }
 }
 
-export default Team;
+module.exports = Team;

@@ -1,25 +1,34 @@
-import Inventory from "../VO/Inventory.js";
-import Kda from "../VO/kda.js";
-import Match from "../VO/match.js";
-import Player from "../VO/player.js";
-import { Lane } from "../enum/Lane.js";
-import { Side } from "../enum/Side.js";
-import Team from "../VO/team.js";
-// const Match = require("../");
 const fs = require("fs");
+
+const Inventory = require("../VO/Inventory");
+const Kda = require("../VO/kda");
+const Match = require("../VO/match");
+const Player = require("../VO/player");
+const Team = require("../VO/team");
+
+const { Lane } = require("../enum/Lane");
+const { Side } = require("../enum/Side");
 
 /**
  *
  * @param {String} path
  * @returns
  */
-const getReplayData = (path) => {
+const getReplayData = (path, name) => {
   const decoded = fs
     .readFileSync(path, "utf8")
     .toString()
     .split("\n")
     .slice(0, 20)
     .join("");
+
+  // const decoded = request.get(path, (res) => {
+  //   if (res.statusCode === 200) {
+  //     const file = res.body;
+  //     return file;
+  //   }
+  // });
+  // console.log(decoded);
 
   const startIndex = decoded.indexOf('{"gameLength"');
   const endIndex = decoded.indexOf(']"}');
@@ -96,7 +105,7 @@ const getTeam = (side, players) => {
  *
  * @param {String} path
  */
-export const addReplay = (path) => {
+const addReplay = (path) => {
   const matchData = getReplayData(path);
 
   const players = getPlayers(statsList);
@@ -108,3 +117,4 @@ export const addReplay = (path) => {
 
   return new Match(gameLength, gameVersion, purpleTeam, blueTeam, players);
 };
+module.exports = { addReplay };

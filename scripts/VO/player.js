@@ -1,6 +1,7 @@
-import { Result } from "../enum/Result";
-import Inventory from "./Inventory";
-import Kda from "./kda";
+const Inventory = require("./Inventory");
+const Kda = require("./kda");
+
+const { Result } = require("../enum/Result");
 
 class Player {
   /**
@@ -55,4 +56,4 @@ class Player {
   }
 }
 
-export default Player;
+module.exports = Player;

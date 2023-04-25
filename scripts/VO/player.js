@@ -1,7 +1,7 @@
 const Inventory = require("./Inventory");
 const Kda = require("./kda");
 
-const { Result } = require("../enum/Result");
+const Result = require("../enum/Result");
 
 class Player {
   /**

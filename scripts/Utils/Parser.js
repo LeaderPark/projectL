@@ -1,4 +1,5 @@
 const fs = require("fs");
+const https = require("https");
 
 const Inventory = require("../VO/Inventory");
 const Kda = require("../VO/kda");
@@ -6,32 +7,58 @@ const Match = require("../VO/match");
 const Player = require("../VO/player");
 const Team = require("../VO/team");
 
-const { Lane } = require("../enum/Lane");
-const { Side } = require("../enum/Side");
+const Lane = require("../enum/Lane");
+const Side = require("../enum/Side");
+
+const downloadFile = (path, filePath) => {
+  return new Promise((resolve, reject) => {
+    let data = "";
+
+    https.get(path, (res) => {
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        resolve(data);
+      });
+
+      res.on("error", (err) => {
+        reject(err);
+      });
+    });
+  });
+};
 
 /**
  *
  * @param {String} path
  * @returns
  */
-const getReplayData = (path, name) => {
+const getReplayData = async (path, name) => {
+  const filePath = `./files/${name}`;
+
+  const data = await downloadFile(path, filePath);
+
+  fs.writeFileSync(filePath, data, (err) => {
+    if (err) {
+      throw new Error(err);
+    }
+  });
+
   const decoded = fs
-    .readFileSync(path, "utf8")
+    .readFileSync(filePath, "utf8")
     .toString()
     .split("\n")
     .slice(0, 20)
     .join("");
 
-  // const decoded = request.get(path, (res) => {
-  //   if (res.statusCode === 200) {
-  //     const file = res.body;
-  //     return file;
-  //   }
-  // });
-  // console.log(decoded);
-
   const startIndex = decoded.indexOf('{"gameLength"');
   const endIndex = decoded.indexOf(']"}');
+
+  if (startIndex <= -1 || endIndex <= -1) {
+    throw new Error("잘못 된 파일");
+  }
 
   try {
     const jsonStr = decoded.substring(startIndex, endIndex) + ']"}';
@@ -58,31 +85,31 @@ const getPlayers = (statsList) => {
   for (let stats of statsList) {
     let items = [];
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i <= 6; i++) {
       items.push(Number(stats[`ITEM${i}`]));
     }
     players.push(
       new Player(
         stats["NAME"],
-        stats["ID"],
+        Number(stats["ID"]),
         stats["SKIN"],
-        stats["LEVEL"],
-        stats["TEAM"],
+        Number(stats["LEVEL"]),
+        Number(stats["TEAM"]),
         stats["WIN"],
-        stats["KEYSTONE_ID"],
+        Number(stats["KEYSTONE_ID"]),
         new Kda(
-          stats["CHAMPIONS_KILLED"],
-          stats["NUM_DEATHS"],
-          stats["ASSISTS"]
+          Number(stats["CHAMPIONS_KILLED"]),
+          Number(stats["NUM_DEATHS"]),
+          Number(stats["ASSISTS"])
         ),
-        Lane[stats["PLAYER_POSITION"]],
-        stats["MINIONS_KILLED"] +
-          stats["NEUTRAL_MINIONS_KILLED"] +
-          stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"] +
-          stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"],
+        Lane[Number(stats["PLAYER_POSITION"])],
+        Number(stats["MINIONS_KILLED"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
-        stats["SUMMON_SPELL1_CAST"],
-        stats["SUMMON_SPELL2_CAST"]
+        Number(stats["SUMMON_SPELL1_CAST"]),
+        Number(stats["SUMMON_SPELL2_CAST"])
       )
     );
   }
@@ -98,6 +125,7 @@ const getPlayers = (statsList) => {
  */
 const getTeam = (side, players) => {
   const playerList = players.filter((x) => x.team === side);
+
   return new Team(playerList[0].result, side, playerList);
 };
 
@@ -105,16 +133,19 @@ const getTeam = (side, players) => {
  *
  * @param {String} path
  */
-const addReplay = (path) => {
-  const matchData = getReplayData(path);
+const addReplay = async (path, name) => {
+  try {
+    const matchData = await getReplayData(path, name);
+    const players = getPlayers(JSON.parse(matchData.statsJson));
 
-  const players = getPlayers(statsList);
+    const gameLength = Number(matchData.gameLength);
+    const gameVersion = matchData.gameVersion;
+    const purpleTeam = getTeam(Side.PURPLE, players);
+    const blueTeam = getTeam(Side.BLUE, players);
 
-  const gameLength = new Date(Number(matchData.gameLength));
-  const gameVersion = matchData.gameVersion;
-  const purpleTeam = getTeam(Side.PURPLE);
-  const blueTeam = getTeam(Side.BLUE);
-
-  return new Match(gameLength, gameVersion, purpleTeam, blueTeam, players);
+    return new Match(gameLength, gameVersion, purpleTeam, blueTeam, players);
+  } catch (err) {
+    return err.message;
+  }
 };
 module.exports = { addReplay };

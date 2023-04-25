@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { addReplay } = require("../../scripts/Utils/Parser");
+const Match = require("../../scripts/VO/match");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,15 +17,19 @@ module.exports = {
     const subIndex = file.name.length - 5;
     const fileName = file.name.slice(0, subIndex);
     const extension = file.name.slice(file.name.length - 5);
-    console.log(file);
 
     if (extension !== ".rofl") {
       await interaction.reply(`${file.name} is not .rofl file`);
       return;
     }
 
-    const replay = addReplay(file.url, file.name);
-    console.log(replay);
+    await interaction.deferReply("uploading...");
+    const replay = await addReplay(file.url, file.name);
+    if (typeof replay !== "object") {
+      await interaction.editReply(replay);
+      return;
+    }
+
     // console.log(file.name);
     // console.log(file.url);
     // console.log(file.proxyURL);
@@ -32,6 +37,6 @@ module.exports = {
     //   await interaction.reply("file is undefined");
     //   return;
     // }
-    await interaction.reply("Upload Complete!");
+    await interaction.editReply("Upload Complete!");
   },
 };

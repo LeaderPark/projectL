@@ -6,6 +6,7 @@ https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Client?scrollTo=e-inter
 
 https://discordjs.guide/creating-your-bot/event-handling.html#individual-event-files
 
+-------------------------------------------
 
 ProjectL
 개요
@@ -23,3 +24,21 @@ ProjectL
 /랭킹
 /명령어
 /정보
+
+-------------------------------------------
+
+MMR 수식
+
+KDA , All, WIN_VALUE  
+
+WIN_VALUE = 50
+A = 0.5
+K > D = K = 1
+K <= D = K = 0.75
+
+WIN : ((((K + A) / D) / 10) * ALL) * WIN_VALUE
+
+LOSE : WIN / WIN_VALUE * 5 
+
+MIN : 10
+MAX : 100

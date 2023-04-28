@@ -10,7 +10,7 @@ https://discordjs.guide/creating-your-bot/event-handling.html#individual-event-f
 
 ProjectL
 개요
-멍청한 머글들을 위해 마법사인 환주님이 친히 하사하신 인공두뇌
+멍청한 머글들을 위해 마법사인 진우님이 친히 하사하신 인공두뇌
 구성
 /등록 (자기 닉네임) / 최초 1회 or 변경시
 /참가

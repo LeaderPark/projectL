@@ -1,0 +1,44 @@
+https://github.com/ShadowCat7/lol-discord-bot
+
+https://github.com/mdnm/riot-discord-bot
+
+https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Client?scrollTo=e-interactionCreate
+
+https://discordjs.guide/creating-your-bot/event-handling.html#individual-event-files
+
+-------------------------------------------
+
+ProjectL
+개요
+멍청한 머글들을 위해 마법사인 진우님이 친히 하사하신 인공두뇌
+구성
+/등록 (자기 닉네임) / 최초 1회 or 변경시
+/참가
+/나가기
+/팀 (랜덤 or 밸런스) (이름들)
+/검색 (닉네임)
+/챔피언검색
+/아이템검색
+/업로드
+/유저평가
+/랭킹
+/명령어
+/정보
+
+-------------------------------------------
+
+MMR 수식
+
+KDA , All, WIN_VALUE  
+
+WIN_VALUE = 50
+A = 0.5
+K > D = K = 1
+K <= D = K = 0.75
+
+WIN : ((((K + A) / D) / 10) * ALL) * WIN_VALUE
+
+LOSE : WIN / WIN_VALUE * 5 
+
+MIN : 10
+MAX : 100

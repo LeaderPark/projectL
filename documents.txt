@@ -44,4 +44,4 @@ MIN : 10
 MAX : 100
 
 
-https://parsec.gg/g/2P96nVQeFx6STcWda5i6eDq0RLL/bf2d7729/
+RGAPI-80b4afbf-dde2-4548-8902-a8752e770dbf //영구API 링크

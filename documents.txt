@@ -45,3 +45,4 @@ MAX : 100
 
 
 RGAPI-80b4afbf-dde2-4548-8902-a8752e770dbf //영구API 링크
+lpserver2023@gmail.com / lpsa@2023

@@ -8,11 +8,8 @@ module.exports = {
     .setName("팀목록")
     .setDescription("참가중인 소환사를 볼 수 있어요"),
   async execute(interaction) {
-    const interactionUser = await interaction.guild.members.fetch(
-      interaction.user.id
-    );
     let text = "";
-      let index = 1;
+    let index = 1;
     if (teamTable.length > 0) {
       await interaction.deferReply("searching...");
       for await (let v of teamTable) {

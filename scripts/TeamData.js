@@ -1,3 +1,5 @@
+const { table } = require("console");
+
 const attendTeam = (user) => {
   if (teamTable.length >= 10) return { success: false, reason: "full" };
   if (teamTable.includes(user.id)) return { success: false, reason: "already" };
@@ -11,6 +13,10 @@ const exitTeam = (user) => {
   return true;
 };
 
+const exitAllTeam = () => {
+    teamTable.splice(0, teamTable.length);
+};
+
 const teamTable = [];
 
-module.exports = { attendTeam, exitTeam, teamTable };
+module.exports = { attendTeam, exitTeam, exitAllTeam, teamTable };

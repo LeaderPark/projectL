@@ -1,8 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { teamTable } = require("../../scripts/TeamData");
 
-const getUser = (id) => {};
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("팀목록")

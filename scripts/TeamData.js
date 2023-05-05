@@ -1,5 +1,3 @@
-const { table } = require("console");
-
 const attendTeam = (user) => {
   if (teamTable.length >= 10) return { success: false, reason: "full" };
   if (teamTable.includes(user.id)) return { success: false, reason: "already" };

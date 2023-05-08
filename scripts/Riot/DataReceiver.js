@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { riot_token } = require("../../config.json");
 
 const ddragonApi = axios.create({
   baseURL:
@@ -22,6 +23,20 @@ const setChampionData = async () => {
   const championData = championRes.data.data;
   const itemData = itemRes.data.data;
   //   console.log(championData);
-  console.log(itemData);
 };
 setChampionData();
+
+const getSummonerData = async (summonerName) => {
+  try {
+    const reqUrl = `https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/${summonerName}?api_key=${riot_token}`;
+    const res = await axios.get(reqUrl);
+
+    return res;
+  } catch (e) {
+    return null;
+  }
+};
+
+module.exports = {
+  getSummonerData,
+};

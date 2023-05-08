@@ -3,7 +3,7 @@ let connectionData = {
   user: "유저이름",
   password: "비밀번호",
   database: "사용자명",
-  tiemzone: "",
+  timezone: "",
 };
 
 module.exports = connectionData;

@@ -43,5 +43,6 @@ module.exports = {
     if (insertRes === -1) return await interaction.editReply("이미 등록된 소환사입니다.")
 
     await interaction.editReply("등록을 완료했습니다.");
+
   },
 };

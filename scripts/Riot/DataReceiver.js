@@ -37,6 +37,10 @@ const getSummonerData = async (summonerName) => {
   }
 };
 
+const getChampionData = async (championName) => {
+  
+} 
+
 module.exports = {
   getSummonerData,
 };

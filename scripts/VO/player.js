@@ -34,7 +34,8 @@ class Player {
     inventory,
     spell1,
     spell2,
-    visionWard
+    visionWard,
+    puuid
   ) {
     this.playerName = playerName;
     this.playerId = playerId;
@@ -56,6 +57,7 @@ class Player {
     this.lane = lane;
     this.kda = kda;
     this.inventory = inventory;
+    this.puuid = puuid;
   }
 }
 

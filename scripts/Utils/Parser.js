@@ -110,7 +110,8 @@ const getPlayers = (statsList) => {
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
-        Number(stats["VISION_WARDS_BOUGHT_IN_GAME"])
+        Number(stats["VISION_WARDS_BOUGHT_IN_GAME"]),
+        stats["PUUID"]
       )
     );
   }

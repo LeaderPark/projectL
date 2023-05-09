@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { addReplay } = require("../../scripts/Utils/Parser");
+const { getMatchData } = require("../../scripts/Utils/Parser");
+const { insertMatchData } = require("../../scripts/Utils/Query");
 const Match = require("../../scripts/VO/match");
 
 module.exports = {
@@ -24,10 +25,18 @@ module.exports = {
     }
 
     await interaction.deferReply("uploading...");
-    const replay = await addReplay(file.url, file.name);
+    const replay = await getMatchData(file.url, file.name);
     if (typeof replay !== "object") {
       await interaction.editReply(replay);
       return;
+    }
+
+    const result = await insertMatchData(replay, fileName);
+
+    if (!result.success) {
+      return await interaction.editReply(
+        result.msg || "예기치 못한 오류가 발생하였습니다."
+      );
     }
 
     // console.log(file.name);

@@ -109,7 +109,8 @@ const getPlayers = (statsList) => {
           Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
-        Number(stats["SUMMON_SPELL2_CAST"])
+        Number(stats["SUMMON_SPELL2_CAST"]),
+        Number(stats["VISION_WARDS_BOUGHT_IN_GAME"])
       )
     );
   }
@@ -133,7 +134,7 @@ const getTeam = (side, players) => {
  *
  * @param {String} path
  */
-const addReplay = async (path, name) => {
+const getMatchData = async (path, name) => {
   try {
     const matchData = await getReplayData(path, name);
     const players = getPlayers(JSON.parse(matchData.statsJson));
@@ -143,9 +144,9 @@ const addReplay = async (path, name) => {
     const purpleTeam = getTeam(Side.PURPLE, players);
     const blueTeam = getTeam(Side.BLUE, players);
 
-    return new Match(gameLength, gameVersion, purpleTeam, blueTeam, players);
+    return new Match(gameLength, purpleTeam, blueTeam);
   } catch (err) {
     return err.message;
   }
 };
-module.exports = { addReplay };
+module.exports = { getMatchData };

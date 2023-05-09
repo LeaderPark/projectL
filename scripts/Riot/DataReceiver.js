@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { riot_token } = require("../../config.json");
+const { championName } = require("../Utils/ChampionNameCanverter");
 
 const ddragonApi = axios.create({
   baseURL:
@@ -37,10 +38,20 @@ const getSummonerData = async (summonerName) => {
   }
 };
 
-const getChampionData = async (championName) => {
-  
-} 
+const getChampionData = async (name) => {
+  try {
+    const reqUrl = `http://ddragon.leagueoflegends.com/cdn/13.9.1/data/ko_KR/champion/${championName[name]}.json`;
+    const res = await axios.get(reqUrl);
+
+    // return res;
+    console.log(Object.values(res.data.data)[0].spells);
+  } catch (e) {
+    // return null;
+    console.log(e);
+  }
+};
 
 module.exports = {
   getSummonerData,
+  getChampionData,
 };

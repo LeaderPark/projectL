@@ -33,7 +33,8 @@ class Player {
     minionScore,
     inventory,
     spell1,
-    spell2
+    spell2,
+    visionWard
   ) {
     this.playerName = playerName;
     this.playerId = playerId;
@@ -48,6 +49,8 @@ class Player {
 
     this.spell1 = spell1;
     this.spell2 = spell2;
+
+    this.visionWard = visionWard;
 
     this.team = team;
     this.lane = lane;

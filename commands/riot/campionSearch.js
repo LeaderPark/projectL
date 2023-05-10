@@ -18,14 +18,21 @@ module.exports = {
     ),
   async execute(interaction) {
     const name = interaction.options.getString("챔피언");
-
+    let index = 0;
     const buttons = [
       {
         customId: "back",
         label: "<<",
         style: "Secondary",
         async action(interaction) {
-          await interaction.reply("test1 버튼을 클릭했다.");
+          if (index <= 0) {
+            return await interaction.reply("끝임");
+          }
+          await interaction.update({
+            embeds: [embedLists[--index]],
+            components: [row],
+            content: "끝임",
+          });
         },
       },
       {
@@ -33,9 +40,12 @@ module.exports = {
         label: ">>",
         style: "Secondary",
         async action(interaction) {
+          if (index >= embedLists.length - 1) {
+            return await interaction.reply("끝임");
+          }
           await interaction.update({
-            content: "버튼이 클릭됐어!",
-            components: [],
+            embeds: [embedLists[++index]],
+            components: [row],
           });
         },
       },
@@ -50,7 +60,7 @@ module.exports = {
       })
     );
 
-    await interaction.reply({ content: "버튼", components: [row] });
+    await interaction.reply({ embeds: [embedLists[index]], components: [row] });
 
     //버튼에 지정된 customId만 message collector가 동작할 수 있게 함
     const filter = (interaction) => {
@@ -75,13 +85,13 @@ module.exports = {
       console.log("버튼 시간초과");
     });
     // getChampionData(name);
-    await interaction.reply({ embeds: [exampleEmbed] });
+    // await interaction.reply({ embeds: [exampleEmbed] });
   },
 };
 
-const exampleEmbed = {
+const exampleEmbed1 = {
   color: 0x0099ff,
-  title: "Some title",
+  title: "Some title1",
   url: "https://discord.js.org",
   author: {
     name: "Some name",
@@ -127,3 +137,149 @@ const exampleEmbed = {
     icon_url: "https://i.imgur.com/AfFp7pu.png",
   },
 };
+const exampleEmbed2 = {
+  color: 0x0099ff,
+  title: "Some title2",
+  url: "https://discord.js.org",
+  author: {
+    name: "Some name",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+    url: "https://discord.js.org",
+  },
+  description: "Some description here",
+  thumbnail: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  fields: [
+    {
+      name: "Regular field title",
+      value: "Some value here",
+    },
+    {
+      name: "\u200b",
+      value: "\u200b",
+      inline: false,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+  ],
+  image: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  timestamp: new Date().toISOString(),
+  footer: {
+    text: "Some footer text here",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+  },
+};
+const exampleEmbed3 = {
+  color: 0x0099ff,
+  title: "Some title3",
+  url: "https://discord.js.org",
+  author: {
+    name: "Some name",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+    url: "https://discord.js.org",
+  },
+  description: "Some description here",
+  thumbnail: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  fields: [
+    {
+      name: "Regular field title",
+      value: "Some value here",
+    },
+    {
+      name: "\u200b",
+      value: "\u200b",
+      inline: false,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+  ],
+  image: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  timestamp: new Date().toISOString(),
+  footer: {
+    text: "Some footer text here",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+  },
+};
+const exampleEmbed4 = {
+  color: 0x0099ff,
+  title: "Some title4",
+  url: "https://discord.js.org",
+  author: {
+    name: "Some name",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+    url: "https://discord.js.org",
+  },
+  description: "Some description here",
+  thumbnail: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  fields: [
+    {
+      name: "Regular field title",
+      value: "Some value here",
+    },
+    {
+      name: "\u200b",
+      value: "\u200b",
+      inline: false,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+  ],
+  image: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  timestamp: new Date().toISOString(),
+  footer: {
+    text: "Some footer text here",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+  },
+};
+
+const embedLists = [exampleEmbed1, exampleEmbed2, exampleEmbed3, exampleEmbed4];

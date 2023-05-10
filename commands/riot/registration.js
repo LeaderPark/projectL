@@ -37,12 +37,13 @@ module.exports = {
       return await interaction.editReply("존재하지 않는 소환사 입니다.");
 
     //db insert
-    const insertRes = await registraion(user.id, userName);
+    const insertRes = await registraion(user.id, userName, result.data.puuid);
 
-    if (!insertRes) return await interaction.editReply("에러가 발생하였습니다.");
-    if (insertRes === -1) return await interaction.editReply("이미 등록된 소환사입니다.")
+    if (!insertRes)
+      return await interaction.editReply("에러가 발생하였습니다.");
+    if (insertRes === -1)
+      return await interaction.editReply("이미 등록된 소환사입니다.");
 
     await interaction.editReply("등록을 완료했습니다.");
-
   },
 };

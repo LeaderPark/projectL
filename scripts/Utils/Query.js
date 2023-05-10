@@ -1,7 +1,7 @@
 const Match = require("../VO/match");
 const { promisePool } = require("./DB");
 
-const registraion = async (discord_id, name) => {
+const registraion = async (discord_id, name, puuid) => {
   let sql, result;
 
   try {
@@ -10,8 +10,8 @@ const registraion = async (discord_id, name) => {
 
     if (r.length > 0) return -1;
 
-    sql = `INSERT INTO user (discord_id, name) VALUES (?, ?)`;
-    result = await promisePool.query(sql, [discord_id, name]);
+    sql = `INSERT INTO user (discord_id, name, puuid) VALUES (?, ?, ?)`;
+    result = await promisePool.query(sql, [discord_id, name, puuid]);
 
     return result;
   } catch (e) {

@@ -43,7 +43,6 @@ const getChampionData = async (name) => {
     const reqUrl = `http://ddragon.leagueoflegends.com/cdn/13.9.1/data/ko_KR/champion/${championName[name]}.json`;
     const res = await axios.get(reqUrl);
 
-    // return res;
     console.log(Object.values(res.data.data)[0].spells);
   } catch (e) {
     // return null;

@@ -10,6 +10,7 @@ class Champion {
    * @param {table} info
    * @param {VO} stat
    * @param {VO} spells
+   * @param {table} passive
    *
    */
   constructor(
@@ -21,7 +22,8 @@ class Champion {
     tags,
     info,
     stat,
-    spells
+    spells,
+    passive
   ) {
     this.name = name;
     this.title = title;
@@ -32,6 +34,7 @@ class Champion {
     this.info = info;
     this.stat = stat;
     this.spells = spells;
+    this.passive = passive;
   }
 }
 

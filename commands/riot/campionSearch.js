@@ -1,4 +1,9 @@
-const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  ButtonBuilder,
+  ActionRowBuilder,
+  EmbedBuilder,
+} = require("discord.js");
 const { getChampionData } = require("../../scripts/Riot/DataReceiver");
 
 module.exports = {
@@ -6,11 +11,13 @@ module.exports = {
     .setName("챔피언검색")
     .setDescription("챔피언정보에 대해 검색할 수 있어요.")
     .addStringOption((option) =>
-      option.setName("챔피언").setDescription("챔피언 이름을 입력해주세요")
+      option
+        .setName("챔피언")
+        .setDescription("챔피언 이름을 입력해주세요")
+        .setRequired(true)
     ),
   async execute(interaction) {
     const name = interaction.options.getString("챔피언");
-    // getChampionData(name);
 
     const buttons = [
       {
@@ -54,7 +61,7 @@ module.exports = {
 
     const collector = interaction.channel.createMessageComponentCollector({
       filter,
-      // time: 60 * 1000, 
+      // time: 60 * 1000,
     });
 
     collector.on("collect", async (interaction) => {
@@ -67,5 +74,56 @@ module.exports = {
     collector.on("end", async (collect) => {
       console.log("버튼 시간초과");
     });
+    // getChampionData(name);
+    await interaction.reply({ embeds: [exampleEmbed] });
+  },
+};
+
+const exampleEmbed = {
+  color: 0x0099ff,
+  title: "Some title",
+  url: "https://discord.js.org",
+  author: {
+    name: "Some name",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
+    url: "https://discord.js.org",
+  },
+  description: "Some description here",
+  thumbnail: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  fields: [
+    {
+      name: "Regular field title",
+      value: "Some value here",
+    },
+    {
+      name: "\u200b",
+      value: "\u200b",
+      inline: false,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+    {
+      name: "Inline field title",
+      value: "Some value here",
+      inline: true,
+    },
+  ],
+  image: {
+    url: "https://i.imgur.com/AfFp7pu.png",
+  },
+  timestamp: new Date().toISOString(),
+  footer: {
+    text: "Some footer text here",
+    icon_url: "https://i.imgur.com/AfFp7pu.png",
   },
 };

@@ -1,3 +1,6 @@
+const Player = require("./player");
+const Team = require("./team");
+
 class Match {
   /**
    *

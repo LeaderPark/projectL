@@ -1,5 +1,6 @@
 const Match = require("../VO/match");
 const { promisePool } = require("./DB");
+const config = require("../../config.json");
 
 const registraion = async (discord_id, name, puuid) => {
   let sql, result;
@@ -41,14 +42,38 @@ const insertMatchData = async (match, name) => {
       JSON.stringify(match.blueTeam),
     ]);
 
-    console.log(result);
     return { success: true };
   } catch (e) {
     return { success: false, msg: e.message };
   }
 };
 
+/**
+ *
+ * @param {Match} match
+ */
+const insertUserData = async (match) => {
+  try {
+    let sql = `SELECT * FROM users where name = ?`;
+    let updateSql = `UPDATE users SET mmr = ?, win = ?, lose = ?, 
+    penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, 
+    t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? 
+    WHERE name = ?`;
+
+    let [result] = null;
+    for await (let p of match.blueTeam.players) {
+      [result] = await promisePool.query(sql, [p.playerName]);
+
+      if (result.length <= 0) {
+        console.log("등록되지 않은 플레이어가 존재합니다.");
+      }
+      console.log(result);
+    }
+  } catch (e) {}
+};
+
 module.exports = {
   registraion,
   insertMatchData,
+  insertUserData,
 };

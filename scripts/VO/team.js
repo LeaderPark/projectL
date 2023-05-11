@@ -1,8 +1,10 @@
+const Player = require("./player");
+
 class Team {
   /**
    *
-   * @param {Result} result
-   * @param {Side} side
+   * @param {int} result
+   * @param {int} side
    * @param {Player[]} players
    */
   constructor(result, side, players) {

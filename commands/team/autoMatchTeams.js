@@ -1,9 +1,8 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
-
+const embed = {};
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("team")
+    .setName("내전")
     .setDescription(
       "음성채팅방에 있는 유저들을 2개의 팀으로 나누어 이동시킵니다."
     ),
@@ -51,7 +50,7 @@ module.exports = {
       await member.value.voice.setChannel(team2);
     }
 
-    const embed = {
+    embed = {
       color: 0x0099ff,
       setTitle: "음성채팅방 유저 이동",
       description: `${channel.name}에 있는 유저들을 2개의 팀으로 나누어 ${team1.name}, ${team2.name}로 이동시켰습니다!`,

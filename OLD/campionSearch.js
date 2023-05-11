@@ -4,7 +4,7 @@ const {
   ActionRowBuilder,
   EmbedBuilder,
 } = require("discord.js");
-const { getChampionData } = require("../../scripts/Riot/DataReceiver");
+const { getChampionData } = require("../scripts/Riot/DataReceiver");
 
 module.exports = {
   data: new SlashCommandBuilder()

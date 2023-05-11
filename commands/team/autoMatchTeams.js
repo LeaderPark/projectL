@@ -37,11 +37,11 @@ module.exports = {
       return { key: entry[0], value: entry[1] };
     });
 
-    // if (members.length < 10) {
-    //   return await interaction.reply({
-    //     content: "음성채팅방에 10명의 유저가 필요합니다!",
-    //   });
-    // }
+    if (members.length < 10) {
+      return await interaction.reply({
+        content: "음성채팅방에 10명의 유저가 필요합니다!",
+      });
+    }
 
     let team1Members = [];
     let team2Members = [];

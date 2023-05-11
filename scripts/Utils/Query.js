@@ -52,28 +52,44 @@ const insertMatchData = async (match, name) => {
  *
  * @param {Match} match
  */
-const insertUserData = async (match) => {
+const updateUserData = async (match) => {
   try {
-    let sql = `SELECT * FROM users where name = ?`;
-    let updateSql = `UPDATE users SET mmr = ?, win = ?, lose = ?, 
+    let sql = `SELECT * FROM user where name = ?`;
+    let updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, 
     penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, 
     t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? 
     WHERE name = ?`;
 
-    let [result] = null;
+    let result, user;
+    let notRegistUser = [];
+    let mmr,
+      win,
+      lose,
+      penta,
+      quadra,
+      champions,
+      lanes,
+      friends,
+      t_kill,
+      t_death,
+      t_assist,
+      t_kill_rate;
     for await (let p of match.blueTeam.players) {
       [result] = await promisePool.query(sql, [p.playerName]);
 
       if (result.length <= 0) {
-        console.log("등록되지 않은 플레이어가 존재합니다.");
+        notRegistUser.push(p.playerName);
       }
-      console.log(result);
+      user = result[0];
     }
-  } catch (e) {}
+    return { success: true, notRegistUser: notRegistUser };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
 };
 
 module.exports = {
   registraion,
   insertMatchData,
-  insertUserData,
+  updateUserData,
 };

@@ -1,7 +1,9 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { getMatchData } = require("../../scripts/Utils/Parser");
-const { insertMatchData } = require("../../scripts/Utils/Query");
-const Match = require("../../scripts/VO/match");
+const {
+  insertMatchData,
+  updateUserData,
+} = require("../../scripts/Utils/Query");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -39,6 +41,28 @@ module.exports = {
       );
     }
 
+    const res2 = await updateUserData(replay);
+
+    if (!res2.success) {
+      return await interaction.editReply(
+        res2.msg || "예기치 못한 오류가 발생하였습니다."
+      );
+    }
+
+    if (res2.notRegistUser.length > 0) {
+      let text = ``;
+
+      for (let i = 0; res2.notRegistUser.length; i++) {
+        text +=
+          res2.length - 1 >= i
+            ? `${res2.notRegistUser[i]}`
+            : `${res2.notRegistUser[i]}, `;
+      }
+
+      return await interaction.editReply(
+        `업로드가 완료되었습니다. 등록 되지 않은 소환사 : ${text}`
+      );
+    }
     // console.log(file.name);
     // console.log(file.url);
     // console.log(file.proxyURL);
@@ -46,6 +70,6 @@ module.exports = {
     //   await interaction.reply("file is undefined");
     //   return;
     // }
-    await interaction.editReply("Upload Complete!");
+    await interaction.editReply(`업로드가 완료되었습니다.`);
   },
 };

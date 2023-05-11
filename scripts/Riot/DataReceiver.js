@@ -37,19 +37,6 @@ const getSummonerData = async (summonerName) => {
   }
 };
 
-// OLD
-// const getChampionData = async (name) => {
-//   try {
-//     const reqUrl = `http://ddragon.leagueoflegends.com/cdn/13.9.1/data/ko_KR/champion/${championName[name]}.json`;
-//     const res = await axios.get(reqUrl);
-
-//     console.log(Object.values(res.data.data)[0].spells);
-//   } catch (e) {
-//     // return null;
-//     console.log(e);
-//   }
-// };
-
 module.exports = {
   getSummonerData,
 };

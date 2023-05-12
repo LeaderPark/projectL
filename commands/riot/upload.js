@@ -50,7 +50,7 @@ module.exports = {
 
     if (res2.user.length > 0) {
       let text = "";
-      console.log(res2.user.length, res2.user);
+
       for (let i = 0; i < res2.user.length; i++) {
         const u = res2.user[i];
 

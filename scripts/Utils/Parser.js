@@ -158,12 +158,10 @@ const getTeam = (side, players) => {
   let totalKill = 0;
   playerList.forEach((p) => (totalKill += p.kda.kills));
 
-  return new Team(
-    playerList[0].result,
-    side,
-    playerList.map((p) => (p.mmr = getMMR(p, totalKill))),
-    totalKill
-  );
+  for (let key in playerList) {
+    playerList[key].mmr = getMMR(playerList[key], totalKill);
+  }
+  return new Team(playerList[0].result, side, playerList, totalKill);
 };
 
 /**

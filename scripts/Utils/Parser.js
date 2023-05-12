@@ -111,12 +111,35 @@ const getPlayers = (statsList) => {
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
         Number(stats["VISION_WARDS_BOUGHT_IN_GAME"]),
-        stats["PUUID"]
+        stats["PUUID"],
+        Number(stats["PENTA_KILLS"]),
+        Number(stats["QUADRA_KILLS"])
       )
     );
   }
 
   return players;
+};
+
+/**
+ *
+ * @param {Player} player
+ * @param {int} teamScore
+ */
+const getMMR = (player, teamScore) => {
+  const isOverDeath = player.kda.kills < player.kda.deaths;
+
+  const killValue = isOverDeath ? player.kda.kills * 0.75 : player.kda.kills;
+  const assistValue = player.kda.assistances * 0.5;
+  let mmr = Match.floor(
+    ((killValue + assistValue) / player.kda.deaths / 10).toFixed(2) *
+      ((player.kda.kills + player.kda.assistances) / teamScore / 100).toFixed(
+        2
+      ) *
+      50
+  );
+  console.log(mmr);
+  return mmr;
 };
 
 /**
@@ -127,8 +150,15 @@ const getPlayers = (statsList) => {
  */
 const getTeam = (side, players) => {
   const playerList = players.filter((x) => x.team === side);
+  let totalKill = 0;
+  playerList.forEach((p) => (totalKill += p.kda.kills));
 
-  return new Team(playerList[0].result, side, playerList);
+  return new Team(
+    playerList[0].result,
+    side,
+    playerList.map((p) => (p.mmr = getMMR(p, totalKill))),
+    totalKill
+  );
 };
 
 /**

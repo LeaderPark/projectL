@@ -9,8 +9,6 @@ class Kda {
     this.kills = kills;
     this.deaths = deaths;
     this.assistances = assistances;
-
-    this.ratio = ((this.kills + this.assistances) / 2).toFixed(1);
   }
 }
 

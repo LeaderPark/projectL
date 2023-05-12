@@ -7,10 +7,11 @@ class Team {
    * @param {int} side
    * @param {Player[]} players
    */
-  constructor(result, side, players) {
+  constructor(result, side, players, totalKill) {
     this.result = result;
     this.side = side;
     this.players = players;
+    this.totalKill = totalKill;
   }
 }
 

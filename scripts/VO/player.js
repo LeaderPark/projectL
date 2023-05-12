@@ -49,7 +49,6 @@ class Player {
 
     this.win = win;
     this.result = win === "Win" ? Result.VICTORY : Result.DEFEAT;
-
     this.level = level;
     this.minionScore = minionScore;
     this.keystoneId = keystoneId;

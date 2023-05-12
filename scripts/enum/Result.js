@@ -1,6 +1,6 @@
 const Result = {
-  VICTORY: 0,
-  DEFEAT: 1,
+  DEFEAT: 0,
+  VICTORY: 1,
 };
 
 module.exports = Result;

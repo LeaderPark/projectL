@@ -56,10 +56,7 @@ const insertMatchData = async (match, name) => {
 const updateUserData = async (match) => {
   try {
     let sql = `SELECT * FROM user where name = ?`;
-    let updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, 
-    penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, 
-    t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? 
-    WHERE name = ?`;
+    let updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? WHERE name = ?`;
 
     let result, user;
     let notRegistUser = [];
@@ -77,11 +74,11 @@ const updateUserData = async (match) => {
       t_kill_rate;
     for await (let p of match.blueTeam.players) {
       [result] = await promisePool.query(sql, [p.playerName]);
-
       if (result.length <= 0) {
         notRegistUser.push(p.playerName);
         continue;
       }
+
       user = result[0];
       mmr = user.mmr + p.mmr;
       win = user.win + (p.result ? 1 : 0);
@@ -90,39 +87,40 @@ const updateUserData = async (match) => {
       penta = user.penta + p.pentaKill;
       quadra = user.quadra + p.quadraKill;
 
-      champions = JSON.parse(user.champions);
-      lanes = JSON.parse(user.lanes);
-      friends = JSON.parse(user.friends);
+      champions = user.champions === "" ? {} : JSON.parse(user.champions);
+      lanes = user.lanes === "" ? {} : JSON.parse(user.lanes);
+      friends = user.friends === "" ? {} : JSON.parse(user.friends);
 
       //champions update
       {
         if (!champions[p.championName]) {
-          champions[p.championName] = {};
+          champions[p.championName] = { kills: 0, deaths: 0, assist: 0 };
         }
-        champions[p.championName].kills = p.kda.kills;
-        champions[p.championName].deaths = p.kda.deaths;
-        champions[p.championName].assist = p.kda.assist;
+        champions[p.championName].kills += p.kda.kills;
+        champions[p.championName].deaths += p.kda.deaths;
+        champions[p.championName].assist += p.kda.assist;
       }
 
       //lanes update
       {
         if (!lanes[p.lane]) {
-          lanes[p.lane] = {};
+          lanes[p.lane] = {
+            kills: 0,
+            deaths: 0,
+            assist: 0,
+          };
         }
-        lanes[p.lane].kills = p.kda.kills;
-        lanes[p.lane].deaths = p.kda.deaths;
-        lanes[p.lane].assist = p.kda.assist;
+        lanes[p.lane].kills += p.kda.kills;
+        lanes[p.lane].deaths += p.kda.deaths;
+        lanes[p.lane].assist += p.kda.assist;
       }
-
       //friends update
       {
         for (let pp of match.blueTeam.players) {
           if (pp === p) continue;
 
           if (!friends[pp.playerName]) {
-            friends[pp.playerName] = {};
-            friends[pp.playerName].win = 0;
-            friends[pp.playerName].lose = 0;
+            friends[pp.playerName] = { win: 0, lose: 0 };
           }
 
           friends[pp.playerName].win += p.result ? 1 : 0;
@@ -135,7 +133,9 @@ const updateUserData = async (match) => {
       t_assist = user.t_assist + p.kda.assist;
       t_kill_rate =
         user.t_kill_rate +
-        Math.floor(p.kda.kills + p.kda.assist / match.blueTeam.totalKill);
+        Math.floor(
+          ((p.kda.kills + p.kda.assist) / match.blueTeam.totalKill) * 100
+        );
 
       [result] = await promisePool.query(updateSql, [
         mmr,
@@ -150,6 +150,7 @@ const updateUserData = async (match) => {
         t_death,
         t_assist,
         t_kill_rate,
+        p.playerName,
       ]);
     }
     return { success: true, notRegistUser: notRegistUser };

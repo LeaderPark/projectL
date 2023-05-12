@@ -42,7 +42,6 @@ module.exports = {
     }
 
     const res2 = await updateUserData(replay);
-
     if (!res2.success) {
       return await interaction.editReply(
         res2.msg || "예기치 못한 오류가 발생하였습니다."
@@ -59,17 +58,11 @@ module.exports = {
             : `${res2.notRegistUser[i]}, `;
       }
 
+      console.log(`업로드가 완료되었습니다. 등록 되지 않은 소환사 : ${text}`);
       return await interaction.editReply(
         `업로드가 완료되었습니다. 등록 되지 않은 소환사 : ${text}`
       );
     }
-    // console.log(file.name);
-    // console.log(file.url);
-    // console.log(file.proxyURL);
-    // if (!file) {
-    //   await interaction.reply("file is undefined");
-    //   return;
-    // }
     await interaction.editReply(`업로드가 완료되었습니다.`);
   },
 };

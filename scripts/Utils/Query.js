@@ -99,6 +99,21 @@ const updateUserData = async (match) => {
       t_kill_rate =
         user.t_kill_rate +
         Math.floor(p.kda.kills + p.kda.assistances / match.blueTeam.totalKill);
+
+      [result] = await promisePool.query(updateSql, [
+        mmr,
+        win,
+        lose,
+        penta,
+        quadra,
+        champions,
+        lanes,
+        friends,
+        t_kill,
+        t_death,
+        t_assist,
+        t_kill_rate,
+      ]);
     }
     return { success: true, notRegistUser: notRegistUser };
   } catch (e) {

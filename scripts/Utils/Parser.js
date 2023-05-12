@@ -143,7 +143,7 @@ const getMMR = (player, teamScore) => {
     return mmr;
   }
 
-  mmr = (mmr / 50) * 5;
+  mmr = Math.floor((mmr / 50) * 5);
   return -mmr;
 };
 

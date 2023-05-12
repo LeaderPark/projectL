@@ -48,17 +48,15 @@ module.exports = {
       );
     }
 
-    if (res2.notRegistUser.length > 0) {
-      let text = ``;
+    if (res2.user.length > 0) {
+      let text = "";
+      console.log(res2.user.length, res2.user);
+      for (let i = 0; i < res2.user.length; i++) {
+        const u = res2.user[i];
 
-      for (let i = 0; res2.notRegistUser.length; i++) {
-        text +=
-          res2.length - 1 >= i
-            ? `${res2.notRegistUser[i]}`
-            : `${res2.notRegistUser[i]}, `;
+        text += res2.user.length - 1 <= i ? `${u}` : `${u}, `;
       }
 
-      console.log(`업로드가 완료되었습니다. 등록 되지 않은 소환사 : ${text}`);
       return await interaction.editReply(
         `업로드가 완료되었습니다. 등록 되지 않은 소환사 : ${text}`
       );

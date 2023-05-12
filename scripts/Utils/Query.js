@@ -153,7 +153,7 @@ const updateUserData = async (match) => {
         p.playerName,
       ]);
     }
-    return { success: true, notRegistUser: notRegistUser };
+    return { success: true, user: notRegistUser };
   } catch (e) {
     return { success: false, message: e.message };
   }

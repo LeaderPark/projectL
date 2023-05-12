@@ -1,6 +1,7 @@
 const Match = require("../VO/match");
 const { promisePool } = require("./DB");
 const config = require("../../config.json");
+const Kda = require("../VO/kda");
 
 const registraion = async (discord_id, name, puuid) => {
   let sql, result;
@@ -83,8 +84,8 @@ const updateUserData = async (match) => {
       }
       user = result[0];
       mmr = user.mmr + p.mmr;
-      win = user.win + (p.win === "Win" ? 1 : 0);
-      lose = user.lose + (p.win === "Win" ? 0 : 1);
+      win = user.win + (p.result ? 1 : 0);
+      lose = user.lose + (p.result ? 0 : 1);
 
       penta = user.penta + p.pentaKill;
       quadra = user.quadra + p.quadraKill;
@@ -93,12 +94,48 @@ const updateUserData = async (match) => {
       lanes = JSON.parse(user.lanes);
       friends = JSON.parse(user.friends);
 
+      //champions update
+      {
+        if (!champions[p.championName]) {
+          champions[p.championName] = {};
+        }
+        champions[p.championName].kills = p.kda.kills;
+        champions[p.championName].deaths = p.kda.deaths;
+        champions[p.championName].assist = p.kda.assist;
+      }
+
+      //lanes update
+      {
+        if (!lanes[p.lane]) {
+          lanes[p.lane] = {};
+        }
+        lanes[p.lane].kills = p.kda.kills;
+        lanes[p.lane].deaths = p.kda.deaths;
+        lanes[p.lane].assist = p.kda.assist;
+      }
+
+      //friends update
+      {
+        for (let pp of match.blueTeam.players) {
+          if (pp === p) continue;
+
+          if (!friends[pp.playerName]) {
+            friends[pp.playerName] = {};
+            friends[pp.playerName].win = 0;
+            friends[pp.playerName].lose = 0;
+          }
+
+          friends[pp.playerName].win += p.result ? 1 : 0;
+          friends[pp.playerName].lose += p.result ? 0 : 1;
+        }
+      }
+
       t_kill = user.t_kill + p.kda.kills;
       t_death = user.t_death + p.kda.deaths;
-      t_assist = user.t_assist + p.kda.assistances;
+      t_assist = user.t_assist + p.kda.assist;
       t_kill_rate =
         user.t_kill_rate +
-        Math.floor(p.kda.kills + p.kda.assistances / match.blueTeam.totalKill);
+        Math.floor(p.kda.kills + p.kda.assist / match.blueTeam.totalKill);
 
       [result] = await promisePool.query(updateSql, [
         mmr,
@@ -106,9 +143,9 @@ const updateUserData = async (match) => {
         lose,
         penta,
         quadra,
-        champions,
-        lanes,
-        friends,
+        JSON.stringify(champions),
+        JSON.stringify(lanes),
+        JSON.stringify(friends),
         t_kill,
         t_death,
         t_assist,

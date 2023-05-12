@@ -130,12 +130,12 @@ const getMMR = (player, teamScore) => {
   const isOverDeath = player.kda.kills < player.kda.deaths;
 
   const killValue = isOverDeath ? player.kda.kills * 0.75 : player.kda.kills;
-  const assistValue = player.kda.assistances * 0.5;
+  const assistValue = player.kda.assist * 0.5;
   let mmr = Math.floor(
     Math.max(
       0.2,
       ((killValue + assistValue) / player.kda.deaths / 10).toFixed(2) *
-        ((player.kda.kills + player.kda.assistances) / teamScore).toFixed(2)
+        ((player.kda.kills + player.kda.assist) / teamScore).toFixed(2)
     ) * 50
   );
 

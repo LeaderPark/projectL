@@ -3,12 +3,12 @@ class Kda {
    *
    * @param {int} kills
    * @param {int} deaths
-   * @param {int} assistances
+   * @param {int} assist
    */
-  constructor(kills, deaths, assistances) {
+  constructor(kills, deaths, assist) {
     this.kills = kills;
     this.deaths = deaths;
-    this.assistances = assistances;
+    this.assist = assist;
   }
 }
 

@@ -19,6 +19,10 @@ class Player {
    * @param {Inventory} inventory
    * @param {int} spell1
    * @param {int} spell2
+   * @param {int} visionWard
+   * @param {String} puuid
+   * @param {int} penta
+   * @param {int} quadra
    */
   constructor(
     playerName,
@@ -35,7 +39,9 @@ class Player {
     spell1,
     spell2,
     visionWard,
-    puuid
+    puuid,
+    penta,
+    quadra
   ) {
     this.playerName = playerName;
     this.playerId = playerId;
@@ -58,6 +64,11 @@ class Player {
     this.kda = kda;
     this.inventory = inventory;
     this.puuid = puuid;
+
+    this.pentaKill = penta;
+    this.quadraKill = quadra;
+
+    this.mmr = 0;
   }
 }
 

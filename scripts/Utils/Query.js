@@ -79,8 +79,26 @@ const updateUserData = async (match) => {
 
       if (result.length <= 0) {
         notRegistUser.push(p.playerName);
+        continue;
       }
       user = result[0];
+      mmr = user.mmr + p.mmr;
+      win = user.win + (p.win === "Win" ? 1 : 0);
+      lose = user.lose + (p.win === "Win" ? 0 : 1);
+
+      penta = user.penta + p.pentaKill;
+      quadra = user.quadra + p.quadraKill;
+
+      champions = JSON.parse(user.champions);
+      lanes = JSON.parse(user.lanes);
+      friends = JSON.parse(user.friends);
+
+      t_kill = user.t_kill + p.kda.kills;
+      t_death = user.t_death + p.kda.deaths;
+      t_assist = user.t_assist + p.kda.assistances;
+      t_kill_rate =
+        user.t_kill_rate +
+        Math.floor(p.kda.kills + p.kda.assistances / match.blueTeam.totalKill);
     }
     return { success: true, notRegistUser: notRegistUser };
   } catch (e) {

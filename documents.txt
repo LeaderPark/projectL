@@ -36,7 +36,7 @@ A = 0.5
 K > D = K = 1
 K <= D = K = 0.75
 
-ALL = ((K + A) / KILLS) / 100
+ALL = ((K + A) / KILLS)
 
 WIN : ((((K + A) / D) / 10) * ALL) * WIN_VALUE
 

@@ -159,8 +159,21 @@ const updateUserData = async (match) => {
   }
 };
 
+const getRankData = async () => {
+  try {
+    let sql = `SELECT discord_id, name FROM user ORDER BY mmr DESC, name ASC`;
+
+    let [result] = await promisePool.query(sql);
+
+    return { success: true, data: result };
+  } catch (e) {
+    return { success: false, msg: e.message };
+  }
+};
+
 module.exports = {
   registraion,
   insertMatchData,
   updateUserData,
+  getRankData,
 };

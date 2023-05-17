@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("@discordjs/builders");
+const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getUserData } = require("../../scripts/Utils/Query");
 
 module.exports = {
@@ -53,6 +53,36 @@ module.exports = {
 
     let team1Members = [];
     let team2Members = [];
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("내전 팀 분배")
+      .setAuthor({
+        name: `${addOption}팀 분배 결과`,
+      })
+      .setDescription(
+        `${channel.name}에 있는 유저들을 ${team1.name}, ${team2.name}로 이동시켰습니다!`
+      )
+      .setFields(
+        {
+          name: `블루팀 - ${team1.name}`,
+          value: "왼쪽",
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: true,
+        },
+        {
+          name: `퍼플팀 - ${team2.name}`,
+          value: "오른쪽",
+          inline: true,
+        }
+      )
+      .setTimestamp()
+      .setFooter({
+        text: "만든이 - 천재개발자환주님, 진우",
+      });
 
     switch (addOption) {
       case "RANDOM":
@@ -72,15 +102,36 @@ module.exports = {
         let team1MMR = 0;
         let team2MMR = 0;
         for (let i = 0; i < users.data.length; i++) {
-          console.log(users.data[i].mmr)
-          if (team1MMR > team2MMR) {
+          if (team1MMR > team2MMR || team1Members.length >= 5) {
             team2MMR = team2MMR + users.data[i].mmr;
-            const a = members.find((x) => x.value.user.id === users.data[i].discord_id)
+            const a = members.find(
+              (x) => x.value.user.id === users.data[i].discord_id
+            );
             team2Members.push(a);
+            embed.setFields({
+              name: `소환사${i + 1}`,
+              value: `${users.data[i].name}`,
+              inline: true,
+            });
           } else {
             team1MMR = team1MMR + users.data[i].mmr;
-            const a = members.find((x) => x.value.user.id === users.data[i].discord_id)
+            const a = members.find(
+              (x) => x.value.user.id === users.data[i].discord_id
+            );
             team1Members.push(a);
+            embed.setFields({
+              name: `소환사${i + 1}`,
+              value: `${users.data[i].name}`,
+              inline: true,
+            });
+          }
+
+          if (i % 2 == 0) {
+            embed.setFields({
+              name: "\u200b",
+              value: "\u200b",
+              inline: true,
+            });
           }
         }
         break;
@@ -99,50 +150,6 @@ module.exports = {
       await member.value.voice.setChannel(team2);
     }
 
-    const embed = {
-      color: 0x0099ff,
-      setTitle: "내전 팀 분배",
-      author: {
-        name: `${addOption}팀 분배 결과`,
-      },
-      description: `${channel.name}에 있는 유저들을 ${team1.name}, ${team2.name}로 이동시켰습니다!`,
-      fields: [
-        {
-          name: `블루팀 - ${team1.name}`,
-          value: "왼쪽",
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: `퍼플팀 - ${team2.name}`,
-          value: "오른쪽",
-          inline: true,
-        },
-        {
-          name: "소환사1",
-          value: `소환사 이름 들어갈 자리`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: "소환사2",
-          value: `소환사 이름 들어갈 자리`,
-          inline: true,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "만든이 - 천재개발자환주님, 진우",
-      },
-    };
     await interaction.reply({ embeds: [embed] });
   },
 };

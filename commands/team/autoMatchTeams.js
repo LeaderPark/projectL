@@ -92,7 +92,7 @@ module.exports = {
           embed.addFields(
             {
               name: `소환사${i + 1}`,
-              value: `${team1Members[i].value.user.username}`,
+              value: `${team1Members[i].user.username}`,
               inline: true,
             },
             {
@@ -102,7 +102,7 @@ module.exports = {
             },
             {
               name: `소환사${2 * i + 2}`,
-              value: `${team2Members[i].value.user.username}`,
+              value: `${team2Members[i].user.username}`,
               inline: true,
             }
           );
@@ -143,11 +143,11 @@ module.exports = {
     }
 
     for (const member of team1Members) {
-      await member.value.voice.setChannel(team1);
+      await member.voice.setChannel(team1);
     }
 
     for (const member of team2Members) {
-      await member.value.voice.setChannel(team2);
+      await member.voice.setChannel(team2);
     }
 
     await interaction.reply({ embeds: [embed] });

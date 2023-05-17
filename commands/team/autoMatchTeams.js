@@ -62,7 +62,7 @@ module.exports = {
       .setDescription(
         `${channel.name}에 있는 유저들을 ${team1.name}, ${team2.name}로 이동시켰습니다!`
       )
-      .setFields(
+      .addFields(
         {
           name: `블루팀 - ${team1.name}`,
           value: "왼쪽",
@@ -108,9 +108,9 @@ module.exports = {
               (x) => x.value.user.id === users.data[i].discord_id
             );
             team2Members.push(a);
-            embed.setFields({
+            embed.addFields({
               name: `소환사${i + 1}`,
-              value: `${users.data[i].name}`,
+              value: `${users.data[i].name} - ${users.data[i].mmr}`,
               inline: true,
             });
           } else {
@@ -119,15 +119,15 @@ module.exports = {
               (x) => x.value.user.id === users.data[i].discord_id
             );
             team1Members.push(a);
-            embed.setFields({
+            embed.addFields({
               name: `소환사${i + 1}`,
-              value: `${users.data[i].name}`,
+              value: `${users.data[i].name} - ${users.data[i].mmr}`,
               inline: true,
             });
           }
 
           if (i % 2 == 0) {
-            embed.setFields({
+            embed.addFields({
               name: "\u200b",
               value: "\u200b",
               inline: true,

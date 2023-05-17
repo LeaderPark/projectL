@@ -34,10 +34,7 @@ module.exports = {
       });
     }
 
-    const memberMap = channel.members;
-    const members = Array.from(memberMap, function (entry) {
-      return { key: entry[0], value: entry[1] };
-    });
+    const members = Array.from(channel.members.values());
 
     // if (members.length < 10) {
     //   return await interaction.reply({
@@ -87,11 +84,9 @@ module.exports = {
     switch (addOption) {
       case "RANDOM":
         const shuffled = members.sort(() => 0.5 - Math.random());
-        team1Members = shuffled.slice(0, Math.ceil(shuffled.length / 2));
-        team2Members = shuffled.slice(
-          Math.ceil(shuffled.length / 2),
-          shuffled.length
-        );
+        const midIndex = Math.ceil(shuffled.length / 2);
+        team1Members = shuffled.slice(0, midIndex);
+        team2Members = shuffled.slice(midIndex);
 
         for (let i = 0; i < team1Members.length; i++) {
           embed.addFields(
@@ -106,7 +101,7 @@ module.exports = {
               inline: true,
             },
             {
-              name: `소환사${(2 * i) + 2}`,
+              name: `소환사${2 * i + 2}`,
               value: `${team2Members[i].value.user.username}`,
               inline: true,
             }
@@ -114,38 +109,23 @@ module.exports = {
         }
         break;
       case "MMR":
-        let userId = [];
-        for (let i = 0; i < members.length; i++) {
-          userId.push(members[i].value.user.id);
-        }
-        const users = await getUserData(userId);
+        const userIds = members.map((member) => member.user.id);
+        const users = await getUserData(userIds);
         let team1MMR = 0;
         let team2MMR = 0;
         for (let i = 0; i < users.data.length; i++) {
+          const user = users.data[i];
+          const member = members.find((x) => x.user.id === user.discord_id);
+          const fieldName = `Summoner${i + 1}`;
+          const fieldValue = `${user.name} - ${user.mmr}`;
           if (team1MMR > team2MMR || team1Members.length >= 5) {
-            team2MMR = team2MMR + users.data[i].mmr;
-            const a = members.find(
-              (x) => x.value.user.id === users.data[i].discord_id
-            );
-            team2Members.push(a);
-            embed.addFields({
-              name: `소환사${i + 1}`,
-              value: `${users.data[i].name} - ${users.data[i].mmr}`,
-              inline: true,
-            });
+            team2MMR += user.mmr;
+            team2Members.push(member);
           } else {
-            team1MMR = team1MMR + users.data[i].mmr;
-            const a = members.find(
-              (x) => x.value.user.id === users.data[i].discord_id
-            );
-            team1Members.push(a);
-            embed.addFields({
-              name: `소환사${i + 1}`,
-              value: `${users.data[i].name} - ${users.data[i].mmr}`,
-              inline: true,
-            });
+            team1MMR += user.mmr;
+            team1Members.push(member);
           }
-
+          embed.addFields({ name: fieldName, value: fieldValue, inline: true });
           if (i % 2 == 0) {
             embed.addFields({
               name: "\u200b",

@@ -97,7 +97,7 @@ module.exports = {
           embed.addFields(
             {
               name: `소환사${i + 1}`,
-              value: `${team1Members[i].value.user.name}`,
+              value: `${team1Members[i].value.user.username}`,
               inline: true,
             },
             {
@@ -106,8 +106,8 @@ module.exports = {
               inline: true,
             },
             {
-              name: `소환사${(i + 1) * 2}`,
-              value: `${team1Members[i].value.user.name}`,
+              name: `소환사${(2 * i) + 2}`,
+              value: `${team2Members[i].value.user.username}`,
               inline: true,
             }
           );

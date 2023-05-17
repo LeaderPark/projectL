@@ -137,7 +137,7 @@ module.exports = {
         embed.addFields(
           {
             name: `팀 평균 MMR`,
-            value: `${team2MMR / (team2Members.length + 1)}`,
+            value: `${team1MMR / team1Members.length}`,
             inline: true,
           },
           {
@@ -147,7 +147,7 @@ module.exports = {
           },
           {
             name: `팀 평균 MMR`,
-            value: `${team1MMR / (team1Members.length + 1)}`,
+            value: `${team2MMR / team2Members.length}`,
             inline: true,
           }
         );

@@ -64,16 +64,26 @@ module.exports = {
         );
         break;
       case "MMR":
-        let team1MMR,
-          team2MMR = 0;
         let userId = [];
         for (let i = 0; i < members.length; i++) {
           userId.push(members[i].value.user.id);
         }
         const users = await getUserData(userId);
-        console.log(users.data);
-        if (team1MMR > team2MMR) {
-        } else {
+        let team1MMR,
+          team2MMR = 0;
+
+        for (let i = 0; i < users.length; i++) {
+          if (team1MMR > team2MMR || team1Members.length >= 5) {
+            team2MMR += users[i].mmr;
+            team2Members.push(
+              members.find((x) => x.value.user.id === users[i].discord_id)
+            );
+          } else {
+            team1MMR += users[i].mmr;
+            team1Members.push(
+              members.find((x) => x.value.user.id === users[i].discord_id)
+            );
+          }
         }
         break;
       default:

@@ -92,6 +92,26 @@ module.exports = {
           Math.ceil(shuffled.length / 2),
           shuffled.length
         );
+
+        for (let i = 0; i < team1Members.length; i++) {
+          embed.addFields(
+            {
+              name: `소환사${i + 1}`,
+              value: `${team1Members[i].value.user.name}`,
+              inline: true,
+            },
+            {
+              name: "\u200b",
+              value: "\u200b",
+              inline: true,
+            },
+            {
+              name: `소환사${(i + 1) * 2}`,
+              value: `${team1Members[i].value.user.name}`,
+              inline: true,
+            }
+          );
+        }
         break;
       case "MMR":
         let userId = [];

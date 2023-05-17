@@ -134,6 +134,23 @@ module.exports = {
             });
           }
         }
+        embed.addFields(
+          {
+            name: `팀 평균 MMR`,
+            value: `${team2MMR / (team2Members.length + 1)}`,
+            inline: true,
+          },
+          {
+            name: "\u200b",
+            value: "\u200b",
+            inline: true,
+          },
+          {
+            name: `팀 평균 MMR`,
+            value: `${team1MMR / (team1Members.length + 1)}`,
+            inline: true,
+          }
+        );
         break;
       default:
         return await interaction.reply({

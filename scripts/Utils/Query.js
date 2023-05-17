@@ -72,7 +72,9 @@ const updateUserData = async (match) => {
       t_death,
       t_assist,
       t_kill_rate;
-    for await (let p of match.blueTeam.players) {
+
+    const players = [...match.blueTeam.players, ...match.purpleTeam.players];
+    for await (let p of players) {
       [result] = await promisePool.query(sql, [p.playerName]);
       if (result.length <= 0) {
         notRegistUser.push(p.playerName);

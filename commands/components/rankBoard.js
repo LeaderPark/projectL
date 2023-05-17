@@ -35,7 +35,11 @@ module.exports = {
         inline: false,
       });
     }
-
+    embed.addFields({
+      name: "\u200b",
+      value: "\u200b",
+      inline: true,
+    });
     await interaction.editReply({ embeds: [embed] });
   },
 };

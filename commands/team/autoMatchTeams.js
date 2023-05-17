@@ -90,7 +90,7 @@ module.exports = {
           embed.addFields(
             {
               name: `소환사${i + 1}`,
-              value: `${team1Members[i].user.username}`,
+              value: `${team1Members[i].user} `,
               inline: true,
             },
             {
@@ -100,7 +100,7 @@ module.exports = {
             },
             {
               name: `소환사${2 * i + 2}`,
-              value: `${team2Members[i].user.username}`,
+              value: `${team2Members[i].user}`,
               inline: true,
             }
           );
@@ -115,7 +115,7 @@ module.exports = {
           const user = users.data[i];
           const member = members.find((x) => x.user.id === user.discord_id);
           const fieldName = `소환사${i + 1}`;
-          const fieldValue = `${user.name} - ${user.mmr}`;
+          const fieldValue = `${user.name} - ${member}`;
           if (team1MMR > team2MMR || team1Members.length >= 5) {
             team2MMR += user.mmr;
             team2Members.push(member);

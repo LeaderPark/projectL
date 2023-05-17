@@ -36,15 +36,13 @@ module.exports = {
 
     const members = Array.from(channel.members.values());
 
-    // if (members.length < 10) {
-    //   return await interaction.reply({
-    //     content: "음성채팅방에 10명의 유저가 필요합니다!",
-    //   });
-    // }
-
-    if (members.length > 10) {
+    if (members.length < 10) {
       return await interaction.reply({
-        content: "음성채팅방에 10명이상의 유저가 존재합니다.",
+        content: "음성채팅방에 10명의 유저가 필요합니다!",
+      });
+    } else if (members.length > 10) {
+      return await interaction.reply({
+        content: "음성채팅방에 유저가 10명보다 많습니다.",
       });
     }
 

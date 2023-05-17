@@ -103,9 +103,9 @@ const getPlayers = (statsList) => {
         ),
         Lane[Number(stats["PLAYER_POSITION"])],
         Number(stats["MINIONS_KILLED"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
+          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),

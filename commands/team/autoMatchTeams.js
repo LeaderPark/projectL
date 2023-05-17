@@ -1,4 +1,6 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
+const { getUserData } = require("../../scripts/Utils/Query");
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("내전")
@@ -11,8 +13,8 @@ module.exports = {
         .setDescription("추가 옵션을 지정해주세요.")
         .setRequired(true)
         .addChoices(
-          { name: "무작위", value: "RANDOM" },
-          { name: "MMR", value: "MMR" }
+          { name: "MMR", value: "MMR" },
+          { name: "무작위", value: "RANDOM" }
         )
     ),
   async execute(interaction) {
@@ -37,29 +39,48 @@ module.exports = {
       return { key: entry[0], value: entry[1] };
     });
 
-    if (members.length < 10) {
+    // if (members.length < 10) {
+    //   return await interaction.reply({
+    //     content: "음성채팅방에 10명의 유저가 필요합니다!",
+    //   });
+    // }
+
+    if (members.length > 10) {
       return await interaction.reply({
-        content: "음성채팅방에 10명의 유저가 필요합니다!",
+        content: "음성채팅방에 10명이상의 유저가 존재합니다.",
       });
     }
 
     let team1Members = [];
     let team2Members = [];
 
-    if (addOption === "RANDOM") {
-      const shuffled = members.sort(() => 0.5 - Math.random());
-      team1Members = shuffled.slice(0, Math.ceil(shuffled.length / 2));
-      team2Members = shuffled.slice(
-        Math.ceil(shuffled.length / 2),
-        shuffled.length
-      );
-    } else if (addOption === "MMR") {
-      //팀짜기 로직
-    } else {
-      return await interaction.reply({
-        content: "해당하는 옵션이 없습니다.",
-        ephemeral: true,
-      });
+    switch (addOption) {
+      case "RANDOM":
+        const shuffled = members.sort(() => 0.5 - Math.random());
+        team1Members = shuffled.slice(0, Math.ceil(shuffled.length / 2));
+        team2Members = shuffled.slice(
+          Math.ceil(shuffled.length / 2),
+          shuffled.length
+        );
+        break;
+      case "MMR":
+        let team1MMR,
+          team2MMR = 0;
+        let userId = [];
+        for (let i = 0; i < members.length; i++) {
+          userId.push(members[i].value.user.id);
+        }
+        const users = await getUserData(userId);
+        console.log(users.data);
+        if (team1MMR > team2MMR) {
+        } else {
+        }
+        break;
+      default:
+        return await interaction.reply({
+          content: "해당하는 옵션이 없습니다.",
+          ephemeral: true,
+        });
     }
 
     for (const member of team1Members) {

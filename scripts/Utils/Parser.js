@@ -9,7 +9,6 @@ const Team = require("../VO/team");
 
 const Lane = require("../enum/Lane");
 const Side = require("../enum/Side");
-
 const downloadFile = (path, filePath) => {
   return new Promise((resolve, reject) => {
     let data = "";
@@ -124,27 +123,26 @@ const getPlayers = (statsList) => {
 /**
  *
  * @param {Player} player
- * @param {int} teamScore
+ * @param {Number} time
  */
-const getMMR = (player, teamScore) => {
+const getMMR = (player, time) => {
+  const time = new Date(time).getMinutes();
   const isOverDeath = player.kda.kills < player.kda.deaths;
-
-  const killValue = isOverDeath ? player.kda.kills * 0.75 : player.kda.kills;
-  const assistValue = player.kda.assist * 0.5;
-  let mmr = Math.floor(
-    Math.max(
-      0.2,
-      ((killValue + assistValue) / player.kda.deaths / 10).toFixed(2) *
-        ((player.kda.kills + player.kda.assist) / teamScore).toFixed(2)
-    ) * 50
-  );
+  const killValue = isOverDeath
+    ? (player.kda.kills * 0.75) / time
+    : player.kda.kills / time;
+  const assistValue = player.kda.assist / time;
+  const deathValue = player.kda.deaths / time;
+  const deathMinus = 1; //깍을 비율
+  const maxMMR = 100;
+  const mmr =
+    Math.min((killValue + assistValue) / 2, 1) / (deathMinus * deathValue + 1);
 
   if (player.win === "Win") {
-    return mmr;
+    return Math.ceil(mmr * maxMMR);
   }
-
-  mmr = Math.floor((mmr / 50) * 5);
-  return -mmr;
+  const lose = 1 - 1 / ((mmr - 1) ** 2 + 1);
+  return -Math.floor(lose * maxMMR);
 };
 
 /**
@@ -153,13 +151,13 @@ const getMMR = (player, teamScore) => {
  * @param {Player[]} players
  * @returns
  */
-const getTeam = (side, players) => {
+const getTeam = (side, players, time) => {
   const playerList = players.filter((x) => x.team === side);
   let totalKill = 0;
   playerList.forEach((p) => (totalKill += p.kda.kills));
 
   for (let key in playerList) {
-    playerList[key].mmr = getMMR(playerList[key], totalKill);
+    playerList[key].mmr = getMMR(playerList[key], time);
   }
   return new Team(playerList[0].result, side, playerList, totalKill);
 };
@@ -175,8 +173,8 @@ const getMatchData = async (path, name) => {
 
     const gameLength = Number(matchData.gameLength);
     const gameVersion = matchData.gameVersion;
-    const purpleTeam = getTeam(Side.PURPLE, players);
-    const blueTeam = getTeam(Side.BLUE, players);
+    const purpleTeam = getTeam(Side.PURPLE, players, gameLength);
+    const blueTeam = getTeam(Side.BLUE, players, gameLength);
 
     return new Match(gameLength, purpleTeam, blueTeam);
   } catch (err) {

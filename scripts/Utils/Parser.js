@@ -103,9 +103,9 @@ const getPlayers = (statsList) => {
         ),
         Lane[Number(stats["PLAYER_POSITION"])],
         Number(stats["MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
+        Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
@@ -125,8 +125,8 @@ const getPlayers = (statsList) => {
  * @param {Player} player
  * @param {Number} time
  */
-const getMMR = (player, time) => {
-  const time = new Date(time).getMinutes();
+const getMMR = (player, gameLength) => {
+  const time = new Date(gameLength).getMinutes();
   const isOverDeath = player.kda.kills < player.kda.deaths;
   const killValue = isOverDeath
     ? (player.kda.kills * 0.75) / time

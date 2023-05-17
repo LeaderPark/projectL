@@ -11,12 +11,12 @@ module.exports = {
     .setDescription("리플레이 파일을 업로드해 정보를 등록하세요!")
     .addAttachmentOption((option) =>
       option
-        .setName("리플레이 파일")
-        .setDescription(".rofl 파일을 넣어주세요.")
+        .setName("replay")
+        .setDescription("upload .rofl file")
         .setRequired(true)
     ),
   async execute(interaction) {
-    const file = interaction.options.getAttachment("리플레이 파일");
+    const file = interaction.options.getAttachment("replay");
     const subIndex = file.name.length - 5;
     const fileName = file.name.slice(0, subIndex);
     const extension = file.name.slice(file.name.length - 5);

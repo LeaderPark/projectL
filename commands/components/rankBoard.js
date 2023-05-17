@@ -15,6 +15,11 @@ module.exports = {
       .setDescription(
         `등록되어 있는 소환사 ${result.data.length}명의 랭킹을 볼 수 있어요`
       )
+      .addFields({
+        name: "\u200b",
+        value: "\u200b",
+        inline: true,
+      })
       .setTimestamp()
       .setFooter({
         text: "만든놈 - 환주, 진우",

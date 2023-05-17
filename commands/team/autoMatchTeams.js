@@ -116,7 +116,7 @@ module.exports = {
         for (let i = 0; i < users.data.length; i++) {
           const user = users.data[i];
           const member = members.find((x) => x.user.id === user.discord_id);
-          const fieldName = `Summoner${i + 1}`;
+          const fieldName = `소환사${i + 1}`;
           const fieldValue = `${user.name} - ${user.mmr}`;
           if (team1MMR > team2MMR || team1Members.length >= 5) {
             team2MMR += user.mmr;

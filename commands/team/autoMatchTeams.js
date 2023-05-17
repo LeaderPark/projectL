@@ -76,7 +76,7 @@ module.exports = {
       )
       .setTimestamp()
       .setFooter({
-        text: "만든이 - 천재개발자환주님, 진우",
+        text: "만든놈 - 환주, 진우",
       });
 
     switch (addOption) {

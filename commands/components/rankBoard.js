@@ -17,7 +17,7 @@ module.exports = {
       )
       .setTimestamp()
       .setFooter({
-        text: "만든이 - 환주, 진우",
+        text: "만든놈 - 환주, 진우",
       });
     if (!result.success) {
       return await interaction.editReply(result.msg);

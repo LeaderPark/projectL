@@ -31,8 +31,7 @@ module.exports = {
     for (let i = 0; i < result.data.length; i++) {
       embed.addFields({
         name: `#${i}`,
-        // value: `${result.data[i].name}`,
-        value: `<@${result.data[i].discord_id}>`,
+        value: `${result.data[i].name}`,
         inline: false,
       });
     }

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { getRankData } = require("../../scripts/Utils/Query");
 
 module.exports = {
@@ -9,16 +9,28 @@ module.exports = {
     await interaction.deferReply("searching...");
 
     const result = await getRankData();
-
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("랭킹")
+      .setDescription(
+        `등록되어 있는 소환사 ${result.data.length}명의 랭킹을 볼 수 있어요`
+      )
+      .setTimestamp()
+      .setFooter({
+        text: "만든이 - 환주, 진우",
+      });
     if (!result.success) {
       return await interaction.editReply(result.msg);
     }
 
-    for (let user of result.data) {
-      console.log(user.discord_id, user.name);
-      //`<@${user.discord_id}>`
+    for (let i = 0; i < result.data.length; i++) {
+      embed.addFields({
+        name: `#${i}`,
+        value: `${result.data[i].name}`,
+        inline: false,
+      });
     }
 
-    await interaction.editReply("랭킹시스템");
+    await interaction.editReply({ embeds: [embed] });
   },
 };

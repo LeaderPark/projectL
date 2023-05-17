@@ -29,9 +29,12 @@ module.exports = {
     }
 
     for (let i = 0; i < result.data.length; i++) {
+      const user = await interaction.guild.members.fetch(
+        result.data[i].discord_id
+      );
       embed.addFields({
         name: `#${i}`,
-        value: `${result.data[i].name}`,
+        value: `${result.data[i].name} - ${user}`,
         inline: false,
       });
     }

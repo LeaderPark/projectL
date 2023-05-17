@@ -69,20 +69,18 @@ module.exports = {
           userId.push(members[i].value.user.id);
         }
         const users = await getUserData(userId);
-        let team1MMR,
-          team2MMR = 0;
-
-        for (let i = 0; i < users.length; i++) {
-          if (team1MMR > team2MMR || team1Members.length >= 5) {
-            team2MMR += users[i].mmr;
-            team2Members.push(
-              members.find((x) => x.value.user.id === users[i].discord_id)
-            );
+        let team1MMR = 0;
+        let team2MMR = 0;
+        for (let i = 0; i < users.data.length; i++) {
+          console.log(users.data[i].mmr)
+          if (team1MMR > team2MMR) {
+            team2MMR = team2MMR + users.data[i].mmr;
+            const a = members.find((x) => x.value.user.id === users.data[i].discord_id)
+            team2Members.push(a);
           } else {
-            team1MMR += users[i].mmr;
-            team1Members.push(
-              members.find((x) => x.value.user.id === users[i].discord_id)
-            );
+            team1MMR = team1MMR + users.data[i].mmr;
+            const a = members.find((x) => x.value.user.id === users.data[i].discord_id)
+            team1Members.push(a);
           }
         }
         break;

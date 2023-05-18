@@ -45,13 +45,13 @@ const getReplayData = async (path, name) => {
     }
   });
 
-  const decoded = fs
-    .readFileSync(filePath, "utf8")
+  const aa = fs
+    .readFileSync(filePath, "binary")
     .toString()
     .split("\n")
     .slice(0, 20)
     .join("");
-
+  const decoded = Buffer.from(aa, "binary").toString("utf8");
   const startIndex = decoded.indexOf('{"gameLength"');
   const endIndex = decoded.indexOf(']"}');
 

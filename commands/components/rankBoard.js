@@ -33,7 +33,7 @@ module.exports = {
         result.data[i].discord_id
       );
       embed.addFields({
-        name: `#${i}`,
+        name: `#${i + 1}`,
         value: `${result.data[i].name} - ${user}`,
         inline: false,
       });

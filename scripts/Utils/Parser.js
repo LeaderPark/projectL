@@ -6,6 +6,8 @@ const Kda = require("../VO/kda");
 const Match = require("../VO/match");
 const Player = require("../VO/player");
 const Team = require("../VO/team");
+const { TextDecoder } = require('util');
+const decoder = new TextDecoder('utf-8');
 
 const Lane = require("../enum/Lane");
 const Side = require("../enum/Side");
@@ -45,14 +47,11 @@ const getReplayData = async (path, name) => {
     }
   });
 
-  const aa = fs
-    .readFileSync(filePath, "binary")
-    .toString()
-    .split("\n")
-    .slice(0, 20)
-    .join("");
-  const decoded = Buffer.from(aa, "binary").toString("utf8");
-  const startIndex = decoded.indexOf('{"gameLength"');
+  const fileContent = fs.readFileSync(filePath);
+  const decoded = decoder.decode(fileContent).replace(/\uFFFD/g, '냄');
+  const lines = decoded.split("\n").slice(0, 20).join("");
+
+  const startIndex = lines.indexOf('{"gameLength"');
   const endIndex = decoded.indexOf(']"}');
 
   if (startIndex <= -1 || endIndex <= -1) {
@@ -103,9 +102,9 @@ const getPlayers = (statsList) => {
         ),
         Lane[Number(stats["PLAYER_POSITION"])],
         Number(stats["MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
+        Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),

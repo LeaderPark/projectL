@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
-const { getUserData } = require("../../scripts/Utils/Query");
+const { getUsersData } = require("../../scripts/Utils/Query");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -108,7 +108,7 @@ module.exports = {
         break;
       case "MMR":
         const userIds = members.map((member) => member.user.id);
-        const users = await getUserData(userIds);
+        const users = await getUsersData(userIds);
         let team1MMR = 0;
         let team2MMR = 0;
         for (let i = 0; i < users.data.length; i++) {
@@ -156,7 +156,7 @@ module.exports = {
           ephemeral: true,
         });
     }
-
+    await interaction.deferReply("moving...");
     for (const member of team1Members) {
       await member.voice.setChannel(team1);
     }
@@ -165,6 +165,6 @@ module.exports = {
       await member.voice.setChannel(team2);
     }
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };

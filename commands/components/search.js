@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, inlineCode } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
 
 module.exports = {
@@ -17,8 +17,44 @@ module.exports = {
 
     const user = interaction.options.getUser("검색할소환사") || interactionUser;
     if (user.bot) return await interaction.reply(`봇 말고 소환사를 넣으라고`);
-    const userData = await getUserData(user.id);
+    const result = await getUserData(user.id);
+    if (!result.success) return await interaction.reply(`오류가 발생했습니다.`);
+    const userData = result.data[0];
     console.log(userData);
-    await interaction.reply("/검색 (닉네임)");
+    const totalPlay = (userData.win + userData.lose)
+    const winRate = Math.floor((userData.win / totalPlay) * 100);
+    const totalKill = (userData.t_kill / totalPlay).toFixed(1);
+    const totalDeath = (userData.t_death / totalPlay).toFixed(1);
+    const totalAssist = (userData.t_assist / totalPlay).toFixed(1);
+    const deathtoKillAssist = ((Number(totalKill) + Number(totalAssist)) / Number(totalDeath)).toFixed(2);
+    const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
+
+
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle(`${userData.name}님의 데이터`)
+      .addFields(
+        {
+          name: `TOTAL`,
+          value: `승률 ${winRate}%`,
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: `K/D/A ${totalKill}/${totalDeath}/${totalAssist} || ${deathtoKillAssist}:1`,
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: `킬관여 ${totalKillRate}%`,
+          inline: true,
+        },
+      )
+      .setTimestamp()
+      .setFooter({
+        text: "만든놈 - 환주, 진우",
+      });
+
+    await interaction.reply({ embeds: [embed] });
   },
 };

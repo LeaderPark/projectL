@@ -128,14 +128,12 @@ const updateUserData = async (match) => {
       {
         if (!lanes[p.lane]) {
           lanes[p.lane] = {
-            kills: 0,
-            deaths: 0,
-            assist: 0,
+            win: 0,
+            lose: 0,
           };
         }
-        lanes[p.lane].kills += p.kda.kills;
-        lanes[p.lane].deaths += p.kda.deaths;
-        lanes[p.lane].assist += p.kda.assist;
+        lanes[p.lane].win += p.result ? 1 : 0;
+        lanes[p.lane].lose += p.result ? 0 : 1;
       }
       //friends update
       {

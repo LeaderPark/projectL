@@ -43,6 +43,27 @@ const insertMatchData = async (match, name) => {
       JSON.stringify(match.blueTeam),
     ]);
 
+    const match_id = result.insertId;
+    const playerNames = [
+      ...match.blueTeam.players,
+      ...match.purpleTeam.players,
+    ].map((x) => x.playerName);
+
+    let sql2 = `SELECT discord_id from user where name IN (?,?,?,?,?,?,?,?,?,?)`;
+    let [result2] = await promisePool.query(sql2, [...playerNames]);
+
+    let sql3 = `INSERT INTO match_in_users (match_id, user_id) VALUES `;
+
+    for (let i = 0; i < result2.length; i++) {
+      const playerId = result2[i].discord_id;
+      sql3 +=
+        i >= result2.length - 1
+          ? `(${match_id}, ${playerId})`
+          : `(${match_id}, ${playerId}), `;
+    }
+
+    let [result3] = await promisePool.query(sql3);
+
     return { success: true };
   } catch (e) {
     return { success: false, msg: e.message };

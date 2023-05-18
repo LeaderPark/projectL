@@ -5,8 +5,6 @@ module.exports = {
     .setName("정보")
     .setDescription("머글봇을 관음할 수 있어요."),
   async execute(interaction) {
-    await interaction.reply(
-      "멍청한 머글들을 위해 천재 마법사인 진우님이 친히 하사하신 물건"
-    );
+    await interaction.reply("머글들의 피난처 내전 봇 V1 \n 작명 도움 - 센즈");
   },
 };

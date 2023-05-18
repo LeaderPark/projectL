@@ -33,20 +33,21 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
       .setTitle(`${userData.name}님의 데이터`)
+      .setDescription(`**TOTAL - ${totalPlay} Play**`)
       .addFields(
         {
-          name: `TOTAL`,
-          value: `승률 ${winRate}%`,
+          name: `승률`,
+          value: `**${winRate}%**`,
           inline: true,
         },
         {
-          name: "\u200b",
-          value: `K/D/A ${totalKill}/${totalDeath}/${totalAssist} || ${deathtoKillAssist}:1`,
+          name: "K / D / A",
+          value: `**${totalKill}** / **${totalDeath}** / **${totalAssist}** || **${deathtoKillAssist}:1**`,
           inline: true,
         },
         {
-          name: "\u200b",
-          value: `킬관여 ${totalKillRate}%`,
+          name: "킬관여",
+          value: `**${totalKillRate}%**`,
           inline: true,
         },
       )

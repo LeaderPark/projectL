@@ -208,7 +208,7 @@ const getUsersData = async (ids) => {
 
 const getUserData = async (id) => {
   try {
-    let sql = `SELECT discord_id, name, mmr  FROM user where discord_id IN (?) ORDER BY mmr DESC, name ASC`;
+    let sql = `SELECT * FROM user where discord_id IN (?)`;
     let [result] = await promisePool.query(sql, [id]);
 
     return { success: true, data: result };

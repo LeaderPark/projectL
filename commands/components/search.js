@@ -34,6 +34,11 @@ module.exports = {
     }
 
     const userData = result.data[0];
+
+    if (userData.win + userData.lose <= 0) {
+      return await interaction.reply("등록된 정보가 없습니다.");
+    }
+
     const [totalPlay, winRate] = getData(userData.win, userData.lose)
     const [totalKill, totalDeath, totalAssist, deathtoKillAssist] = getKDA(userData.t_kill, userData.t_death, userData.t_assist, totalPlay)
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
@@ -237,7 +242,6 @@ const getKDA = (k, d, a, total) => {
   const death = d / total;
   const assist = a / total;
   const deathtoKillAssist = (kill + death) / assist;
-  console.log(kill, death, assist, deathtoKillAssist)
   return [kill.toFixed(1), death.toFixed(1), assist.toFixed(1), deathtoKillAssist.toFixed(2)]
 
 }

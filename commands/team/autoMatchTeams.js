@@ -48,6 +48,8 @@ module.exports = {
 
     let team1Members = [];
     let team2Members = [];
+    let team1MMR = 0;
+    let team2MMR = 0;
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
       .setTitle("내전 팀 분배")
@@ -85,7 +87,6 @@ module.exports = {
         const midIndex = Math.ceil(shuffled.length / 2);
         team1Members = shuffled.slice(0, midIndex);
         team2Members = shuffled.slice(midIndex);
-
         for (let i = 0; i < team1Members.length; i++) {
           embed.addFields(
             {
@@ -109,46 +110,17 @@ module.exports = {
       case "MMR":
         const userIds = members.map((member) => member.user.id);
         const users = await getUsersData(userIds);
-        let team1MMR = 0;
-        let team2MMR = 0;
         for (let i = 0; i < users.data.length; i++) {
           const user = users.data[i];
           const member = members.find((x) => x.user.id === user.discord_id);
-          const fieldName = `소환사${i + 1}`;
-          const fieldValue = `${user.name} - ${member}`;
           if (team1MMR > team2MMR || team1Members.length >= 5) {
             team2MMR += user.mmr;
-            team2Members.push(member);
+            team2Members.push({ member: member, user: user });
           } else {
             team1MMR += user.mmr;
-            team1Members.push(member);
-          }
-          embed.addFields({ name: fieldName, value: fieldValue, inline: true });
-          if (i % 2 == 0) {
-            embed.addFields({
-              name: "\u200b",
-              value: "\u200b",
-              inline: true,
-            });
+            team1Members.push({ member: member, user: user });
           }
         }
-        embed.addFields(
-          {
-            name: `팀 평균 MMR`,
-            value: `${team1MMR / team1Members.length}`,
-            inline: true,
-          },
-          {
-            name: "\u200b",
-            value: "\u200b",
-            inline: true,
-          },
-          {
-            name: `팀 평균 MMR`,
-            value: `${team2MMR / team2Members.length}`,
-            inline: true,
-          }
-        );
         break;
       default:
         return await interaction.reply({
@@ -157,13 +129,44 @@ module.exports = {
         });
     }
     await interaction.deferReply("moving...");
-    for (const member of team1Members) {
-      await member.voice.setChannel(team1);
+    for (let i = 0; i < team1Members.length; i++) {
+      const team1Member = team1Members[i];
+      const team2Member = team2Members[i];
+      embed.addFields({
+        name: `소환사${i + 1}`,
+        value: `${team1Member.user.name} - ${team1Member.member}`,
+        inline: true,
+      });
+      embed.addFields({
+        name: "\u200b",
+        value: "\u200b",
+        inline: true,
+      });
+      embed.addFields({
+        name: `소환사${2 * i + 2}`,
+        value: `${team2Member.user.name} - ${team2Member.member}`,
+        inline: true,
+      });
+      await team1Member.member.voice.setChannel(team1);
+      await team2Member.member.voice.setChannel(team2);
     }
-
-    for (const member of team2Members) {
-      await member.voice.setChannel(team2);
-    }
+    embed.addFields(
+      {
+        name: `팀 평균 MMR`,
+        value: `${team1MMR / team1Members.length}`,
+        inline: true,
+      },
+      {
+        name: "\u200b",
+        value: "\u200b",
+        inline: true,
+      },
+      {
+        name: `팀 평균 MMR`,
+        value: `${team2MMR / team2Members.length}`,
+        inline: true,
+      }
+    );
 
     await interaction.editReply({ embeds: [embed] });
   },

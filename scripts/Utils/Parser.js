@@ -6,8 +6,8 @@ const Kda = require("../VO/kda");
 const Match = require("../VO/match");
 const Player = require("../VO/player");
 const Team = require("../VO/team");
-const { TextDecoder } = require('util');
-const decoder = new TextDecoder('utf-8');
+const { TextDecoder } = require("util");
+const decoder = new TextDecoder("utf-8");
 
 const Lane = require("../enum/Lane");
 const Side = require("../enum/Side");
@@ -48,18 +48,18 @@ const getReplayData = async (path, name) => {
   });
 
   const fileContent = fs.readFileSync(filePath);
-  const decoded = decoder.decode(fileContent).replace(/\uFFFD/g, '냄');
+  const decoded = decoder.decode(fileContent).replace(/\uFFFD/g, "냄");
   const lines = decoded.split("\n").slice(0, 20).join("");
 
   const startIndex = lines.indexOf('{"gameLength"');
-  const endIndex = decoded.indexOf(']"}');
+  const endIndex = lines.indexOf(']"}');
 
   if (startIndex <= -1 || endIndex <= -1) {
     throw new Error("잘못 된 파일");
   }
 
   try {
-    const jsonStr = decoded.substring(startIndex, endIndex) + ']"}';
+    const jsonStr = lines.substring(startIndex, endIndex) + ']"}';
     return JSON.parse(jsonStr);
   } catch (err) {
     if (err instanceof SyntaxError) {

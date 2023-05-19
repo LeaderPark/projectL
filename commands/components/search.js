@@ -70,16 +70,19 @@ module.exports = {
     const bestFriendRate = Math.floor(friends[friendsKey[0]].win / (bestFriendTotal) * 100)
     const worstFriendRate = Math.floor(friends[friendsKey[friendsKey.length - 1]].win / (worstFriendTotal) * 100)
 
-    // const sortedCampions = Object.entries(JSON.parse(userData.sortedCampions)).sort(([, a], [, b]) => {
-    //   const sumA = (a.win / (a.win + a.lose)) * a.win;
-    //   const sumB = (b.win / (b.win + b.lose)) * b.win;
-    //   return sumB - sumA;
-    // });
-    // const campions = Object.fromEntries(sortedCampions);
-    // const campionsKey = Object.keys(campions);
-    // const campions1Total = campions[campionsKey[0]].win + campions[campionsKey[0]].lose;
-    // const campions2Total = campions[campionsKey[1]].win + campions[campionsKey[1]].lose;
-    // const campions3Total = campions[campionsKey[2]].win + campions[campionsKey[2]].lose;
+    const sortedCampions = Object.entries(JSON.parse(userData.sortedCampions)).sort(([, a], [, b]) => {
+      const sumA = ((a.win + a.lose));
+      const sumB = ((b.win + b.lose));
+      return sumB - sumA;
+    });
+    const campions = Object.fromEntries(sortedCampions);
+    const campionsKey = Object.keys(campions);
+    const [champions1Total, champions1TotalRate] = getData(campions[campionsKey[0]].win, campions[campionsKey[0]].lose);
+    const campions2Total = campions[campionsKey[1]].win + campions[campionsKey[1]].lose;
+    const campions3Total = campions[campionsKey[2]].win + campions[campionsKey[2]].lose;
+    const campions2Rate = Math.floor((campions[campionsKey[1]].win / campions1Total) * 100);
+    const campions3Rate = Math.floor((campions[campionsKey[2]].win / campions1Total) * 100);
+
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -140,7 +143,22 @@ module.exports = {
           name: `Worst Friend - ${worstFriendTotal} Play`,
           value: `**${friendsKey[friendsKey.length - 1]}** || **${worstFriendRate}%**`,
           inline: true,
-        }
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: false,
+        },
+        {
+          name: `Most Champion`,
+          value: "\u200b",
+          inline: false,
+        },
+        {
+          name: ``,
+          value: "\u200b",
+          inline: false,
+        },
       )
       .setTimestamp()
       .setFooter({
@@ -150,3 +168,8 @@ module.exports = {
     await interaction.reply({ embeds: [embed] });
   },
 };
+
+const getData = (win, lose) => {
+  const total = win + lose;
+  return [total, Math.floor((win / total) * 100)];
+}

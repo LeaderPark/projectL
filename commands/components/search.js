@@ -20,15 +20,17 @@ module.exports = {
     const result = await getUserData(user.id);
     if (!result.success) return await interaction.reply(`오류가 발생했습니다.`);
     const userData = result.data[0];
-    console.log(userData);
-    const totalPlay = (userData.win + userData.lose)
+    const totalPlay = userData.win + userData.lose;
     const winRate = Math.floor((userData.win / totalPlay) * 100);
     const totalKill = (userData.t_kill / totalPlay).toFixed(1);
     const totalDeath = (userData.t_death / totalPlay).toFixed(1);
     const totalAssist = (userData.t_assist / totalPlay).toFixed(1);
-    const deathtoKillAssist = ((Number(totalKill) + Number(totalAssist)) / Number(totalDeath)).toFixed(2);
+    const deathtoKillAssist = (
+      (Number(totalKill) + Number(totalAssist)) /
+      Number(totalDeath)
+    ).toFixed(2);
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
-
+    console.log(userData.lanes);
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -50,10 +52,15 @@ module.exports = {
           value: `**${totalKillRate}%**`,
           inline: true,
         },
+        {
+          name: "주라인",
+          value: `**${totalKillRate}%**`,
+          inline: true,
+        }
       )
       .setTimestamp()
       .setFooter({
-        text: "만든놈 - 환주, 진우",
+        text: "만든놈 - **환주**, **진우**",
       });
 
     await interaction.reply({ embeds: [embed] });

@@ -20,10 +20,10 @@ module.exports = {
   async execute(interaction) {
     const channel = interaction.member.voice.channel;
     const team1 = interaction.guild.channels.cache.find(
-      (x) => x.name === "Test1"
+      (x) => x.name === "TEAM BLUE"
     );
     const team2 = interaction.guild.channels.cache.find(
-      (x) => x.name === "Test2"
+      (x) => x.name === "TEAM PURPLE"
     );
     const addOption = interaction.options.getString("옵션");
 

@@ -117,11 +117,19 @@ const updateUserData = async (match) => {
       //champions update
       {
         if (!champions[p.championName]) {
-          champions[p.championName] = { kills: 0, deaths: 0, assist: 0 };
+          champions[p.championName] = {
+            kills: 0,
+            deaths: 0,
+            assist: 0,
+            win: 0,
+            lose: 0,
+          };
         }
         champions[p.championName].kills += p.kda.kills;
         champions[p.championName].deaths += p.kda.deaths;
         champions[p.championName].assist += p.kda.assist;
+        champions[p.championName].win += p.result ? 1 : 0;
+        champions[p.championName].lose += p.result ? 0 : 1;
       }
 
       //lanes update

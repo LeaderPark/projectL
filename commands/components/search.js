@@ -1,6 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder, inlineCode } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
 
+const linesConvert = {
+  TOP: "탑",
+  JUNGLE: "정글",
+  MID: "미드",
+  BOT: "원딜",
+  SUPPORT: "서폿",
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("검색")
@@ -30,7 +38,40 @@ module.exports = {
       Number(totalDeath)
     ).toFixed(2);
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
-    console.log(userData.lanes);
+    const sortedLanes = Object.entries(JSON.parse(userData.lanes)).sort(([, a], [, b]) => {
+      const sumA = a.win + a.lose;
+      const sumB = b.win + b.lose;
+      return sumB - sumA;
+    });
+    const lines = Object.fromEntries(sortedLanes);
+    const linesKey = Object.keys(lines);
+    const mostLineTotal = lines[linesKey[0]].win + lines[linesKey[0]].lose;
+    const subLineTotal = lines[linesKey[1]].win + lines[linesKey[1]].lose;
+    const mostLineRate = Math.floor(lines[linesKey[0]].win / (mostLineTotal) * 100)
+    const subLineRate = Math.floor(lines[linesKey[1]].win / (subLineTotal) * 100)
+
+    const sortedFriends = Object.entries(JSON.parse(userData.friends)).sort(([, a], [, b]) => {
+      const sumA = (a.win / (a.win + a.lose)) * a.win;
+      const sumB = (b.win / (b.win + b.lose)) * b.win;
+      return sumB - sumA;
+    });
+    const friends = Object.fromEntries(sortedFriends);
+    const friendsKey = Object.keys(friends);
+    const bestFriendTotal = friends[friendsKey[0]].win + friends[friendsKey[0]].lose;
+    const worstFriendTotal = friends[friendsKey[friendsKey.length - 1]].win + friends[friendsKey[friendsKey.length - 1]].lose;
+    const bestFriendRate = Math.floor(friends[friendsKey[0]].win / (bestFriendTotal) * 100)
+    const worstFriendRate = Math.floor(friends[friendsKey[friendsKey.length - 1]].win / (worstFriendTotal) * 100)
+
+    // const sortedCampions = Object.entries(JSON.parse(userData.sortedCampions)).sort(([, a], [, b]) => {
+    //   const sumA = (a.win / (a.win + a.lose)) * a.win;
+    //   const sumB = (b.win / (b.win + b.lose)) * b.win;
+    //   return sumB - sumA;
+    // });
+    // const campions = Object.fromEntries(sortedCampions);
+    // const campionsKey = Object.keys(campions);
+    // const campions1Total = campions[campionsKey[0]].win + campions[campionsKey[0]].lose;
+    // const campions2Total = campions[campionsKey[1]].win + campions[campionsKey[1]].lose;
+    // const campions3Total = campions[campionsKey[2]].win + campions[campionsKey[2]].lose;
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -53,14 +94,49 @@ module.exports = {
           inline: true,
         },
         {
-          name: "주라인",
-          value: `**${totalKillRate}%**`,
+          name: `주라인 - ${mostLineTotal} Play`,
+          value: `**${linesKey[0]}** || **${mostLineRate}%**`,
           inline: true,
-        }
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: true,
+        },
+        {
+          name: "펜타킬",
+          value: `**${userData.penta}**`,
+          inline: true,
+        },
+        {
+          name: `부라인 - ${subLineTotal} Play`,
+          value: `**${linesKey[1]}** || **${subLineRate}%**`,
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: true,
+        },
+        {
+          name: "펜타킬을 뺏긴 횟수",
+          value: `**${userData.quadra}**`,
+          inline: true,
+        },
+        {
+          name: `Best Friend - ${bestFriendTotal} Play`,
+          value: `**${friendsKey[0]}** || **${bestFriendRate}%**`,
+          inline: true,
+        },
+        {
+          name: `Worst Friend - ${worstFriendTotal} Play`,
+          value: `**${friendsKey[friendsKey.length - 1]}** || **${worstFriendRate}%**`,
+          inline: true,
+        },
       )
       .setTimestamp()
       .setFooter({
-        text: "만든놈 - **환주**, **진우**",
+        text: "만든놈 - 환주, 진우",
       });
 
     await interaction.reply({ embeds: [embed] });

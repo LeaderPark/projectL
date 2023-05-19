@@ -34,15 +34,8 @@ module.exports = {
     }
 
     const userData = result.data[0];
-    const totalPlay = userData.win + userData.lose;
-    const winRate = Math.floor((userData.win / totalPlay) * 100);
-    const totalKill = (userData.t_kill / totalPlay).toFixed(1);
-    const totalDeath = (userData.t_death / totalPlay).toFixed(1);
-    const totalAssist = (userData.t_assist / totalPlay).toFixed(1);
-    const deathtoKillAssist = (
-      (Number(totalKill) + Number(totalAssist)) /
-      Number(totalDeath)
-    ).toFixed(2);
+    const [totalPlay, winRate] = getData(userData.win, userData.lose)
+    const [totalKill, totalDeath, totalAssist, deathtoKillAssist] = getKDA(userData.t_kill, userData.t_death, userData.t_assist, totalPlay)
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
 
     const sortedLanes = Object.entries(JSON.parse(userData.lanes)).sort(
@@ -80,27 +73,33 @@ module.exports = {
       friends[friendsKey[friendsKey.length - 1]].lose
     );
 
-    const sortedCampions = Object.entries(
-      JSON.parse(userData.sortedCampions)
+    const sortedChampions = Object.entries(
+      JSON.parse(userData.champions)
     ).sort(([, a], [, b]) => {
       const sumA = a.win + a.lose;
       const sumB = b.win + b.lose;
       return sumB - sumA;
     });
-    const campions = Object.fromEntries(sortedCampions);
-    const campionsKey = Object.keys(campions);
-    const [champions1Total, champions1TotalRate] = getData(
-      campions[campionsKey[0]].win,
-      campions[campionsKey[0]].lose
+    const champions = Object.fromEntries(sortedChampions);
+    const championsKey = Object.keys(champions);
+    const champ1 = champions[championsKey[0]];
+    const champ2 = champions[championsKey[1]];
+    const champ3 = champions[championsKey[2]];
+    const [champ1Total, champ1TotalRate] = getData(
+      champ1.win,
+      champ1.lose
     );
-    const [champions2Total, champions2TotalRate] = getData(
-      campions[campionsKey[1]].win,
-      campions[campionsKey[1]].lose
+    const [champ2Total, champ2TotalRate] = getData(
+      champ2.win,
+      champ2.lose
     );
-    const [champions3Total, champions3TotalRate] = getData(
-      campions[campionsKey[2]].win,
-      campions[campionsKey[2]].lose
+    const [champ3Total, champ3TotalRate] = getData(
+      champ3.win,
+      champ3.lose
     );
+    const [champ1K, champ1D, champ1A, champ1KTA] = getKDA(champ1.kills, champ1.deaths, champ1.assist, champ1Total);
+    const [champ2K, champ2D, champ2A, champ2KTA] = getKDA(champ2.kills, champ2.deaths, champ2.assist, champ2Total);
+    const [champ3K, champ3D, champ3A, champ3KTA] = getKDA(champ3.kills, champ3.deaths, champ3.assist, champ3Total);
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -159,9 +158,8 @@ module.exports = {
         },
         {
           name: `Worst Friend - ${worstFriendTotal} Play`,
-          value: `**${
-            friendsKey[friendsKey.length - 1]
-          }** || **${worstFriendRate}%**`,
+          value: `**${friendsKey[friendsKey.length - 1]
+            }** || **${worstFriendRate}%**`,
           inline: true,
         },
         {
@@ -175,10 +173,50 @@ module.exports = {
           inline: false,
         },
         {
-          name: ``,
+          name: `${championsKey[0]}`,
           value: "\u200b",
-          inline: false,
-        }
+          inline: true,
+        },
+        {
+          name: `${champ1KTA} 평점`,
+          value: `${champ1K} / ${champ1D} / ${champ1A}`,
+          inline: true,
+        },
+        {
+          name: `${champ1TotalRate}%`,
+          value: `${champ1Total}%`,
+          inline: true,
+        },
+        {
+          name: `${championsKey[1]}`,
+          value: "\u200b",
+          inline: true,
+        },
+        {
+          name: `${champ2KTA} 평점`,
+          value: `${champ2K} / ${champ2D} / ${champ2A}`,
+          inline: true,
+        },
+        {
+          name: `${champ2TotalRate}%`,
+          value: `${champ2Total}%`,
+          inline: true,
+        },
+        {
+          name: `${championsKey[2]}`,
+          value: "\u200b",
+          inline: true,
+        },
+        {
+          name: `${champ3KTA} 평점`,
+          value: `${champ3K} / ${champ3D} / ${champ3A}`,
+          inline: true,
+        },
+        {
+          name: `${champ3TotalRate}%`,
+          value: `${champ3Total}%`,
+          inline: true,
+        },
       )
       .setTimestamp()
       .setFooter({
@@ -193,3 +231,13 @@ const getData = (win, lose) => {
   const total = win + lose;
   return [total, Math.floor((win / total) * 100)];
 };
+
+const getKDA = (k, d, a, total) => {
+  const kill = k / total;
+  const death = d / total;
+  const assist = a / total;
+  const deathtoKillAssist = (kill + death) / assist;
+  console.log(kill, death, assist, deathtoKillAssist)
+  return [kill.toFixed(1), death.toFixed(1), assist.toFixed(1), deathtoKillAssist.toFixed(2)]
+
+}

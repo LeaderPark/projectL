@@ -14,7 +14,9 @@ module.exports = {
     .setName("검색")
     .setDescription("원하는 소환사의 정보를 검색할 수 있어요.")
     .addUserOption((option) =>
-      option.setName("검색할소환사").setDescription("검색할 소환사를 멘션해주세요")
+      option
+        .setName("검색할소환사")
+        .setDescription("검색할 소환사를 멘션해주세요")
     ),
   async execute(interaction) {
     const interactionUser = await interaction.guild.members.fetch(
@@ -38,7 +40,8 @@ module.exports = {
     const totalDeath = (userData.t_death / totalPlay).toFixed(1);
     const totalAssist = (userData.t_assist / totalPlay).toFixed(1);
     const deathtoKillAssist = (
-      (Number(totalKill) + Number(totalAssist)) / Number(totalDeath)
+      (Number(totalKill) + Number(totalAssist)) /
+      Number(totalDeath)
     ).toFixed(2);
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
 
@@ -50,39 +53,54 @@ module.exports = {
       }
     );
     const [mostLine, subLine] = sortedLanes;
-    const mostLineTotal = mostLine[1].win + mostLine[1].lose;
-    const subLineTotal = subLine[1].win + subLine[1].lose;
-    const mostLineRate = Math.floor(
-      (mostLine[1].win / mostLineTotal) * 100
+    const [mostLineTotal, mostLineRate] = getData(
+      mostLine[1].win,
+      mostLine[1].lose
     );
-    const subLineRate = Math.floor((subLine[1].win / subLineTotal) * 100);
+    const [subLineTotal, subLineRate] = getData(
+      subLine[1].win,
+      subLine[1].lose
+    );
 
     const sortedFriends = Object.entries(JSON.parse(userData.friends)).sort(
       ([, a], [, b]) => {
         const sumA = (a.win / (a.win + a.lose)) * a.win;
         const sumB = (b.win / (b.win + b.lose)) * b.win;
         return sumB - sumA;
-      });
+      }
+    );
     const friends = Object.fromEntries(sortedFriends);
     const friendsKey = Object.keys(friends);
-    const bestFriendTotal = friends[friendsKey[0]].win + friends[friendsKey[0]].lose;
-    const worstFriendTotal = friends[friendsKey[friendsKey.length - 1]].win + friends[friendsKey[friendsKey.length - 1]].lose;
-    const bestFriendRate = Math.floor(friends[friendsKey[0]].win / (bestFriendTotal) * 100)
-    const worstFriendRate = Math.floor(friends[friendsKey[friendsKey.length - 1]].win / (worstFriendTotal) * 100)
+    const [bestFriendTotal, bestFriendRate] = getData(
+      friends[friendsKey[0]].win,
+      friends[friendsKey[0]].lose
+    );
+    const [worstFriendTotal, worstFriendRate] = getData(
+      friends[friendsKey[friendsKey.length - 1]].win,
+      friends[friendsKey[friendsKey.length - 1]].lose
+    );
 
-    const sortedCampions = Object.entries(JSON.parse(userData.sortedCampions)).sort(([, a], [, b]) => {
-      const sumA = ((a.win + a.lose));
-      const sumB = ((b.win + b.lose));
+    const sortedCampions = Object.entries(
+      JSON.parse(userData.sortedCampions)
+    ).sort(([, a], [, b]) => {
+      const sumA = a.win + a.lose;
+      const sumB = b.win + b.lose;
       return sumB - sumA;
     });
     const campions = Object.fromEntries(sortedCampions);
     const campionsKey = Object.keys(campions);
-    const [champions1Total, champions1TotalRate] = getData(campions[campionsKey[0]].win, campions[campionsKey[0]].lose);
-    const campions2Total = campions[campionsKey[1]].win + campions[campionsKey[1]].lose;
-    const campions3Total = campions[campionsKey[2]].win + campions[campionsKey[2]].lose;
-    const campions2Rate = Math.floor((campions[campionsKey[1]].win / campions1Total) * 100);
-    const campions3Rate = Math.floor((campions[campionsKey[2]].win / campions1Total) * 100);
-
+    const [champions1Total, champions1TotalRate] = getData(
+      campions[campionsKey[0]].win,
+      campions[campionsKey[0]].lose
+    );
+    const [champions2Total, champions2TotalRate] = getData(
+      campions[campionsKey[1]].win,
+      campions[campionsKey[1]].lose
+    );
+    const [champions3Total, champions3TotalRate] = getData(
+      campions[campionsKey[2]].win,
+      campions[campionsKey[2]].lose
+    );
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -141,7 +159,9 @@ module.exports = {
         },
         {
           name: `Worst Friend - ${worstFriendTotal} Play`,
-          value: `**${friendsKey[friendsKey.length - 1]}** || **${worstFriendRate}%**`,
+          value: `**${
+            friendsKey[friendsKey.length - 1]
+          }** || **${worstFriendRate}%**`,
           inline: true,
         },
         {
@@ -158,7 +178,7 @@ module.exports = {
           name: ``,
           value: "\u200b",
           inline: false,
-        },
+        }
       )
       .setTimestamp()
       .setFooter({
@@ -172,4 +192,4 @@ module.exports = {
 const getData = (win, lose) => {
   const total = win + lose;
   return [total, Math.floor((win / total) * 100)];
-}
+};

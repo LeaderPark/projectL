@@ -110,6 +110,13 @@ module.exports = {
       case "MMR":
         const userIds = members.map((member) => member.user.id);
         const users = await getUsersData(userIds);
+
+        if (users.data.length < 10) {
+          return await interaction.reply({
+            content: "등록되지 않은 소환사가 있습니다."
+          });
+        }
+
         for (let i = 0; i < users.data.length; i++) {
           const user = users.data[i];
           const member = members.find((x) => x.user.id === user.discord_id);

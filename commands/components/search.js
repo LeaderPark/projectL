@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, Faces } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
 
 const linesConvert = {
@@ -7,6 +7,7 @@ const linesConvert = {
   MID: "미드",
   BOT: "원딜",
   SUPPORT: "서폿",
+  NON: "NO DATA"
 };
 
 module.exports = {
@@ -34,8 +35,7 @@ module.exports = {
     }
 
     const userData = result.data[0];
-
-    if (userData.win + userData.lose <= 0) {
+    if (Number(userData.win) + Number(userData.lose) <= 0) {
       return await interaction.reply("등록된 정보가 없습니다.");
     }
 
@@ -55,11 +55,13 @@ module.exports = {
       mostLine[1].win,
       mostLine[1].lose
     );
-    const [subLineTotal, subLineRate] = getData(
-      subLine[1].win,
-      subLine[1].lose
-    );
-
+    let subLineTotal = 0, subLineRate = 0
+    if (subLine) {
+      [subLineTotal, subLineRate] = getData(
+        subLine[1].win,
+        subLine[1].lose
+      );
+    }
     const sortedFriends = Object.entries(JSON.parse(userData.friends)).sort(
       ([, a], [, b]) => {
         const sumA = (a.win / (a.win + a.lose)) * a.win;
@@ -94,17 +96,27 @@ module.exports = {
       champ1.win,
       champ1.lose
     );
-    const [champ2Total, champ2TotalRate] = getData(
-      champ2.win,
-      champ2.lose
-    );
-    const [champ3Total, champ3TotalRate] = getData(
-      champ3.win,
-      champ3.lose
-    );
     const [champ1K, champ1D, champ1A, champ1KTA] = getKDA(champ1.kills, champ1.deaths, champ1.assist, champ1Total);
-    const [champ2K, champ2D, champ2A, champ2KTA] = getKDA(champ2.kills, champ2.deaths, champ2.assist, champ2Total);
-    const [champ3K, champ3D, champ3A, champ3KTA] = getKDA(champ3.kills, champ3.deaths, champ3.assist, champ3Total);
+
+    let champ2Total = 0, champ2TotalRate = 0;
+    let champ2K = 0, champ2D = 0, champ2A = 0, champ2KTA = 0;
+    if (champ2) {
+      [champ2Total, champ2TotalRate] = getData(
+        champ2.win,
+        champ2.lose
+      );
+      [champ2K, champ2D, champ2A, champ2KTA] = getKDA(champ2.kills, champ2.deaths, champ2.assist, champ2Total);
+    }
+
+    let champ3Total = 0, champ3TotalRate = 0;
+    let champ3K = 0, champ3D = 0, champ3A = 0, champ3KTA = 0;
+    if (champ3) {
+      [champ3Total, champ3TotalRate] = getData(
+        champ3.win,
+        champ3.lose
+      );
+      [champ3K, champ3D, champ3A, champ3KTA] = getKDA(champ3.kills, champ3.deaths, champ3.assist, champ3Total);
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
@@ -114,11 +126,16 @@ module.exports = {
         {
           name: `승률`,
           value: `**${winRate}%**`,
-          inline: true,
+          inline: false,
         },
         {
           name: "K / D / A",
           value: `**${totalKill}** / **${totalDeath}** / **${totalAssist}** || **${deathtoKillAssist}:1**`,
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
           inline: true,
         },
         {
@@ -143,7 +160,7 @@ module.exports = {
         },
         {
           name: `부라인 - ${subLineTotal} Play`,
-          value: `**${linesConvert[subLine[0]]}** || **${subLineRate}%**`,
+          value: `**${linesConvert[subLine === undefined ? "NON" : subLine[0]]}** || **${subLineRate}%**`,
           inline: true,
         },
         {
@@ -159,6 +176,11 @@ module.exports = {
         {
           name: `Best Friend - ${bestFriendTotal} Play`,
           value: `**${friendsKey[0]}** || **${bestFriendRate}%**`,
+          inline: true,
+        },
+        {
+          name: "\u200b",
+          value: "\u200b",
           inline: true,
         },
         {
@@ -178,7 +200,7 @@ module.exports = {
           inline: false,
         },
         {
-          name: `${championsKey[0]}`,
+          name: `${championsKey[0]} - ${champ1Total} Play`,
           value: "\u200b",
           inline: true,
         },
@@ -193,7 +215,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${championsKey[1]}`,
+          name: `${championsKey[1] || "NO DATA"} - ${champ2Total} Play`,
           value: "\u200b",
           inline: true,
         },
@@ -208,7 +230,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${championsKey[2]}`,
+          name: `${championsKey[2] || "NO DATA"} - ${champ3Total} Play`,
           value: "\u200b",
           inline: true,
         },

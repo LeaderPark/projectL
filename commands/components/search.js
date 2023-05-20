@@ -222,6 +222,11 @@ module.exports = {
           value: `${champ3Total} 게임`,
           inline: true,
         },
+        {
+          name: "\u200b",
+          value: "\u200b",
+          inline: true,
+        },
       )
       .setTimestamp()
       .setFooter({

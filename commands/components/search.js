@@ -189,7 +189,7 @@ module.exports = {
         },
         {
           name: `${champ1TotalRate}%`,
-          value: `${champ1Total}%`,
+          value: `${champ1Total} 게임`,
           inline: true,
         },
         {
@@ -204,7 +204,7 @@ module.exports = {
         },
         {
           name: `${champ2TotalRate}%`,
-          value: `${champ2Total}%`,
+          value: `${champ2Total} 게임`,
           inline: true,
         },
         {
@@ -219,7 +219,7 @@ module.exports = {
         },
         {
           name: `${champ3TotalRate}%`,
-          value: `${champ3Total}%`,
+          value: `${champ3Total} 게임`,
           inline: true,
         },
       )

@@ -183,7 +183,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${champ1KTA} 평점`,
+          name: `${champ1KTA}:1 평점`,
           value: `${champ1K} / ${champ1D} / ${champ1A}`,
           inline: true,
         },
@@ -198,7 +198,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${champ2KTA} 평점`,
+          name: `${champ2KTA}:1 평점`,
           value: `${champ2K} / ${champ2D} / ${champ2A}`,
           inline: true,
         },
@@ -213,7 +213,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${champ3KTA} 평점`,
+          name: `${champ3KTA}:1 평점`,
           value: `${champ3K} / ${champ3D} / ${champ3A}`,
           inline: true,
         },

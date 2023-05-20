@@ -268,7 +268,7 @@ const getKDA = (k, d, a, total) => {
   const kill = k / total;
   const death = d / total;
   const assist = a / total;
-  const deathtoKillAssist = (kill + death) / assist;
+  const deathtoKillAssist = (kill + assist) / death;
   return [kill.toFixed(1), death.toFixed(1), assist.toFixed(1), deathtoKillAssist.toFixed(2)]
 
 }

@@ -26,6 +26,7 @@ module.exports = {
           await interaction.update({
             embeds: [embedLists[--index]],
             components: [row],
+            ephemeral: true,
           });
         },
       },
@@ -43,6 +44,7 @@ module.exports = {
           await interaction.update({
             embeds: [embedLists[++index]],
             components: [row],
+            ephemeral: true,
           });
         },
       },
@@ -57,7 +59,7 @@ module.exports = {
       })
     );
 
-    await interaction.deferReply("searching...");
+    await interaction.deferReply({ ephemeral: true });
 
     const result = await getRankData();
     if (!result.success) {
@@ -121,7 +123,7 @@ module.exports = {
       value: "\u200b",
       inline: true,
     });
-    await interaction.editReply({ embeds: [embedLists[index]], components: [row] });
+    await interaction.editReply({ embeds: [embedLists[index]], components: [row], ephemeral: true, });
 
     const filter = (interaction) => {
       return buttons.filter(

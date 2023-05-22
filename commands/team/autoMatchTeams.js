@@ -90,7 +90,7 @@ module.exports = {
         for (let i = 0; i < team1Members.length; i++) {
           embed.addFields(
             {
-              name: `소환사${i + 1}`,
+              name: `소환사${2 * i + 1}`,
               value: `${team1Members[i].user} `,
               inline: true,
             },

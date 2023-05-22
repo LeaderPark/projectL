@@ -104,6 +104,7 @@ const updateUserData = async (match) => {
 
       user = result[0];
       mmr = user.mmr + p.mmr;
+      mmr <= 300 && (mmr = 300);
       win = user.win + (p.result ? 1 : 0);
       lose = user.lose + (p.result ? 0 : 1);
 

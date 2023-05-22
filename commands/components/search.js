@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, Faces } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
+const { championKorList } = require("../../scripts/Utils/championNameConverter");
 
 const linesConvert = {
   TOP: "탑",
@@ -200,7 +201,7 @@ module.exports = {
           inline: false,
         },
         {
-          name: `${championsKey[0]} - ${champ1Total} Play`,
+          name: `${championKorList[championsKey[0]]} - ${champ1Total} Play`,
           value: "\u200b",
           inline: true,
         },
@@ -215,7 +216,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${championsKey[1] || "NO DATA"} - ${champ2Total} Play`,
+          name: `${championKorList[championsKey[1]]} - ${champ2Total} Play`,
           value: "\u200b",
           inline: true,
         },
@@ -230,7 +231,7 @@ module.exports = {
           inline: true,
         },
         {
-          name: `${championsKey[2] || "NO DATA"} - ${champ3Total} Play`,
+          name: `${championKorList[championsKey[2]]} - ${champ3Total} Play`,
           value: "\u200b",
           inline: true,
         },

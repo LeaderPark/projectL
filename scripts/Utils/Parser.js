@@ -141,7 +141,7 @@ const getMMR = (player, gameLength) => {
     return Math.ceil(mmr * maxMMR);
   }
   const lose = 1 - 1 / ((mmr - 1) ** 2 + 1);
-  return -Math.floor(lose * maxMMR);
+  return -Math.floor(lose * maxMMR / 2);
 };
 
 /**

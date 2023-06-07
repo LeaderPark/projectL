@@ -146,8 +146,8 @@ const updateUserData = async (match) => {
       }
       //friends update
       {
-        for (let pp of match.blueTeam.players) {
-          if (pp === p) continue;
+        for (let pp of players) {
+          if (pp === p || pp.win !== p.win) continue;
 
           if (!friends[pp.playerName]) {
             friends[pp.playerName] = { win: 0, lose: 0 };

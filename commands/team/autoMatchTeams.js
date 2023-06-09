@@ -1,5 +1,11 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getUsersData } = require("../../scripts/Utils/Query");
+const {
+  SaveTeamData,
+  TeamDataSaver,
+  CheckTeamMember,
+  ConvertTeam,
+} = require("../../scripts/Utils/SaveTeamData");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -113,7 +119,7 @@ module.exports = {
 
         if (users.data.length < 10) {
           return await interaction.reply({
-            content: "등록되지 않은 소환사가 있습니다."
+            content: "등록되지 않은 소환사가 있습니다.",
           });
         }
 
@@ -128,6 +134,14 @@ module.exports = {
             team1Members.push({ member: member, user: user });
           }
         }
+        if (CheckTeamMember(team1Members, team2Members)) {
+          [team1Members, team2Members] = ConvertTeam(
+            team1Members,
+            team2Members
+          );
+        }
+        TeamDataSaver(team1Members, team2Members);
+
         break;
       default:
         return await interaction.reply({

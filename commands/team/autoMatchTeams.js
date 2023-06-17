@@ -123,32 +123,15 @@ module.exports = {
           });
         }
 
-        function shuffleArray(array) {
-          for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-          }
-          return array;
-        }
-
-        const shuffledMembers = shuffleArray(users.data);
-
-        for (let i = 0; i < shuffledMembers.length; i++) {
-          const user = shuffledMembers[i];
+        for (let i = 0; i < users.data.length; i++) {
+          const user = users.data[i];
           const member = members.find((x) => x.user.id === user.discord_id);
-
-          const team1Delta = Math.abs(team1MMR + user.mmr - team2MMR);
-          const team2Delta = Math.abs(team2MMR + user.mmr - team1MMR);
-
-          if (
-            team1Members.length < teamSize &&
-            (team1Delta <= team2Delta || team2Members.length === teamSize)
-          ) {
-            team1MMR += user.mmr;
-            team1Members.push({ member: member, user: user });
-          } else {
+          if (team1MMR > team2MMR || team1Members.length >= 5) {
             team2MMR += user.mmr;
             team2Members.push({ member: member, user: user });
+          } else {
+            team1MMR += user.mmr;
+            team1Members.push({ member: member, user: user });
           }
         }
         if (CheckTeamMember(team1Members, team2Members)) {

@@ -106,14 +106,14 @@ module.exports = {
             }
           );
         }
-        break;
+        return await interaction.editReply({ embeds: [embed] });
       case "MMR":
         const userIds = members.map((member) => member.user.id);
         const users = await getUsersData(userIds);
 
         if (users.data.length < 10) {
           return await interaction.reply({
-            content: "등록되지 않은 소환사가 있습니다."
+            content: "등록되지 않은 소환사가 있습니다.",
           });
         }
 
@@ -136,11 +136,19 @@ module.exports = {
         });
     }
     await interaction.deferReply("moving...");
+
+    let arr = [0, 1, 2, 3, 4];
+
+    for (let i = arr.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+
     for (let i = 0; i < team1Members.length; i++) {
-      const team1Member = team1Members[i];
-      const team2Member = team2Members[i];
+      const team1Member = team1Members[arr[i]];
+      const team2Member = team2Members[arr[i]];
       embed.addFields({
-        name: `소환사${i + 1}`,
+        name: `소환사${2 * i + 1}`,
         value: `${team1Member.user.name} - ${team1Member.member}`,
         inline: true,
       });

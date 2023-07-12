@@ -8,8 +8,8 @@ const linesConvert = {
   TOP: "탑",
   JUNGLE: "정글",
   MID: "미드",
-  BOT: "원딜",
-  SUPPORT: "서폿",
+  BOT: "바텀",
+  SUPPORT: "바텀",
   NON: "NO DATA",
 };
 
@@ -68,8 +68,8 @@ module.exports = {
         otherLane = lane[0] === "BOT" ? "SUPPORT" : "BOT";
         const other = sortedLanes.find((x) => x[0] === otherLane);
 
-        sortedLanes[key][1].win += other.win;
-        sortedLanes[key][1].lose += other.lose;
+        sortedLanes[key][1].win += other[1].win || 0;
+        sortedLanes[key][1].lose += other[1].lose || 0;
         break;
       }
     }
@@ -196,9 +196,8 @@ module.exports = {
         },
         {
           name: `부라인 - ${subLineTotal} Play`,
-          value: `**${
-            linesConvert[subLine === undefined ? "NON" : subLine[0]]
-          }** || **${subLineRate}%**`,
+          value: `**${linesConvert[subLine === undefined ? "NON" : subLine[0]]
+            }** || **${subLineRate}%**`,
           inline: true,
         },
         {
@@ -223,9 +222,8 @@ module.exports = {
         },
         {
           name: `Worst Friend - ${worstFriendTotal} Play`,
-          value: `**${
-            friendsKey[friendsKey.length - 1]
-          }** || **${worstFriendRate}%**`,
+          value: `**${friendsKey[friendsKey.length - 1]
+            }** || **${worstFriendRate}%**`,
           inline: true,
         },
         {

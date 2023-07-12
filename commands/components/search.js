@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder, Faces } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
-const { championKorList } = require("../../scripts/Utils/championNameConverter");
+const {
+  championKorList,
+} = require("../../scripts/Utils/championNameConverter");
 
 const linesConvert = {
   TOP: "탑",
@@ -8,7 +10,7 @@ const linesConvert = {
   MID: "미드",
   BOT: "원딜",
   SUPPORT: "서폿",
-  NON: "NO DATA"
+  NON: "NO DATA",
 };
 
 module.exports = {
@@ -40,9 +42,16 @@ module.exports = {
       return await interaction.reply("등록된 정보가 없습니다.");
     }
 
-    const [totalPlay, winRate] = getData(userData.win, userData.lose)
-    const [totalKill, totalDeath, totalAssist, deathtoKillAssist] = getKDA(userData.t_kill, userData.t_death, userData.t_assist, totalPlay)
+    const [totalPlay, winRate] = getData(userData.win, userData.lose);
+    const [totalKill, totalDeath, totalAssist, deathtoKillAssist] = getKDA(
+      userData.t_kill,
+      userData.t_death,
+      userData.t_assist,
+      totalPlay
+    );
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
+
+    const data = JSON.parse(userData.lanes);
 
     const sortedLanes = Object.entries(JSON.parse(userData.lanes)).sort(
       ([, a], [, b]) => {
@@ -51,17 +60,29 @@ module.exports = {
         return sumB - sumA;
       }
     );
-    const [mostLine, subLine] = sortedLanes;
+
+    let otherLane = "";
+    for (let key in sortedLanes) {
+      const lane = sortedLanes[key];
+      if (lane[0] === "SUPPORT" || lane[0] === "BOT") {
+        otherLane = lane[0] === "BOT" ? "SUPPORT" : "BOT";
+        const other = sortedLanes.find((x) => x[0] === otherLane);
+
+        sortedLanes[key][1].win += other.win;
+        sortedLanes[key][1].lose += other.lose;
+        break;
+      }
+    }
+
+    const [mostLine, subLine] = sortedLanes.filter((x) => x[0] !== otherLane);
     const [mostLineTotal, mostLineRate] = getData(
       mostLine[1].win,
       mostLine[1].lose
     );
-    let subLineTotal = 0, subLineRate = 0
+    let subLineTotal = 0,
+      subLineRate = 0;
     if (subLine) {
-      [subLineTotal, subLineRate] = getData(
-        subLine[1].win,
-        subLine[1].lose
-      );
+      [subLineTotal, subLineRate] = getData(subLine[1].win, subLine[1].lose);
     }
     const sortedFriends = Object.entries(JSON.parse(userData.friends)).sort(
       ([, a], [, b]) => {
@@ -81,42 +102,56 @@ module.exports = {
       friends[friendsKey[friendsKey.length - 1]].lose
     );
 
-    const sortedChampions = Object.entries(
-      JSON.parse(userData.champions)
-    ).sort(([, a], [, b]) => {
-      const sumA = a.win + a.lose;
-      const sumB = b.win + b.lose;
-      return sumB - sumA;
-    });
+    const sortedChampions = Object.entries(JSON.parse(userData.champions)).sort(
+      ([, a], [, b]) => {
+        const sumA = a.win + a.lose;
+        const sumB = b.win + b.lose;
+        return sumB - sumA;
+      }
+    );
     const champions = Object.fromEntries(sortedChampions);
     const championsKey = Object.keys(champions);
     const champ1 = champions[championsKey[0]];
     const champ2 = champions[championsKey[1]];
     const champ3 = champions[championsKey[2]];
-    const [champ1Total, champ1TotalRate] = getData(
-      champ1.win,
-      champ1.lose
+    const [champ1Total, champ1TotalRate] = getData(champ1.win, champ1.lose);
+    const [champ1K, champ1D, champ1A, champ1KTA] = getKDA(
+      champ1.kills,
+      champ1.deaths,
+      champ1.assist,
+      champ1Total
     );
-    const [champ1K, champ1D, champ1A, champ1KTA] = getKDA(champ1.kills, champ1.deaths, champ1.assist, champ1Total);
 
-    let champ2Total = 0, champ2TotalRate = 0;
-    let champ2K = 0, champ2D = 0, champ2A = 0, champ2KTA = 0;
+    let champ2Total = 0,
+      champ2TotalRate = 0;
+    let champ2K = 0,
+      champ2D = 0,
+      champ2A = 0,
+      champ2KTA = 0;
     if (champ2) {
-      [champ2Total, champ2TotalRate] = getData(
-        champ2.win,
-        champ2.lose
+      [champ2Total, champ2TotalRate] = getData(champ2.win, champ2.lose);
+      [champ2K, champ2D, champ2A, champ2KTA] = getKDA(
+        champ2.kills,
+        champ2.deaths,
+        champ2.assist,
+        champ2Total
       );
-      [champ2K, champ2D, champ2A, champ2KTA] = getKDA(champ2.kills, champ2.deaths, champ2.assist, champ2Total);
     }
 
-    let champ3Total = 0, champ3TotalRate = 0;
-    let champ3K = 0, champ3D = 0, champ3A = 0, champ3KTA = 0;
+    let champ3Total = 0,
+      champ3TotalRate = 0;
+    let champ3K = 0,
+      champ3D = 0,
+      champ3A = 0,
+      champ3KTA = 0;
     if (champ3) {
-      [champ3Total, champ3TotalRate] = getData(
-        champ3.win,
-        champ3.lose
+      [champ3Total, champ3TotalRate] = getData(champ3.win, champ3.lose);
+      [champ3K, champ3D, champ3A, champ3KTA] = getKDA(
+        champ3.kills,
+        champ3.deaths,
+        champ3.assist,
+        champ3Total
       );
-      [champ3K, champ3D, champ3A, champ3KTA] = getKDA(champ3.kills, champ3.deaths, champ3.assist, champ3Total);
     }
 
     const embed = new EmbedBuilder()
@@ -161,7 +196,9 @@ module.exports = {
         },
         {
           name: `부라인 - ${subLineTotal} Play`,
-          value: `**${linesConvert[subLine === undefined ? "NON" : subLine[0]]}** || **${subLineRate}%**`,
+          value: `**${
+            linesConvert[subLine === undefined ? "NON" : subLine[0]]
+          }** || **${subLineRate}%**`,
           inline: true,
         },
         {
@@ -186,8 +223,9 @@ module.exports = {
         },
         {
           name: `Worst Friend - ${worstFriendTotal} Play`,
-          value: `**${friendsKey[friendsKey.length - 1]
-            }** || **${worstFriendRate}%**`,
+          value: `**${
+            friendsKey[friendsKey.length - 1]
+          }** || **${worstFriendRate}%**`,
           inline: true,
         },
         {
@@ -249,7 +287,7 @@ module.exports = {
           name: "\u200b",
           value: "\u200b",
           inline: true,
-        },
+        }
       )
       .setTimestamp()
       .setFooter({
@@ -270,6 +308,10 @@ const getKDA = (k, d, a, total) => {
   const death = d / total;
   const assist = a / total;
   const deathtoKillAssist = (kill + assist) / death;
-  return [kill.toFixed(1), death.toFixed(1), assist.toFixed(1), deathtoKillAssist.toFixed(2)]
-
-}
+  return [
+    kill.toFixed(1),
+    death.toFixed(1),
+    assist.toFixed(1),
+    deathtoKillAssist.toFixed(2),
+  ];
+};

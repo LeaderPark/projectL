@@ -138,7 +138,7 @@ const getMMR = (player, gameLength) => {
     Math.min((killValue + assistValue) / 2, 1) / (deathMinus * deathValue + 1);
 
   if (player.win === "Win") {
-    return Math.ceil(mmr * maxMMR);
+    return Math.max(Math.ceil(mmr * maxMMR), 10);
   }
   const lose = 1 - 1 / ((mmr - 1) ** 2 + 1);
   return -Math.floor(lose * maxMMR / 2);

@@ -76,7 +76,7 @@ module.exports = {
             const data = match_data[i]
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
-                .setTitle(`${user.nickname}님의 최근 3판 전적`)
+                .setTitle(`${user.nickname || user.username}님의 최근 3판 전적`)
                 .setDescription(`${data.index}번째 게임`)
                 .addFields(
                     {

@@ -224,6 +224,26 @@ const getUserData = async (id) => {
   }
 };
 
+const getLatestMatched = async (id) => {
+  try {
+    const sql = `SELECT DISTINCT matches.* FROM matches
+    JOIN (
+        SELECT match_id
+        FROM match_in_users
+        WHERE user_id = ?
+        ORDER BY match_id DESC
+        LIMIT 3
+    ) recent_matches
+    ON matches.id = recent_matches.match_id`;
+
+    const [result] = await promisePool.query(sql, [id]);
+
+    return { success: true, data: result };
+  } catch (e) {
+    return { success: false, msg: e.message };
+  }
+}
+
 module.exports = {
   registraion,
   insertMatchData,
@@ -231,4 +251,5 @@ module.exports = {
   getRankData,
   getUsersData,
   getUserData,
+  getLatestMatched
 };

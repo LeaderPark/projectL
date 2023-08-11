@@ -157,7 +157,7 @@ const getTeam = (side, players, time) => {
 
   for (let key in playerList) {
     playerList[key].mmr = getMMR(playerList[key], time);
-    console.log(playerList[key].playerName, getMMR(playerList[key], time))
+    console.log(playerList[key].playerName, playerList[key].mmr)
   }
   return new Team(playerList[0].result, side, playerList, totalKill);
 };

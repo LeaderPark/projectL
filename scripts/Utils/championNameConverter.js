@@ -80,6 +80,7 @@ const championKorList = {
     MissFortune: '미스 포츈',
     Mordekaiser: '모데카이저',
     Morgana: '모르가나',
+    Naafiri: '나피리',
     Nami: '나미',
     Nasus: '나서스',
     Nautilus: '노틸러스',

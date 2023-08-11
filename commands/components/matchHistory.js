@@ -33,10 +33,8 @@ module.exports = {
         for (let i = 0; i < result.data.length; i++) {
             const data = result.data[i];
             const time = new Date(Number(data.game_length));
-            const timeStr = `${time.getMinutes().toString().padStart(2, "0")}:${time
-                .getSeconds()
-                .toString()
-                .padStart(2, "0")}`;
+            const timeMin = `${time.getMinutes().toString().padStart(2, "0")}`;
+            const timeSec = `${time.getSeconds().toString().padStart(2, "0")}`;
             const purple_team = JSON.parse(data.purple_team);
             const blue_team = JSON.parse(data.blue_team);
             let purple_players = [];
@@ -64,7 +62,8 @@ module.exports = {
                 });
             }
             match_data.push({
-                gameLength: timeStr,
+                min: timeMin,
+                sec: timeSec,
                 purple_team: purple_players,
                 blue_team: blue_players,
                 win_team: blue_team.result === 1 ? 200 : 100,
@@ -76,8 +75,8 @@ module.exports = {
             const data = match_data[i]
             const embed = new EmbedBuilder()
                 .setColor(0x0099ff)
-                .setTitle(`${user.nickname || user.username}님의 최근 3판 전적`)
-                .setDescription(`${data.index}번째 게임`)
+                .setTitle(`${data.index}번째 게임`)
+                .setDescription(`${data.min}분 ${data.sec}초`)
                 .addFields(
                     {
                         name: `**Blue Team**`,
@@ -112,7 +111,7 @@ module.exports = {
                     {
                         name: `**${blue_player.name} - ${championKorList[blue_player.champion]} ${blue_best.name === blue_player.name ? (data.win_team === 200 ? "( MVP )" : "( ACE )") : ""}**`,
                         value: `**LV** : ${blue_player.level} \n
-                    **CS** : ${blue_player.minionScore} \n
+                    **CS** : ${blue_player.minionScore} / ${(Number(blue_player.minionScore) / Number(data.min)).toFixed(1)}\n
                     **K/D/A** : ${blue_player.kda.kills} / ${blue_player.kda.deaths} / ${blue_player.kda.assist}`,
                         inline: true,
                     },
@@ -124,7 +123,7 @@ module.exports = {
                     {
                         name: `**${purple_player.name} - ${championKorList[purple_player.champion]} ${purple_best.name === purple_player.name ? (data.win_team === 100 ? "( MVP )" : "( ACE )") : ""}**`,
                         value: `**LV** : ${purple_player.level} \n
-                    **CS** : ${purple_player.minionScore} \n
+                    **CS** : ${purple_player.minionScore} / ${(Number(purple_player.minionScore) / Number(data.min)).toFixed(1)}\n
                     **K/D/A** : ${purple_player.kda.kills} / ${purple_player.kda.deaths} / ${purple_player.kda.assist}`,
                         inline: true,
                     }
@@ -138,6 +137,6 @@ module.exports = {
 
             embeds.push(embed)
         }
-        interaction.editReply({ embeds: embeds });
+        interaction.editReply({ embeds: embeds.reverse() });
     },
 };

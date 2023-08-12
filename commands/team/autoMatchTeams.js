@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getUsersData } = require("../../scripts/Utils/Query");
+const { TeamDataSaver, CheckTeamMember, ConvertTeam } = require("../../scripts/Utils/SaveTeamData");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -128,6 +129,14 @@ module.exports = {
             team1Members.push({ member: member, user: user });
           }
         }
+        const result = CheckTeamMember(team1Members, team2Members);
+        console.log(result);
+        if (result) {
+          const [team1, team2] = ConvertTeam(team1Members, team2Members)
+          team1Members = team1;
+          team2Members = team2;
+        }
+        TeamDataSaver(team1Members, team2Members)
         break;
       default:
         return await interaction.reply({

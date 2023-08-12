@@ -135,6 +135,12 @@ module.exports = {
           const [team1, team2] = ConvertTeam(team1Members, team2Members)
           team1Members = team1;
           team2Members = team2;
+          team1MMR = 0;
+          team2MMR = 0;
+          for (let i = 0; i < team1.length; i++) {
+            team1MMR += team1[i].user.mmr
+            team2MMR += team2[i].user.mmr
+          }
         }
         TeamDataSaver(team1Members, team2Members)
         break;

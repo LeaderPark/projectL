@@ -17,7 +17,7 @@ const CheckTeamMember = (team1, team2) => {
   const TeamData1 = TeamData["team1"];
   const TeamData2 = TeamData["team2"];
   for (let i = 0; i < TeamData1.length; i++) {
-    for (let j = 0; i < team1.length; i++) {
+    for (let j = 0; j < team1.length; j++) {
       if (TeamData1[i]["user"]["discord_id"] == team1[j]["user"]["discord_id"]) {
         index++;
       }
@@ -29,7 +29,7 @@ const CheckTeamMember = (team1, team2) => {
   }
   index = 0;
   for (let i = 0; i < TeamData2.length; i++) {
-    for (let j = 0; i < team2.length; i++) {
+    for (let j = 0; j < team2.length; j++) {
       if (TeamData2[i]["user"]["discord_id"] == team2[j]["user"]["discord_id"]) {
         index++;
       }

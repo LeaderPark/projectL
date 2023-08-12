@@ -1,50 +1,42 @@
-const TeamData = {
-  team1: {
-    0: null,
-    1: null,
-    2: null,
-    3: null,
-    4: null,
-  },
-  team2: {
-    0: null,
-    1: null,
-    2: null,
-    3: null,
-    4: null,
-  },
+let TeamData = {
+  team1: [],
+  team2: []
 };
 
 const TeamDataSaver = (team1, team2) => {
-  for (let i = 0; i < team1.length; i++) {
-    TeamData["team1"][i] = team1[i]["user"]["discord_id"];
-    TeamData["team2"][i] = team2[i]["user"]["discord_id"];
-  }
-  console.log(TeamData);
+  TeamData["team1"] = team1
+  TeamData["team2"] = team2
 };
 
 const CheckTeamMember = (team1, team2) => {
-  if (TeamData["team1"][0] == null) return false;
+  if (!TeamData["team1"][0] || !TeamData["team2"][0]) {
+    console.log("기존팀이 없습니다.")
+    return false;
+  }
   let index = 0;
-  for (let i = 0; i < TeamData.team1.length; i++) {
+  const TeamData1 = TeamData["team1"];
+  const TeamData2 = TeamData["team2"];
+  for (let i = 0; i < TeamData1.length; i++) {
     for (let j = 0; i < team1.length; i++) {
-      if (TeamData["team1"][i] == team1[j]["user"]["discord_id"]) {
+      if (TeamData1[i]["user"]["discord_id"] == team1[j]["user"]["discord_id"]) {
         index++;
       }
     }
   }
-  if (index > 4) {
+  console.log("1팀 중복", index);
+  if (index > 3) {
     return true;
   }
   index = 0;
-  for (let i = 0; i < TeamData.team2.length; i++) {
+  for (let i = 0; i < TeamData2.length; i++) {
     for (let j = 0; i < team2.length; i++) {
-      if (TeamData["team2"][i] == team2[j]["user"]["discord_id"]) {
+      if (TeamData2[i]["user"]["discord_id"] == team2[j]["user"]["discord_id"]) {
         index++;
       }
     }
   }
-  if (index > 4) {
+  console.log("2팀 중복", index);
+  if (index > 3) {
     return true;
   }
   return false;
@@ -58,6 +50,7 @@ const ConvertTeam = (team1, team2) => {
   for (const player1 of team1) {
     for (const player2 of team2) {
       const difference = Math.abs(player1["user"].mmr - player2["user"].mmr);
+      console.log(player1["user"], player2["user"], difference);
       if (difference < smallestDifference) {
         secondSmallestDifference = smallestDifference;
         smallestDifference = difference;

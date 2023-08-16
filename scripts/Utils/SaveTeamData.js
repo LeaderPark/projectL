@@ -50,7 +50,6 @@ const ConvertTeam = (team1, team2) => {
   for (const player1 of team1) {
     for (const player2 of team2) {
       const difference = Math.abs(player1["user"].mmr - player2["user"].mmr);
-      console.log(player1["user"], player2["user"], difference);
       if (difference < smallestDifference) {
         secondSmallestDifference = smallestDifference;
         smallestDifference = difference;
@@ -66,6 +65,7 @@ const ConvertTeam = (team1, team2) => {
   }
 
   for (const { team1: player1, team2: player2 } of playersToSwitch) {
+    console.log(player1["user"], player2["user"]);
     team1.splice(team1.indexOf(player1), 1);
     team2.splice(team2.indexOf(player2), 1);
     team1.push(player2);

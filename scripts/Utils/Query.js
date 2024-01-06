@@ -51,7 +51,6 @@ const insertMatchData = async (match, name) => {
 
     let sql2 = `SELECT discord_id from user where name IN (?,?,?,?,?,?,?,?,?,?)`;
     let [result2] = await promisePool.query(sql2, [...playerNames]);
-
     let sql3 = `INSERT INTO match_in_users (match_id, user_id) VALUES `;
 
     for (let i = 0; i < result2.length; i++) {
@@ -63,7 +62,6 @@ const insertMatchData = async (match, name) => {
     }
 
     let [result3] = await promisePool.query(sql3);
-
     return { success: true };
   } catch (e) {
     return { success: false, msg: e.message };

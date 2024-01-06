@@ -66,7 +66,7 @@ module.exports = {
       const lane = sortedLanes[key];
       if (lane[0] === "SUPPORT" || lane[0] === "BOT") {
         otherLane = lane[0] === "BOT" ? "SUPPORT" : "BOT";
-        const other = sortedLanes.find((x) => x[0] === otherLane);
+        const other = sortedLanes.find((x) => x[0] === "BOT" || x[0] === "SUPPORT");
 
         sortedLanes[key][1].win += other[1].win || 0;
         sortedLanes[key][1].lose += other[1].lose || 0;

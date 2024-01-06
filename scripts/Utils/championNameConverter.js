@@ -16,6 +16,7 @@ const championKorList = {
     Blitzcrank: '블리츠크랭크',
     Brand: '브랜드',
     Braum: '브라움',
+    Briar: '브라이어',
     Caitlyn: '케이틀린',
     Camille: '카밀',
     Cassiopeia: '카시오페아',

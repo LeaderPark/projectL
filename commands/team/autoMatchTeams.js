@@ -107,6 +107,7 @@ module.exports = {
             }
           );
         }
+        console.log(team1Members, team2Members)
         return await interaction.editReply({ embeds: [embed] });
       case "MMR":
         const userIds = members.map((member) => member.user.id);

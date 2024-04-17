@@ -37,6 +37,17 @@ const getSummonerData = async (summonerName) => {
   }
 };
 
+// const getSummonerData = async (summonerName, summonerTag) => {
+//   try {
+//     const reqUrl = `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/${summonerTag}?api_key=RGAPI-REDACTED`;
+//     const res = await axios.get(reqUrl);
+
+//     return res;
+//   } catch (e) {
+//     return null;
+//   }
+// };
+
 module.exports = {
   getSummonerData,
 };

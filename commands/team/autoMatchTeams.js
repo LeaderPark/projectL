@@ -113,16 +113,17 @@ module.exports = {
             {
               name: `소환사${2 * i + 2}`,
               value: `${
-                team2Members[i] != null
-                  ? team2Members[i].user
-                  : "플레이어가 없습니다."
+                team2Members[i] ? team2Members[i].user : "플레이어가 없습니다."
               }`,
               inline: true,
             }
           );
+          await team1Member[i].member.voice.setChannel(team1);
+          if (team2Members[i]) {
+            await team2Member[i].member.voice.setChannel(team2);
+          }
         }
-        console.log(team1Members, team2Members);
-        return await interaction.editReply({ embeds: [embed] });
+        return await interaction.reply({ embeds: [embed] });
       case "MMR":
         const userIds = members.map((member) => member.user.id);
         const users = await getUsersData(userIds);

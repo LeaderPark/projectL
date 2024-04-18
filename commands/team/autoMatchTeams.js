@@ -93,16 +93,16 @@ module.exports = {
         const shuffled = members.sort(() => Math.random() - 0.5);
         for (let i = 0; i < shuffled.length; i++) {
           if (i % 2 == 0) {
-            team1Members = shuffled[i];
+            team1Members[i] = shuffled[i];
           } else {
-            team2Members = shuffled[i];
+            team2Members[i] = shuffled[i];
           }
         }
         for (let i = 0; i < team1Members.length; i++) {
           embed.addFields(
             {
               name: `소환사${2 * i + 1}`,
-              value: `${team1Members[i].user} `,
+              value: `${team1Members[i]} `,
               inline: true,
             },
             {
@@ -113,14 +113,14 @@ module.exports = {
             {
               name: `소환사${2 * i + 2}`,
               value: `${
-                team2Members[i] ? team2Members[i].user : "플레이어가 없습니다."
+                team2Members[i] ? team2Members[i] : "플레이어가 없습니다."
               }`,
               inline: true,
             }
           );
-          await team1Member[i].member.voice.setChannel(team1);
+          await team1Members[i].voice.setChannel(team1);
           if (team2Members[i]) {
-            await team2Member[i].member.voice.setChannel(team2);
+            await team2Member[i].voice.setChannel(team2);
           }
         }
         return await interaction.reply({ embeds: [embed] });

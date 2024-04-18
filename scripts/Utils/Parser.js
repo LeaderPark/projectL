@@ -102,9 +102,9 @@ const getPlayers = (statsList) => {
         ),
         Lane[Number(stats["PLAYER_POSITION"])],
         Number(stats["MINIONS_KILLED"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
-        Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
+          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
@@ -126,23 +126,48 @@ const getPlayers = (statsList) => {
  * @param {Number} time
  */
 const getMMR = (player, gameLength) => {
-  const time = new Date(gameLength).getMinutes();
+  const time = gameLength / 60000; // 1분 = 60000ms
   const visionScorePerMin = player.visionScore / time;
   const damagePerMin = player.totalDamage / time;
-  const isOverDeath = player.kda.kills < player.kda.deaths;
   const killValue = player.kda.kills / time;
   const assistValue = player.kda.assist / time;
   const deathValue = player.kda.deaths / time;
-  const deathMinus = 1; //깍을 비율
-  const maxMMR = 100;
-  const mmr =
-    Math.min((killValue + assistValue) / 2, 1) / (deathMinus * deathValue + 1);
+  const isOverDeath = player.kda.kills < player.kda.deaths;
+  let mmr = 10; // 최소 점수로 시작
+  if (
+    visionScorePerMin >= 3 &&
+    damagePerMin >= 1000 &&
+    !isOverDeath &&
+    killValue + assistValue >= 2 &&
+    deathValue <= 0.1
+  ) {
+    mmr = 100; // 모든 조건을 만족하면 최대 점수
+  } else {
+    const visionScoreWeight = Math.min(Math.max(visionScorePerMin / 3, 0), 1); // 0 ~ 1 사이의 값
+    const damageScoreWeight = Math.min(Math.max(damagePerMin / 1000, 0), 1); // 0 ~ 1 사이의 값
+    const killAssistWeight = Math.min(
+      Math.max((killValue + assistValue) / 2, 0),
+      1
+    ); // 0 ~ 1 사이의 값
+    const deathPenalty = isOverDeath ? 0.5 : 1; // 사망이 많으면 점수 감소
+    const deathValuePenalty = Math.max(1 - deathValue, 0); // 사망률에 따른 패널티
 
-  if (player.win === "Win") {
-    return Math.max(Math.ceil(mmr * maxMMR), 10) * 2;
+    // 가중치를 적용한 최종 MMR 계산
+    mmr +=
+      (visionScoreWeight +
+        damageScoreWeight +
+        killAssistWeight +
+        deathValuePenalty) *
+      22.5 *
+      deathPenalty; // 10 ~ 100 사이의 값 조정
   }
-  const lose = 1 - 1 / ((mmr - 1) ** 2 + 1);
-  return -Math.floor(lose * maxMMR / 2);
+
+  // 승리 시 추가 보너스
+  if (player.win === "Win") {
+    mmr = Math.min(mmr * 1.1, 100); // 승리 보너스, 최대 100
+  }
+
+  return Math.round(mmr);
 };
 
 /**
@@ -158,7 +183,7 @@ const getTeam = (side, players, time) => {
 
   for (let key in playerList) {
     playerList[key].mmr = getMMR(playerList[key], time);
-    console.log(playerList[key].playerName, playerList[key].mmr)
+    console.log(playerList[key].playerName, playerList[key].mmr);
   }
   return new Team(playerList[0].result, side, playerList, totalKill);
 };

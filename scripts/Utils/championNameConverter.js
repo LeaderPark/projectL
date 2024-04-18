@@ -101,7 +101,7 @@ const championKorList = {
   Quinn: "퀸",
   Rakan: "라칸",
   Rammus: "람머스",
-  Reksai: "렉사이",
+  RekSai: "렉사이",
   Rell: "렐",
   RenataGlasc: "레나타 글라스크",
   Renekton: "레넥톤",

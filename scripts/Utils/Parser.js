@@ -48,7 +48,7 @@ const getReplayData = async (path, name) => {
   });
 
   const fileContent = fs.readFileSync(filePath);
-  const decoded = decoder.decode(fileContent).replace(/\uFFFD/g, "냄");
+  const decoded = decoder.decode(fileContent);
   const lines = decoded.split("\n").slice(0, 20).join("");
 
   const startIndex = lines.indexOf('{"gameLength"');
@@ -130,9 +130,9 @@ const getMMR = (player, gameLength) => {
   const visionScorePerMin = player.visionScore / time;
   const damagePerMin = player.totalDamage / time;
   const killValue = player.kda.kills / time;
-  const assistValue = player.kda.assist / time;
+  const assistValue = player.kda.assist / 2 / time;
   const deathValue = player.kda.deaths / time;
-  const isOverDeath = player.kda.kills < player.kda.deaths;
+  const isOverDeath = (player.kda.kills + (player.kda.assist / 2)) < player.kda.deaths;
   let mmr = 10; // 최소 점수로 시작
   if (
     visionScorePerMin >= 3 &&
@@ -162,12 +162,11 @@ const getMMR = (player, gameLength) => {
       deathPenalty; // 10 ~ 100 사이의 값 조정
   }
 
-  // 승리 시 추가 보너스
   if (player.win === "Win") {
-    mmr = Math.min(mmr * 1.1, 100); // 승리 보너스, 최대 100
+    return Math.round(mmr);
   }
 
-  return Math.round(mmr);
+  return -Math.round((100 - mmr) / 3);
 };
 
 /**

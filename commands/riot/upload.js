@@ -37,14 +37,14 @@ module.exports = {
 
     if (!result.success) {
       return await interaction.editReply(
-        result.msg || "예기치 못한 오류가 발생하였습니다."
+        result.msg || "insertMatchData 중 예기치 못한 오류가 발생하였습니다."
       );
     }
 
     const res2 = await updateUserData(replay);
     if (!res2.success) {
       return await interaction.editReply(
-        res2.msg || "예기치 못한 오류가 발생하였습니다."
+        res2.msg || "updateUserData 중 예기치 못한 오류가 발생하였습니다."
       );
     }
 

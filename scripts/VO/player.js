@@ -19,7 +19,8 @@ class Player {
    * @param {Inventory} inventory
    * @param {int} spell1
    * @param {int} spell2
-   * @param {int} visionWard
+   * @param {int} visionScore
+   * @param {int} totalDamage
    * @param {String} puuid
    * @param {int} penta
    * @param {int} quadra
@@ -38,7 +39,8 @@ class Player {
     inventory,
     spell1,
     spell2,
-    visionWard,
+    visionScore,
+    totalDamage,
     puuid,
     penta,
     quadra
@@ -56,7 +58,8 @@ class Player {
     this.spell1 = spell1;
     this.spell2 = spell2;
 
-    this.visionWard = visionWard;
+    this.visionScore = visionScore;
+    this.totalDamage = totalDamage;
 
     this.team = team;
     this.lane = lane;

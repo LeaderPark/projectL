@@ -108,7 +108,8 @@ const getPlayers = (statsList) => {
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
-        Number(stats["VISION_WARDS_BOUGHT_IN_GAME"]),
+        Number(stats["VISION_SCORE"]),
+        Number(stats["TOTAL_DAMAGE_DEALT_TO_CHAMPIONS"]),
         stats["PUUID"],
         Number(stats["PENTA_KILLS"]),
         Number(stats["QUADRA_KILLS"])
@@ -126,10 +127,10 @@ const getPlayers = (statsList) => {
  */
 const getMMR = (player, gameLength) => {
   const time = new Date(gameLength).getMinutes();
+  const visionScorePerMin = player.visionScore / time;
+  const damagePerMin = player.totalDamage / time;
   const isOverDeath = player.kda.kills < player.kda.deaths;
-  const killValue = isOverDeath
-    ? (player.kda.kills * 0.75) / time
-    : player.kda.kills / time;
+  const killValue = player.kda.kills / time;
   const assistValue = player.kda.assist / time;
   const deathValue = player.kda.deaths / time;
   const deathMinus = 1; //깍을 비율

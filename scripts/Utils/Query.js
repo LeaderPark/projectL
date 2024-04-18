@@ -178,7 +178,7 @@ const updateUserData = async (match) => {
         t_death,
         t_assist,
         t_kill_rate,
-        p.playerName,
+        p.puuid,
       ]);
     }
     return { success: true, user: notRegistUser };

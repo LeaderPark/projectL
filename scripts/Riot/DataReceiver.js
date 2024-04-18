@@ -39,7 +39,7 @@ setChampionData();
 
 const getSummonerData = async (summonerName, summonerTag) => {
   try {
-    const reqUrl = `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/${summonerTag}?api_key=RGAPI-1e9cf0b4-69ad-45ea-9f63-ca63342239c8`;
+    const reqUrl = `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/${summonerTag}?api_key=${riot_token}`;
     const res = await axios.get(reqUrl);
 
     return res;

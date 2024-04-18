@@ -126,41 +126,34 @@ const getPlayers = (statsList) => {
  * @param {Number} time
  */
 const getMMR = (player, gameLength) => {
-  const time = gameLength / 60000; // 1분 = 60000ms
+  const time = gameLength / 60000;
   const visionScorePerMin = player.visionScore / time;
   const damagePerMin = player.totalDamage / time;
   const killValue = player.kda.kills / time;
   const assistValue = player.kda.assist / 2 / time;
   const deathValue = player.kda.deaths / time;
-  const isOverDeath = (player.kda.kills + (player.kda.assist / 2)) < player.kda.deaths;
-  let mmr = 10; // 최소 점수로 시작
-  if (
-    visionScorePerMin >= 3 &&
-    damagePerMin >= 1000 &&
-    !isOverDeath &&
-    killValue + assistValue >= 2 &&
-    deathValue <= 0.1
-  ) {
-    mmr = 100; // 모든 조건을 만족하면 최대 점수
-  } else {
-    const visionScoreWeight = Math.min(Math.max(visionScorePerMin / 3, 0), 1); // 0 ~ 1 사이의 값
-    const damageScoreWeight = Math.min(Math.max(damagePerMin / 1000, 0), 1); // 0 ~ 1 사이의 값
-    const killAssistWeight = Math.min(
-      Math.max((killValue + assistValue) / 2, 0),
-      1
-    ); // 0 ~ 1 사이의 값
-    const deathPenalty = isOverDeath ? 0.5 : 1; // 사망이 많으면 점수 감소
-    const deathValuePenalty = Math.max(1 - deathValue, 0); // 사망률에 따른 패널티
+  const isOverDeath =
+    player.kda.kills + player.kda.assist / 2 < player.kda.deaths;
 
-    // 가중치를 적용한 최종 MMR 계산
-    mmr +=
-      (visionScoreWeight +
-        damageScoreWeight +
-        killAssistWeight +
-        deathValuePenalty) *
-      22.5 *
-      deathPenalty; // 10 ~ 100 사이의 값 조정
-  }
+  let mmr = 10;
+
+  const visionScoreWeight = Math.min(Math.max(visionScorePerMin / 3, 0), 1); // 0 ~ 1 사이의 값
+  const damageScoreWeight = Math.min(Math.max(damagePerMin / 1000, 0), 1); // 0 ~ 1 사이의 값
+  const killAssistWeight = Math.min(
+    Math.max((killValue + assistValue) / 2, 0),
+    1
+  ); // 0 ~ 1 사이의 값
+  const deathPenalty = isOverDeath ? 0.5 : 1; // 사망이 많으면 점수 감소
+  const deathValuePenalty = Math.max(1 - deathValue, 0); // 사망률에 따른 패널티
+
+  // 가중치를 적용한 최종 MMR 계산
+  mmr +=
+    (visionScoreWeight +
+      damageScoreWeight +
+      killAssistWeight +
+      deathValuePenalty) *
+    22.5 *
+    deathPenalty;
 
   if (player.win === "Win") {
     return Math.round(mmr);

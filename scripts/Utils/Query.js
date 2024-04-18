@@ -7,8 +7,8 @@ const registraion = async (discord_id, name, puuid) => {
   let sql, result;
 
   try {
-    sql = `SELECT * FROM user WHERE discord_id = ? OR name = ?`;
-    let [r] = await promisePool.query(sql, [discord_id, name]);
+    sql = `SELECT * FROM user WHERE discord_id = ? OR puuid = ?`;
+    let [r] = await promisePool.query(sql, [discord_id, puuid]);
 
     if (r.length > 0) return -1;
 

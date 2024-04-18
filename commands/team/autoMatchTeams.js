@@ -1,6 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders");
 const { getUsersData } = require("../../scripts/Utils/Query");
-const { TeamDataSaver, CheckTeamMember, ConvertTeam } = require("../../scripts/Utils/SaveTeamData");
+const {
+  TeamDataSaver,
+  CheckTeamMember,
+  ConvertTeam,
+} = require("../../scripts/Utils/SaveTeamData");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -37,14 +41,16 @@ module.exports = {
 
     const members = Array.from(channel.members.values());
 
-    if (members.length < 10) {
-      return await interaction.reply({
-        content: "음성채팅방에 10명의 유저가 필요합니다!",
-      });
-    } else if (members.length > 10) {
-      return await interaction.reply({
-        content: "음성채팅방에 유저가 10명보다 많습니다.",
-      });
+    if (addOption == "MMR") {
+      if (members.length < 10) {
+        return await interaction.reply({
+          content: "음성채팅방에 10명의 유저가 필요합니다!",
+        });
+      } else if (members.length > 10) {
+        return await interaction.reply({
+          content: "음성채팅방에 유저가 10명보다 많습니다.",
+        });
+      }
     }
 
     let team1Members = [];
@@ -84,10 +90,14 @@ module.exports = {
 
     switch (addOption) {
       case "RANDOM":
-        const shuffled = members.sort(() => 0.5 - Math.random());
-        const midIndex = Math.ceil(shuffled.length / 2);
-        team1Members = shuffled.slice(0, midIndex);
-        team2Members = shuffled.slice(midIndex);
+        const shuffled = members.sort(() => Math.random() - 0.5);
+        for (let i = 0; i < shuffled.length; i++) {
+          if (i % 2 == 0) {
+            team1Members = shuffled[i];
+          } else {
+            team2Members = shuffled[i];
+          }
+        }
         for (let i = 0; i < team1Members.length; i++) {
           embed.addFields(
             {
@@ -102,12 +112,16 @@ module.exports = {
             },
             {
               name: `소환사${2 * i + 2}`,
-              value: `${team2Members[i].user}`,
+              value: `${
+                team2Members[i] != null
+                  ? team2Members[i].user
+                  : "플레이어가 없습니다."
+              }`,
               inline: true,
             }
           );
         }
-        console.log(team1Members, team2Members)
+        console.log(team1Members, team2Members);
         return await interaction.editReply({ embeds: [embed] });
       case "MMR":
         const userIds = members.map((member) => member.user.id);
@@ -133,17 +147,17 @@ module.exports = {
         const result = CheckTeamMember(team1Members, team2Members);
         console.log(result);
         if (result) {
-          const [team1, team2] = ConvertTeam(team1Members, team2Members)
+          const [team1, team2] = ConvertTeam(team1Members, team2Members);
           team1Members = team1;
           team2Members = team2;
           team1MMR = 0;
           team2MMR = 0;
           for (let i = 0; i < team1.length; i++) {
-            team1MMR += team1[i].user.mmr
-            team2MMR += team2[i].user.mmr
+            team1MMR += team1[i].user.mmr;
+            team2MMR += team2[i].user.mmr;
           }
         }
-        TeamDataSaver(team1Members, team2Members)
+        TeamDataSaver(team1Members, team2Members);
         break;
       default:
         return await interaction.reply({

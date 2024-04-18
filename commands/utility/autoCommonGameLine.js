@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const line = ["탑", "정글", "미드", "원딜", "서폿"];
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,7 +17,22 @@ module.exports = {
     const namesString = interaction.options.getString("이름들");
     const namesArray = namesString.split(",").map((name) => name.trim());
     const shuffledArray = namesArray.sort(() => Math.random() - 0.5);
-    console.log(shuffledArray);
-    // await interaction.reply(shuffledArray.join(", "));
+    const embed = new EmbedBuilder();
+    embed.setColor(0x0099ff).setTitle("일반게임 라인").addFields({
+      name: "\u200b",
+      value: "\u200b",
+      inline: false,
+    });
+    for (let i = 0; i < shuffledArray.length; i++) {
+      embed.addFields({
+        name: `#${line[i]}`,
+        value: `${shuffledArray[i]}`,
+        inline: false,
+      });
+    }
+    embed.setColor(0x0099ff).setTimestamp().setFooter({
+      text: "만든놈 - 환주, 진우",
+    });
+    await interaction.reply(embed);
   },
 };

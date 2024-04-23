@@ -18,7 +18,7 @@ module.exports = {
     ),
   async execute(interaction) {
     const messageContent = interaction.options.getString("내용");
-    const role = interaction.options.getRole("역할");
+    const roleId = interaction.options.getRole("역할").id;
     await interaction.deferReply({ content: "...searching" });
 
     const result = await getRankData();
@@ -27,7 +27,12 @@ module.exports = {
     }
     for (let i = 0; i < result.data.length; i++) {
       try {
-        const user = await interaction.guild.members.fetch(result.data[i].discord_id);
+        const user = await interaction.guild.members.fetch(
+          result.data[i].discord_id
+        );
+        if (user.roles.cache.some((role) => role.id === roleId)) {
+          console.log(`${user.tag} (${user.id})`);
+        }
       } catch (error) {
         console.log(`서버에 없는 사람 : ${result.data[i].discord_id}`);
       }

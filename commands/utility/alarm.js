@@ -30,9 +30,9 @@ module.exports = {
         const user = await interaction.guild.members.fetch(
           result.data[i].discord_id
         );
-        if (user.roles.cache.some((role) => role.id === roleId)) {
-          console.log(`${user.tag} (${user.id})`);
-        }
+        console.log(
+          `멤버의 역할: ${user.roles.cache.map((role) => role.name).join(", ")}`
+        );
       } catch (error) {
         console.log(`서버에 없는 사람 : ${result.data[i].discord_id}`);
       }

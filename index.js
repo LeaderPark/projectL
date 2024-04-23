@@ -4,7 +4,7 @@ const { Client, Events, GatewayIntentBits, Collection, ActivityType } = require(
 const { token } = require("./config.json");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers ],
 });
 
 client.commands = new Collection();

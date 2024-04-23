@@ -4,9 +4,22 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  Events,
 } = require("discord.js");
 const LOLRoleId = "1232156030847156350";
 const R6RoleId = "1232196158747578409";
+const client = require("../../scripts/Utils/Client");
+
+let participants = [];
+
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId === "join") {
+    participants.push(interaction.user.username);
+    await interaction.reply(`${interaction.user.username}님이 참가하셨습니다!`);
+    console.log(participants);
+  }
+});
 
 module.exports = {
   data: new SlashCommandBuilder()

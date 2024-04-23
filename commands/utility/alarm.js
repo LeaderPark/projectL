@@ -10,24 +10,22 @@ const LOLRoleId = "1232156030847156350";
 const R6RoleId = "1232196158747578409";
 const client = require("../../scripts/Utils/Client");
 
-// 기존 participants 배열 대신에 사용자의 참가 상태를 추적하는 객체 사용
+// 참여자를 추적하기 위한 객체
 let participants = {};
 
-// 각 사용자에게 보낸 메시지에 대한 참조를 저장하는 객체
+// 보낸 메시지를 추적하기 위한 객체
 let sentMessages = {};
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
   if (interaction.customId === "join") {
     participants[interaction.user.id] = interaction.user.username;
-    await interaction.reply(`${interaction.user.username}님이 참가하셨습니다!`);
-    console.log(participants);
-    for (const [userId, messageId] of Object.entries(sentMessages)) {
-      const user = await interaction.client.users.fetch(userId);
-      const message = await user.dmChannel.messages.fetch(messageId);
-      const embed = message.embeds[0];
-      embed.setDescription(
-        `현재 참가자: ${Object.values(participants).join(", ")}`
+    for (const messageId in sentMessages) {
+      const messageInfo = sentMessages[messageId];
+      const channel = await client.channels.fetch(messageInfo.channelId);
+      const message = await channel.messages.fetch(messageId);
+      const embed = new EmbedBuilder(message.embeds[0].data).setDescription(
+        `참가자 목록: ${Object.values(participants).join(", ")}`
       );
       await message.edit({ embeds: [embed] });
     }

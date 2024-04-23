@@ -53,7 +53,19 @@ module.exports = {
       if (member.roles.cache.has(roleId)) {
         console.log(`${member.user.tag} has the role!`); // 알림 허용을 한 사람들
         try {
-          await member.send({ embeds: [embed], components: [row] });
+          const res = await member.send({ embeds: [embed], components: [row] });
+          const collectorFilter = (i) => i.user.id === interaction.user.id;
+          try {
+            const confirmation = await res.awaitMessageComponent({
+              filter: collectorFilter,
+              time: 60_000,
+            });
+          } catch (e) {
+            await res.edit({
+              content: "Confirmation not received within 1 minute, cancelling",
+              components: [],
+            });
+          }
           console.log(`Sent a DM to ${member.user.tag}`);
         } catch (error) {
           console.error(`Could not send a DM to ${member.user.tag}.`, error);

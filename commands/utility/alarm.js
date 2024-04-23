@@ -19,15 +19,18 @@ module.exports = {
   async execute(interaction) {
     const messageContent = interaction.options.getString("내용");
     const role = interaction.options.getRole("역할");
-    try {
-      await guild.members.fetch(); // 서버의 모든 멤버를 캐시에 로드
-      console.log(`Successfully fetched all members in ${guild.name}.`);
+    await interaction.deferReply({ content: "...searching" });
 
-      guild.members.cache.forEach((member) => {
-        console.log(`${member.user.tag} (${member.id})`); // 멤버 정보 로깅
-      });
-    } catch (error) {
-      console.error("Error fetching guild members:", error);
+    const result = await getRankData();
+    if (!result.success) {
+      return await interaction.editReply(result.msg);
+    }
+    for (let i = 0; i < result.data.length; i++) {
+      try {
+        const user = await interaction.guild.members.fetch(result.data[i].discord_id);
+      } catch (error) {
+        console.log(`서버에 없는 사람 : ${result.data[i].discord_id}`);
+      }
     }
   },
 };

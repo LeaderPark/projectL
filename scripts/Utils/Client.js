@@ -10,3 +10,5 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
   ],
 });
+
+module.exports = client;

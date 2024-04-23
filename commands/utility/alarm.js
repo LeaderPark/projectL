@@ -86,5 +86,6 @@ module.exports = {
         }
       }
     });
+    await interaction.reply("성공적으로 알림을 전송했습니다.");
   },
 };

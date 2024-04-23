@@ -1,10 +1,23 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { Client, Events, GatewayIntentBits, Collection, ActivityType } = require("discord.js");
+const {
+  Client,
+  Events,
+  GatewayIntentBits,
+  Collection,
+  ActivityType,
+} = require("discord.js");
 const { token } = require("./config.json");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers ],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
 client.commands = new Collection();
@@ -68,4 +81,3 @@ client.once(Events.ClientReady, (value) => {
 });
 
 client.login(token);
-

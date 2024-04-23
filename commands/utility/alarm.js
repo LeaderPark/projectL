@@ -1,4 +1,10 @@
-const { SlashCommandBuilder,EmbedBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
 const LOLRoleId = "1232156030847156350";
 const R6RoleId = "1232196158747578409";
 
@@ -24,17 +30,34 @@ module.exports = {
     } else {
       roleId = R6RoleId;
     }
-    const embed = new EmbedBuilder();
-    embed.setColor(0x0099ff).setTitle("내전 알림");
-    embed.setColor(0x0099ff).setTimestamp().setFooter({
-      text: "만든놈 - 환주, 진우",
-    });
+
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("내전 알림")
+      .setTimestamp()
+      .setFooter({ text: "만든놈 - 환주, 진우" });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("join")
+        .setLabel("참가")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("decline")
+        .setLabel("불참")
+        .setStyle(ButtonStyle.Danger)
+    );
+    let joinCount = 0;
     const members = await interaction.guild.members.fetch();
     members.forEach(async (member) => {
-      const updatedMember = await interaction.guild.members.fetch(member.id);
-      if (updatedMember.roles.cache.has(roleId)) {
-        console.log(`${updatedMember.user.tag} has the role!`); // 알림 허용을 한 사람들
-        updatedMember.send({embeds : [embed]})
+      if (member.roles.cache.has(roleId)) {
+        console.log(`${member.user.tag} has the role!`); // 알림 허용을 한 사람들
+        try {
+          await member.send({ embeds: [embed], components: [row] });
+          console.log(`Sent a DM to ${member.user.tag}`);
+        } catch (error) {
+          console.error(`Could not send a DM to ${member.user.tag}.`, error);
+        }
       }
     });
   },

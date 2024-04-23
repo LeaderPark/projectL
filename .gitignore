@@ -4,39 +4,3 @@ secret.js
 /files
 documents.txt
 config.json
-
-data: [
-    { discord_id: '366889429308145674', name: '최 선 한' },
-    { discord_id: '450980233252962305', name: 'qmfhswmek' },
-    { discord_id: '371545107511509007', name: '손환주몽둥이찜질' },
-    { discord_id: '442936082640666624', name: 'Shu Ouma' },
-    { discord_id: '350961830702743552', name: '네트워크PC' },
-    { discord_id: '694806416464019546', name: '둥둥이멍멍' },
-    { discord_id: '312944278244556800', name: '쿠노마' },
-    { discord_id: '687809180719251458', name: 'Shacco' },
-    { discord_id: '295012602432454657', name: 'KTR' },
-    { discord_id: '492853582207516673', name: '레몬맛사탕의추억' },
-    { discord_id: '542505643349639198', name: '이 게임을 지는법' },
-    { discord_id: '366865806816182284', name: '한국게임은망했다' },
-    { discord_id: '360681772910116868', name: '재유츄릅' },
-    { discord_id: '472976039325335555', name: '쥬몬지' },
-    { discord_id: '357483772037300225', name: 'Anglik' },
-    { discord_id: '733265153931608155', name: 'Oscarn' },
-    { discord_id: '495778699715805204', name: 'ZAC MEISTER' },
-    { discord_id: '721301942298476545', name: '드래곤링크20소환' },
-    { discord_id: '700175686022856757', name: '레데션' },
-    { discord_id: '416618806606037004', name: '연혜지' },
-    { discord_id: '485334207724257301', name: '컹 새' },
-    { discord_id: '700166825752658010', name: '피냄새나누' },
-    { discord_id: '272202649817055254', name: '성윰서' },
-    { discord_id: '265362921276571649', name: 'eggcat' },
-    { discord_id: '447369325695729674', name: '김여못이' },
-    { discord_id: '363662382163165184', name: '쁠릅쁠릅' },
-    { discord_id: '709953013908766842', name: '스팁군' },
-    { discord_id: '406339739374059532', name: 'HS043212' },
-    { discord_id: '593443048957149224', name: '귀엽다 비챤' },
-    { discord_id: '331009983145574415', name: 'Eukkbi' },
-    { discord_id: '462599848495939605', name: '쵸     323    콕' },
-    { discord_id: '349123074433482752', name: 'notDevblue' },
-    { discord_id: '532565769100460053', name: '줄기세포823호' }
-  ]

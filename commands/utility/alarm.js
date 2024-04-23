@@ -17,31 +17,25 @@ module.exports = {
         .setRequired(true)
     ),
   async execute(interaction) {
-    const notiString = interaction.options.getString("내용");
-    const role = interaction.options.getRole("역할");
+    const messageContent = interaction.options.getString("내용");
+    const roleId = interaction.options.getRole("역할").id;
+    const role = interaction.guild.roles.cache.get(roleId);
 
     const membersWithRole = role.members;
-    let failedCount = 0;
+    try {
+      const messagePromises = membersWithRole.map((member) =>
+        member
+          .send(messageContent)
+          .catch((err) =>
+            console.error(`Failed to send DM to ${member.user.tag}.`)
+          )
+      );
 
-    await Promise.all(
-      membersWithRole.map(async (member) => {
-        // 봇이 아닌 사용자에게만 메시지 보내기
-        if (!member.user.bot) {
-          try {
-            await member.send(notiString);
-          } catch (error) {
-            console.error(`메시지 전송 실패: ${member.user.id}`, error);
-            failedCount++;
-          }
-        }
-      })
-    );
-
-    // 모든 메시지가 전송되었음을 알림
-    await interaction.reply(
-      `메시지가 성공적으로 전송되었습니다. ${
-        membersWithRole.size - failedCount
-      }명의 사용자에게 메시지를 보냈습니다. 실패: ${failedCount}명`
-    );
+      await Promise.all(messagePromises);
+      await interaction.reply(`역할을 가진 모든 멤버에게 메시지를 보냈습니다.`);
+    } catch (error) {
+      console.error("Error sending messages: ", error);
+      await interaction.reply("메시지를 보내는 동안 오류가 발생했습니다.");
+    }
   },
 };

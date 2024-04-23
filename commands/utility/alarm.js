@@ -18,24 +18,16 @@ module.exports = {
     ),
   async execute(interaction) {
     const messageContent = interaction.options.getString("내용");
-    const roleId = interaction.options.getRole("역할").id;
-    const role = interaction.guild.roles.cache.get(roleId);
-
-    const membersWithRole = role.members;
+    const role = interaction.options.getRole("역할");
     try {
-      const messagePromises = membersWithRole.map((member) =>
-        member
-          .send(messageContent)
-          .catch((err) =>
-            console.error(`Failed to send DM to ${member.user.tag}.`)
-          )
-      );
+      await guild.members.fetch(); // 서버의 모든 멤버를 캐시에 로드
+      console.log(`Successfully fetched all members in ${guild.name}.`);
 
-      await Promise.all(messagePromises);
-      await interaction.reply(`역할을 가진 모든 멤버에게 메시지를 보냈습니다.`);
+      guild.members.cache.forEach((member) => {
+        console.log(`${member.user.tag} (${member.id})`); // 멤버 정보 로깅
+      });
     } catch (error) {
-      console.error("Error sending messages: ", error);
-      await interaction.reply("메시지를 보내는 동안 오류가 발생했습니다.");
+      console.error("Error fetching guild members:", error);
     }
   },
 };

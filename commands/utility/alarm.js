@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder,EmbedBuilder } = require("discord.js");
 const LOLRoleId = "1232156030847156350";
 const R6RoleId = "1232196158747578409";
 
@@ -24,14 +24,17 @@ module.exports = {
     } else {
       roleId = R6RoleId;
     }
-
-    await interaction.guild.members.fetch();
+    const embed = new EmbedBuilder();
+    embed.setColor(0x0099ff).setTitle("내전 알림");
+    embed.setColor(0x0099ff).setTimestamp().setFooter({
+      text: "만든놈 - 환주, 진우",
+    });
+    const members = await interaction.guild.members.fetch();
     members.forEach(async (member) => {
-      const updatedMember = await guild.members.fetch(member.id);
+      const updatedMember = await interaction.guild.members.fetch(member.id);
       if (updatedMember.roles.cache.has(roleId)) {
-        console.log(`${updatedMember.user.tag} has the role!`);
-      } else {
-        console.log(`${updatedMember.user.tag} does not have the role.`);
+        console.log(`${updatedMember.user.tag} has the role!`); // 알림 허용을 한 사람들
+        updatedMember.send({embeds : [embed]})
       }
     });
   },

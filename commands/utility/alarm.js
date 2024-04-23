@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { getRankData } = require("../../scripts/Utils/Query");
 const LOLRoleId = "1232156030847156350";
 const R6RoleId = "1232196158747578409";
 
@@ -16,36 +15,24 @@ module.exports = {
           { name: "리그오브레전드", value: "LOL" },
           { name: "레인보우식스시즈", value: "R6" }
         )
-      ),
+    ),
   async execute(interaction) {
     const addOption = interaction.options.getString("옵션");
     let roleId = "";
-    if(addOption === "LOL"){
+    if (addOption === "LOL") {
       roleId = LOLRoleId;
-    }else{
+    } else {
       roleId = R6RoleId;
     }
-    
-    await interaction.deferReply({ content: "...searching" });
 
-    const result = await getRankData();
-    if (!result.success) {
-      return await interaction.editReply(result.msg);
-    }
-    for (let i = 0; i < result.data.length; i++) {
-      try {
-        const user = await interaction.guild.members.fetch(
-          result.data[i].discord_id
-        );
-        const hasRole = user.roles.cache.some(role => role.id === roleId)
-        if(hasRole){
-          user
-          .send(messageContent)
-          .then(() => console.log(user.user.username , "에게 메세지를 보냈습니다."))
-        }
-      } catch (error) {
-        console.log(`서버에 없는 사람 : ${result.data[i].discord_id}`);
+    await interaction.guild.members.fetch();
+    members.forEach(async (member) => {
+      const updatedMember = await guild.members.fetch(member.id);
+      if (updatedMember.roles.cache.has(roleId)) {
+        console.log(`${updatedMember.user.tag} has the role!`);
+      } else {
+        console.log(`${updatedMember.user.tag} does not have the role.`);
       }
-    }
+    });
   },
 };

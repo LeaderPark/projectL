@@ -84,6 +84,7 @@ module.exports = {
         console.log(`${member.user.tag} has the role!`); // 알림 허용을 한 사람들
         try {
           const res = await member.send({
+            content: `<@${member.id}>`,
             embeds: [embed],
             // components: [row]
           });

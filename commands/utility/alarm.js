@@ -54,16 +54,19 @@ module.exports = {
     // sentMessages = {};
     const addOption = interaction.options.getString("옵션");
     const description = interaction.options.getString("내용");
+    let titleText = "";
     let roleId = "";
     if (addOption === "LOL") {
       roleId = LOLRoleId;
+      titleText = "롤 내전 알림";
     } else {
       roleId = R6RoleId;
+      titleText = "레식 내전 알림";
     }
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
-      .setTitle("내전 알림")
+      .setTitle(titleText)
       .setDescription(description)
       .setTimestamp()
       .setFooter({ text: "만든놈 - 환주, 진우" });

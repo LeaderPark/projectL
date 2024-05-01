@@ -1,75 +1,71 @@
 let TeamData = {
   team1: [],
-  team2: []
+  team2: [],
 };
 
 const TeamDataSaver = (team1, team2) => {
-  TeamData["team1"] = team1
-  TeamData["team2"] = team2
+  TeamData["team1"] = team1;
+  TeamData["team2"] = team2;
 };
 
-const CheckTeamMember = (team1, team2) => {
+const CheckTeamMember = (newTeam1, newTeam2) => {
   if (!TeamData["team1"][0] || !TeamData["team2"][0]) {
-    console.log("기존팀이 없습니다.")
+    console.log("기존팀이 없습니다.");
     return false;
   }
-  let index = 0;
-  const TeamData1 = TeamData["team1"];
-  const TeamData2 = TeamData["team2"];
-  for (let i = 0; i < TeamData1.length; i++) {
-    for (let j = 0; j < team1.length; j++) {
-      if (TeamData1[i]["user"]["discord_id"] == team1[j]["user"]["discord_id"]) {
-        index++;
-      }
-    }
-  }
-  console.log("1팀 중복", index);
-  if (index > 3) {
+  const existingTeam1 = TeamData["team1"];
+  const existingTeam2 = TeamData["team2"];
+
+  let index1 = existingTeam1.filter((player) =>
+    newTeam1.some(
+      (newPlayer) => player.user.discord_id === newPlayer.user.discord_id
+    )
+  ).length;
+  console.log("1팀 중복", index1);
+  if (index1 > 4) {
     return true;
   }
-  index = 0;
-  for (let i = 0; i < TeamData2.length; i++) {
-    for (let j = 0; j < team2.length; j++) {
-      if (TeamData2[i]["user"]["discord_id"] == team2[j]["user"]["discord_id"]) {
-        index++;
-      }
-    }
-  }
-  console.log("2팀 중복", index);
-  if (index > 3) {
+
+  let index2 = existingTeam2.filter((player) =>
+    newTeam2.some(
+      (newPlayer) => player.user.discord_id === newPlayer.user.discord_id
+    )
+  ).length;
+  console.log("2팀 중복", index2);
+  if (index2 > 4) {
     return true;
   }
   return false;
 };
 
 const ConvertTeam = (team1, team2) => {
-  let smallestDifference = Infinity;
-  let secondSmallestDifference = Infinity;
-  let playersToSwitch = [];
+  let differences = [];
 
-  for (const player1 of team1) {
-    for (const player2 of team2) {
+  for (let player1 of team1) {
+    for (let player2 of team2) {
       const difference = Math.abs(player1["user"].mmr - player2["user"].mmr);
-      if (difference < smallestDifference) {
-        secondSmallestDifference = smallestDifference;
-        smallestDifference = difference;
-        playersToSwitch = [{ team1: player1, team2: player2 }];
-      } else if (
-        difference === smallestDifference &&
-        difference < secondSmallestDifference
-      ) {
-        secondSmallestDifference = difference;
-        playersToSwitch.push({ team1: player1, team2: player2 });
-      }
+      differences.push({ difference, player1, player2 });
     }
   }
 
-  for (const { team1: player1, team2: player2 } of playersToSwitch) {
+  differences.sort((a, b) => a.difference - b.difference);
+
+  let playersToSwitch = [];
+  let selectedPlayers = new Set();
+
+  for (let { difference, player1, player2 } of differences) {
+    if (!selectedPlayers.has(player1) && !selectedPlayers.has(player2)) {
+      playersToSwitch.push({ player1, player2 });
+      selectedPlayers.add(player1);
+      selectedPlayers.add(player2);
+      if (playersToSwitch.length === 2) break;
+    }
+  }
+
+  for (const { player1, player2 } of playersToSwitch) {
     console.log(player1["user"], player2["user"]);
-    team1.splice(team1.indexOf(player1), 1);
-    team2.splice(team2.indexOf(player2), 1);
-    team1.push(player2);
-    team2.push(player1);
+    team1.splice(team1.indexOf(player1), 1, player2);
+    team2.splice(team2.indexOf(player2), 1, player1);
   }
 
   return [team1, team2];

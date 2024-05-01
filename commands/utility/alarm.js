@@ -84,18 +84,17 @@ module.exports = {
     const members = await interaction.guild.members.fetch();
     members.forEach(async (member) => {
       if (member.roles.cache.has(roleId)) {
-        console.log(`${member.user.tag} has the role!`); // 알림 허용을 한 사람들
         try {
           const res = await member.send({
             content: `<@${member.id}>`,
             embeds: [embed],
             // components: [row]
           });
-          console.log(`Sent a DM to ${member.user.tag}`);
+          console.log(`${member.user.tag}에게 DM을 보냈습니다.`);
 
           //   sentMessages[member.id] = res.id;
         } catch (error) {
-          console.error(`Could not send a DM to ${member.user.tag}.`, error);
+          console.error(`${member.user.tag}에게 DM 보내는 걸 실패했습니다.`, error);
         }
       }
     });

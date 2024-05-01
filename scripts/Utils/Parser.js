@@ -127,7 +127,7 @@ const getPlayers = (statsList) => {
  */
 const getMMR = (player, gameLength) => {
   const time = gameLength / 60000;
-  const visionScorePerMin = player.visionScore / time;
+  const visionScorePerMin = player.visionScore / time / 2;
   const damagePerMin = player.totalDamage / time;
   const killValue = player.kda.kills / time;
   const assistValue = player.kda.assist / 2 / time;
@@ -154,6 +154,13 @@ const getMMR = (player, gameLength) => {
       deathValuePenalty) *
     22.5 *
     deathPenalty;
+  
+  console.log(
+    "시야 점수 : ", visionScoreWeight * 100, "\n" ,
+    "데미지 점수 : ", damageScoreWeight * 100, "\n",
+    "킬 어시 점수 : ", killAssistWeight * 100, "\n", 
+    "덜 죽은 점수 : ", deathValuePenalty * 100, "\n",
+    "분당 1뎃 : ", deathPenalty);
 
   if (player.win === "Win") {
     return Math.round(mmr);

@@ -11,65 +11,31 @@ const decoder = new TextDecoder("utf-8");
 
 const Lane = require("../enum/Lane");
 const Side = require("../enum/Side");
-const downloadFile = (path, filePath) => {
+const { parseROFL } = require("./roflxd");
+
+const downloadFile = (url, filePath) => {
   return new Promise((resolve, reject) => {
-    let data = "";
+    const file = fs.createWriteStream(filePath);
 
-    https.get(path, (res) => {
-      res.on("data", (chunk) => {
-        data += chunk;
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`Failed to get '${url}' (${res.statusCode})`));
+        return;
+      }
+
+      res.pipe(file);
+
+      file.on('finish', () => {
+        file.close(resolve);
       });
 
-      res.on("end", () => {
-        resolve(data);
+      file.on('error', (err) => {
+        fs.unlink(filePath, () => reject(err));
       });
-
-      res.on("error", (err) => {
-        reject(err);
-      });
+    }).on('error', (err) => {
+      reject(err);
     });
   });
-};
-
-/**
- *
- * @param {String} path
- * @returns
- */
-const getReplayData = async (path, name) => {
-  const filePath = `./files/${name}`;
-
-  const data = await downloadFile(path, filePath);
-
-  fs.writeFileSync(filePath, data, (err) => {
-    if (err) {
-      throw new Error(err);
-    }
-  });
-
-  const fileContent = fs.readFileSync(filePath);
-  const decoded = decoder.decode(fileContent);
-  const lines = decoded.split("\n").slice(0, 20).join("");
-
-  const startIndex = lines.indexOf('{"gameLength"');
-  const endIndex = lines.indexOf(']"}');
-
-  if (startIndex <= -1 || endIndex <= -1) {
-    throw new Error("잘못 된 파일");
-  }
-
-  try {
-    const jsonStr = lines.substring(startIndex, endIndex) + ']"}';
-    return JSON.parse(jsonStr);
-  } catch (err) {
-    if (err instanceof SyntaxError) {
-      throw new Error("Unable to parse replay data from this replay file.");
-    } else {
-      throw new Error(
-        "An unexpected error has occured while trying to parse replay data."
-      );
-    }
-  }
 };
 
 /**
@@ -86,6 +52,7 @@ const getPlayers = (statsList) => {
     for (let i = 0; i <= 6; i++) {
       items.push(Number(stats[`ITEM${i}`]));
     }
+
     players.push(
       new Player(
         stats["NAME"],
@@ -102,9 +69,9 @@ const getPlayers = (statsList) => {
         ),
         Lane[Number(stats["PLAYER_POSITION"])],
         Number(stats["MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
-          Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
+        Number(stats["NEUTRAL_MINIONS_KILLED"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE"]) +
+        Number(stats["NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE"]),
         new Inventory(items),
         Number(stats["SUMMON_SPELL1_CAST"]),
         Number(stats["SUMMON_SPELL2_CAST"]),
@@ -154,11 +121,11 @@ const getMMR = (player, gameLength) => {
       deathValuePenalty) *
     22.5 *
     deathPenalty;
-  
+
   console.log(
-    "시야 점수 : ", visionScoreWeight * 100, "\n" ,
+    "시야 점수 : ", visionScoreWeight * 100, "\n",
     "데미지 점수 : ", damageScoreWeight * 100, "\n",
-    "킬 어시 점수 : ", killAssistWeight * 100, "\n", 
+    "킬 어시 점수 : ", killAssistWeight * 100, "\n",
     "덜 죽은 점수 : ", deathValuePenalty * 100, "\n",
     "분당 1뎃 : ", deathPenalty);
 
@@ -193,11 +160,14 @@ const getTeam = (side, players, time) => {
  */
 const getMatchData = async (path, name) => {
   try {
-    const matchData = await getReplayData(path, name);
-    const players = getPlayers(JSON.parse(matchData.statsJson));
-
-    const gameLength = Number(matchData.gameLength);
-    const gameVersion = matchData.gameVersion;
+    const filePath = `./files/${name}`;
+    const data = await downloadFile(path, filePath);
+    const outputFile = await parseROFL(filePath);
+    const jsonData = await fs.promises.readFile(outputFile);
+    const metadata = JSON.parse(jsonData);
+    const players = getPlayers(metadata.statsJson);
+    const gameLength = Number(metadata.gameLength);
+    const gameVersion = metadata.gameVersion;
     const purpleTeam = getTeam(Side.PURPLE, players, gameLength);
     const blueTeam = getTeam(Side.BLUE, players, gameLength);
 

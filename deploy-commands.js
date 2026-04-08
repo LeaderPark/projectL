@@ -1,7 +1,9 @@
 const { REST, Routes } = require("discord.js");
-const { clientId, guildId, token } = require("./config.json");
 const fs = require("node:fs");
 const path = require("node:path");
+const { getRuntimeConfig } = require("./config/runtime");
+
+const runtimeConfig = getRuntimeConfig();
 
 const commands = [];
 // Grab all the command files from the commands directory you created earlier
@@ -29,21 +31,24 @@ for (const folder of commandFolders) {
 }
 
 // Construct and prepare an instance of the REST module
-const rest = new REST().setToken(token);
+const rest = new REST().setToken(runtimeConfig.discord.token);
 
 // and deploy your commands!
 (async () => {
   try {
+    const route = runtimeConfig.discord.guildId
+      ? Routes.applicationGuildCommands(
+          runtimeConfig.discord.clientId,
+          runtimeConfig.discord.guildId
+        )
+      : Routes.applicationCommands(runtimeConfig.discord.clientId);
+
     console.log(
-      `Started refreshing ${commands.length} application (/) commands.`
+      `Started refreshing ${commands.length} application (/) commands (${runtimeConfig.discord.guildId ? "guild" : "global"} scope).`
     );
 
     // The put method is used to fully refresh all commands in the guild with the current set
-    const data = await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId), //로컬 하나의 서버
-      //   Routes.applicationCommands(clientId), //글로벌 다수의 서버
-      { body: commands }
-    );
+    const data = await rest.put(route, { body: commands });
 
     console.log(
       `Successfully reloaded ${data.length} application (/) commands.`

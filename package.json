@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "bootstrap": "powershell -ExecutionPolicy Bypass -File .\\scripts\\bootstrap.ps1",
     "start": "node deploy-commands.js && node .",
     "build": "node deploy-commands.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.test.js",
+    "test:runtime": "node --test tests/*.test.js",
+    "verify": "powershell -ExecutionPolicy Bypass -File .\\scripts\\verify.ps1"
   },
   "author": "",
   "license": "ISC",

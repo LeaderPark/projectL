@@ -10,11 +10,13 @@ test("compose file defines bot and db services", () => {
   assert.match(compose, /^\s{2}bot:\s*$/m);
   assert.match(compose, /restart:\s+unless-stopped/);
   assert.match(compose, /\/docker-entrypoint-initdb\.d\/01-bot\.sql/);
+  assert.match(compose, /\/docker-entrypoint-initdb\.d\/02-guild-privileges\.sh/);
 });
 
 test("bootstrap and verify scripts exist", () => {
   assert.equal(fs.existsSync("scripts/bootstrap.ps1"), true);
   assert.equal(fs.existsSync("scripts/verify.ps1"), true);
+  assert.equal(fs.existsSync("scripts/db-init/02-guild-privileges.sh"), true);
   assert.equal(fs.existsSync(".env.example"), true);
   assert.equal(fs.existsSync("Dockerfile"), true);
 });

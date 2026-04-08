@@ -66,5 +66,6 @@ docker compose down
 ## Notes
 
 - The MariaDB host port defaults to `3307` to reduce collisions with other local database installs.
-- `bot.sql` only runs on first database initialization. If you need a full reset, run `docker compose down -v` before starting again.
+- Files in `/docker-entrypoint-initdb.d` only run on first database initialization. If you need a full reset, run `docker compose down -v` before starting again.
+- If you upgraded from an older database volume and `/서버설정 초기화` fails with `Access denied ... to database 'bot_guild_...'`, grant `CREATE` on `*.*` and `ALL PRIVILEGES` on ``${DB_NAME}_guild_%`` to `${DB_USER}`, or recreate the DB volume once.
 - `npm start` still works for a legacy local setup when matching local secret files exist.

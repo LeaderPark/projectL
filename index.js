@@ -10,6 +10,9 @@ const {
   createSessionPoller,
 } = require("./scripts/Tournament/SessionPoller");
 const { createCallbackServer } = require("./scripts/Web/CallbackServer");
+const { createPublicSiteHandlers } = require("./scripts/Web/PublicSite");
+const { createPublicSiteRouter } = require("./scripts/Web/PublicSiteRouter");
+const { renderNotFoundPage } = require("./scripts/Web/views/NotFoundPage");
 
 const runtimeConfig = getRuntimeConfig();
 
@@ -94,9 +97,17 @@ client.once(Events.ClientReady, (value) => {
     moveService: createGuildMoveService(client),
     intervalMs: runtimeConfig.riot.tournamentPollIntervalMs,
   });
+  const publicSiteHandlers = createPublicSiteHandlers({
+    preferredGuildId: runtimeConfig.web.publicGuildId,
+  });
   const callbackServer = createCallbackServer({
     callbackPath: runtimeConfig.web.riotTournamentCallbackPath,
     sessionStore,
+    publicSiteRouter: createPublicSiteRouter({
+      assetsDir: path.join(__dirname, "public"),
+      ...publicSiteHandlers,
+      renderNotFoundPage,
+    }),
   });
 
   client.tournamentSessionPoller = poller;

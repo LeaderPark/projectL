@@ -32,9 +32,12 @@ Copy-Item .env.example .env
 - `DISCORD_TOKEN`
 - `DISCORD_CLIENT_ID`
 - `DISCORD_GUILD_ID`
+- `WEB_PUBLIC_GUILD_ID`
 - `RIOT_API_TOKEN`
 - `DB_PASSWORD`
 - `DB_ROOT_PASSWORD`
+
+`WEB_PUBLIC_GUILD_ID` is the guild whose inhouse records should be shown on the public website. In a single-guild setup you can set it to the same value as `DISCORD_GUILD_ID`.
 
 3. Start the stack:
 

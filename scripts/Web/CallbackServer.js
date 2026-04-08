@@ -44,7 +44,11 @@ function readJsonBody(req) {
   });
 }
 
-function createCallbackServer({ callbackPath = "/riot/callback", sessionStore }) {
+function createCallbackServer({
+  callbackPath = "/riot/callback",
+  sessionStore,
+  publicSiteRouter,
+}) {
   return http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/health") {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
@@ -63,6 +67,19 @@ function createCallbackServer({ callbackPath = "/riot/callback", sessionStore })
         res.end(error?.message ?? "callback error");
       }
       return;
+    }
+
+    if (publicSiteRouter) {
+      try {
+        const handled = await publicSiteRouter(req, res);
+        if (handled) {
+          return;
+        }
+      } catch (error) {
+        res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end(error?.message ?? "public site error");
+        return;
+      }
     }
 
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });

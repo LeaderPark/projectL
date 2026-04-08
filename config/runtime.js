@@ -145,6 +145,12 @@ function loadRuntimeConfig(options = {}) {
           3000
         )
       ),
+      publicGuildId: firstNonEmpty(
+        process.env.WEB_PUBLIC_GUILD_ID,
+        process.env.DISCORD_GUILD_ID,
+        legacyConfig.webPublicGuildId,
+        legacyConfig.guildId
+      ),
       riotTournamentCallbackPath: firstNonEmpty(
         process.env.RIOT_TOURNAMENT_CALLBACK_PATH,
         legacyConfig.riotTournamentCallbackPath,

@@ -17,6 +17,7 @@ test("loads bot and db config from environment variables", () => {
   process.env.RIOT_TOURNAMENT_USE_STUB = "true";
   process.env.RIOT_TOURNAMENT_POLL_INTERVAL_MS = "7000";
   process.env.WEB_PORT = "8080";
+  process.env.WEB_PUBLIC_GUILD_ID = "public-guild-id";
   process.env.RIOT_TOURNAMENT_CALLBACK_PATH = "/riot/callback";
   process.env.DB_HOST = "db";
   process.env.DB_PORT = "3306";
@@ -39,6 +40,7 @@ test("loads bot and db config from environment variables", () => {
     assert.equal(runtime.riot.tournamentUseStub, true);
     assert.equal(runtime.riot.tournamentPollIntervalMs, 7000);
     assert.equal(runtime.web.port, 8080);
+    assert.equal(runtime.web.publicGuildId, "public-guild-id");
     assert.equal(runtime.web.riotTournamentCallbackPath, "/riot/callback");
     assert.equal(runtime.database.host, "db");
     assert.equal(runtime.database.port, 3306);
@@ -100,6 +102,7 @@ test("falls back to local config and secret files when env vars are missing", ()
   delete process.env.RIOT_TOURNAMENT_USE_STUB;
   delete process.env.RIOT_TOURNAMENT_POLL_INTERVAL_MS;
   delete process.env.WEB_PORT;
+  delete process.env.WEB_PUBLIC_GUILD_ID;
   delete process.env.RIOT_TOURNAMENT_CALLBACK_PATH;
 
   try {
@@ -118,6 +121,7 @@ test("falls back to local config and secret files when env vars are missing", ()
     assert.equal(runtime.riot.tournamentRegion, "KR");
     assert.equal(runtime.riot.tournamentUseStub, true);
     assert.equal(runtime.web.port, 3000);
+    assert.equal(runtime.web.publicGuildId, "file-guild-id");
     assert.equal(runtime.web.riotTournamentCallbackPath, "/riot/callback");
     assert.equal(runtime.database.host, "127.0.0.1");
     assert.equal(runtime.database.user, "file-user");
@@ -143,6 +147,7 @@ test("guild id is optional in runtime config", () => {
   process.env.DB_NAME = "bot";
 
   delete process.env.DISCORD_GUILD_ID;
+  delete process.env.WEB_PUBLIC_GUILD_ID;
 
   try {
     const { loadRuntimeConfig } = require("../config/runtime");
@@ -151,6 +156,7 @@ test("guild id is optional in runtime config", () => {
     assert.equal(runtime.discord.guildId, undefined);
     assert.equal(runtime.riot.platform, "kr");
     assert.equal(runtime.web.port, 3000);
+    assert.equal(runtime.web.publicGuildId, undefined);
   } finally {
     process.env = originalEnv;
   }

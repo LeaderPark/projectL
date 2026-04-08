@@ -1,8 +1,17 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { Events, Collection, ActivityType } = require("discord.js");
-const { token } = require("./config.json");
+const { getRuntimeConfig } = require("./config/runtime");
 const client = require("./scripts/Utils/Client");
+const { createTournamentApi } = require("./scripts/Riot/TournamentApi");
+const {
+  createDatabaseSessionStore,
+  createGuildMoveService,
+  createSessionPoller,
+} = require("./scripts/Tournament/SessionPoller");
+const { createCallbackServer } = require("./scripts/Web/CallbackServer");
+
+const runtimeConfig = getRuntimeConfig();
 
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, "commands");
@@ -29,6 +38,13 @@ for (const folder of commandFolders) {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+  if (!interaction.inGuild()) {
+    await interaction.reply({
+      content: "이 명령어는 서버 안에서만 사용할 수 있어요.",
+      ephemeral: true,
+    });
+    return;
+  }
 
   const command = interaction.client.commands.get(interaction.commandName);
 
@@ -62,7 +78,39 @@ client.once(Events.ClientReady, (value) => {
     type: ActivityType.Streaming,
     url: "https://www.youtube.com/watch?v=HuIHn2FU4Qw",
   });
+
+  const riotApi = createTournamentApi({
+    token: runtimeConfig.riot.token,
+    platform: runtimeConfig.riot.platform,
+    region: runtimeConfig.riot.tournamentRegion,
+    callbackUrl: runtimeConfig.riot.tournamentCallbackUrl,
+    useStub: runtimeConfig.riot.tournamentUseStub,
+  });
+
+  const sessionStore = createDatabaseSessionStore();
+  const poller = createSessionPoller({
+    sessionStore,
+    riotApi,
+    moveService: createGuildMoveService(client),
+    intervalMs: runtimeConfig.riot.tournamentPollIntervalMs,
+  });
+  const callbackServer = createCallbackServer({
+    callbackPath: runtimeConfig.web.riotTournamentCallbackPath,
+    sessionStore,
+  });
+
+  client.tournamentSessionPoller = poller;
+  client.callbackServer = callbackServer;
+  poller.start();
+  poller.tick().catch((error) => {
+    console.error("Initial tournament session poll failed:", error);
+  });
+  callbackServer.listen(runtimeConfig.web.port, () => {
+    console.log(
+      `Callback server listening on port ${runtimeConfig.web.port}${runtimeConfig.web.riotTournamentCallbackPath}`
+    );
+  });
 });
 
-client.login(token);
+client.login(runtimeConfig.discord.token);
 

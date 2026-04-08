@@ -33,7 +33,7 @@ module.exports = {
       return;
     }
 
-    const result = await insertMatchData(replay, fileName);
+    const result = await insertMatchData(interaction.guildId, replay, fileName);
 
     if (!result.success) {
       return await interaction.editReply(
@@ -41,7 +41,7 @@ module.exports = {
       );
     }
 
-    const res2 = await updateUserData(replay);
+    const res2 = await updateUserData(interaction.guildId, replay);
     if (!res2.success) {
       return await interaction.editReply(
         res2.msg || "updateUserData 중 예기치 못한 오류가 발생하였습니다."

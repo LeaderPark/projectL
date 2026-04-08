@@ -32,9 +32,13 @@ module.exports = {
       return await interaction.reply("봇 말고 소환사를 넣으라고");
     }
 
-    const result = await getUserData(user.id);
+    const result = await getUserData(interaction.guildId, user.id);
     if (!result.success) {
-      return await interaction.reply("오류가 발생했습니다.");
+      return await interaction.reply(result.msg || "오류가 발생했습니다.");
+    }
+
+    if (result.data.length <= 0) {
+      return await interaction.reply("등록된 정보가 없습니다.");
     }
 
     const userData = result.data[0];
@@ -50,8 +54,6 @@ module.exports = {
       totalPlay
     );
     const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
-
-    const data = JSON.parse(userData.lanes);
 
     const sortedLanes = Object.entries(JSON.parse(userData.lanes)).sort(
       ([, a], [, b]) => {

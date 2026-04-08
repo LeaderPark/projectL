@@ -36,7 +36,8 @@ const rest = new REST().setToken(runtimeConfig.discord.token);
 // and deploy your commands!
 (async () => {
   try {
-    const route = runtimeConfig.discord.guildId
+    const isGuildScoped = Boolean(runtimeConfig.discord.guildId);
+    const route = isGuildScoped
       ? Routes.applicationGuildCommands(
           runtimeConfig.discord.clientId,
           runtimeConfig.discord.guildId
@@ -44,7 +45,7 @@ const rest = new REST().setToken(runtimeConfig.discord.token);
       : Routes.applicationCommands(runtimeConfig.discord.clientId);
 
     console.log(
-      `Started refreshing ${commands.length} application (/) commands (${runtimeConfig.discord.guildId ? "guild" : "global"} scope).`
+      `Started refreshing ${commands.length} application (/) commands (${isGuildScoped ? "guild" : "global"} scope).`
     );
 
     // The put method is used to fully refresh all commands in the guild with the current set
@@ -53,6 +54,15 @@ const rest = new REST().setToken(runtimeConfig.discord.token);
     console.log(
       `Successfully reloaded ${data.length} application (/) commands.`
     );
+
+    if (isGuildScoped) {
+      // Clear legacy global commands so Discord does not show duplicates from both scopes.
+      await rest.put(Routes.applicationCommands(runtimeConfig.discord.clientId), {
+        body: [],
+      });
+
+      console.log("Cleared legacy global application commands.");
+    }
   } catch (error) {
     // And of course, make sure you catch and log any errors!
     console.error(error);

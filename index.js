@@ -1,8 +1,9 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { Events, Collection, ActivityType } = require("discord.js");
+const { Events, Collection } = require("discord.js");
 const { getRuntimeConfig } = require("./config/runtime");
 const client = require("./scripts/Utils/Client");
+const { buildBotPresenceActivity } = require("./scripts/Discord/BotPresence");
 const { createTournamentApi } = require("./scripts/Riot/TournamentApi");
 const {
   createDatabaseSessionStore,
@@ -76,11 +77,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.once(Events.ClientReady, (value) => {
   console.log(`Ready! Logged in as ${value.user.tag}`);
-  client.user.setActivity({
-    name: "롤 내전",
-    type: ActivityType.Streaming,
-    url: "https://www.youtube.com/watch?v=HuIHn2FU4Qw",
-  });
+  client.user.setActivity(buildBotPresenceActivity());
 
   const riotApi = createTournamentApi({
     token: runtimeConfig.riot.token,

@@ -33,6 +33,52 @@ function buildGetUsersDataSql(ids) {
   )}) ORDER BY mmr DESC, name ASC`;
 }
 
+function buildPublicSummarySql() {
+  return `
+    SELECT
+      COUNT(*) AS total_matches,
+      (SELECT COUNT(*) AS total_players FROM user) AS total_players,
+      (SELECT MAX(mmr) FROM user) AS top_mmr,
+      (
+        SELECT COALESCE(
+          MAX(ROUND((win / NULLIF(win + lose, 0)) * 100)),
+          0
+        )
+        FROM user
+        WHERE (win + lose) > 0
+      ) AS top_win_rate
+    FROM matches
+  `;
+}
+
+function buildPublicPlayerSearchSql() {
+  return `
+    SELECT discord_id, name, mmr, win, lose
+    FROM user
+    WHERE name LIKE ?
+    ORDER BY mmr DESC, name ASC
+    LIMIT 10
+  `;
+}
+
+function buildPublicLeaderboardSql() {
+  return `
+    SELECT discord_id, name, mmr, win, lose
+    FROM user
+    ORDER BY mmr DESC, name ASC
+    LIMIT ?
+  `;
+}
+
+function buildPublicMatchHistorySql(limit) {
+  return `
+    SELECT *
+    FROM matches
+    ORDER BY id DESC
+    ${Number.isFinite(limit) ? "LIMIT ?" : ""}
+  `.trim();
+}
+
 async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
   const [rows] = await promisePool.query(
     `SELECT * FROM user WHERE discord_id = ? LIMIT 1`,
@@ -381,6 +427,101 @@ const getLatestMatched = async (guildId, id) => {
   }
 };
 
+const getPublicSiteSummary = async (guildId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(buildPublicSummarySql());
+
+    return {
+      success: true,
+      data: rows[0] ?? {
+        total_matches: 0,
+        total_players: 0,
+        top_mmr: 0,
+        top_win_rate: 0,
+      },
+    };
+  } catch (error) {
+    return buildErrorResult(error, "공개 전적 요약을 불러오는 중 오류가 발생했습니다.");
+  }
+};
+
+const getPublicPlayerProfile = async (guildId, discordId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(
+      `SELECT * FROM user WHERE discord_id = ? LIMIT 1`,
+      [discordId]
+    );
+
+    if (!rows.length) {
+      return {
+        success: false,
+        code: "PLAYER_NOT_FOUND",
+        msg: "등록된 플레이어를 찾을 수 없습니다.",
+      };
+    }
+
+    return {
+      success: true,
+      data: rows[0],
+    };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "플레이어 공개 프로필을 불러오는 중 오류가 발생했습니다."
+    );
+  }
+};
+
+const getPublicLeaderboard = async (guildId, limit = 20) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(buildPublicLeaderboardSql(), [limit]);
+
+    return {
+      success: true,
+      data: rows,
+    };
+  } catch (error) {
+    return buildErrorResult(error, "공개 랭킹을 불러오는 중 오류가 발생했습니다.");
+  }
+};
+
+const getPublicMatchHistory = async (guildId, limit) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const hasLimit = Number.isFinite(limit);
+    const [rows] = await promisePool.query(
+      buildPublicMatchHistorySql(limit),
+      hasLimit ? [limit] : []
+    );
+
+    return {
+      success: true,
+      data: rows,
+    };
+  } catch (error) {
+    return buildErrorResult(error, "공개 경기 목록을 불러오는 중 오류가 발생했습니다.");
+  }
+};
+
+const searchPublicPlayers = async (guildId, term) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(buildPublicPlayerSearchSql(), [
+      `%${term}%`,
+    ]);
+
+    return {
+      success: true,
+      data: rows,
+    };
+  } catch (error) {
+    return buildErrorResult(error, "플레이어 검색 중 오류가 발생했습니다.");
+  }
+};
+
 function parseDiscordIdList(raw) {
   if (!raw) {
     return [];
@@ -550,7 +691,15 @@ const markTournamentSessionCompletedPendingGather = async (
 };
 
 module.exports = {
+  buildPublicLeaderboardSql,
+  buildPublicMatchHistorySql,
+  buildPublicPlayerSearchSql,
+  buildPublicSummarySql,
   buildGetUsersDataSql,
+  getPublicLeaderboard,
+  getPublicMatchHistory,
+  getPublicPlayerProfile,
+  getPublicSiteSummary,
   getLatestMatched,
   getRankData,
   getUserData,
@@ -560,6 +709,7 @@ module.exports = {
   parseDiscordIdList,
   registerRiotAccount,
   registraion,
+  searchPublicPlayers,
   markTournamentSessionCompletedPendingGather,
   replaceActiveTournamentSession,
   resolveUsersByPuuids,

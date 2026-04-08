@@ -10,7 +10,7 @@ module.exports = {
     const embed1 = new EmbedBuilder();
     await interaction.deferReply({ content: "...searching" });
 
-    const result = await getRankData();
+    const result = await getRankData(interaction.guildId);
     if (!result.success) {
       return await interaction.editReply(result.msg);
     }

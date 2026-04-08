@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { getSummonerData } = require("../../scripts/Riot/DataReceiver");
-const { promisePool } = require("../../scripts/Utils/DB");
-const { registraion } = require("../../scripts/Utils/Query");
+const { registerRiotAccount } = require("../../scripts/Utils/Query");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -45,16 +44,18 @@ module.exports = {
       return await interaction.editReply("존재하지 않는 소환사 입니다.");
 
     //db insert
-    const insertRes = await registraion(
-      user.id,
-      userName + "#" + userTag,
-      result.data.puuid
-    );
+    const insertRes = await registerRiotAccount(interaction.guildId, user.id, {
+      riotGameName: result.account.gameName || userName,
+      riotTagLine: result.account.tagLine || userTag,
+      puuid: result.account.puuid,
+      summonerId: result.summoner.id,
+    });
 
-    if (!insertRes)
-      return await interaction.editReply("에러가 발생하였습니다.");
-    if (insertRes === -1)
-      return await interaction.editReply("이미 등록된 소환사입니다.");
+    if (!insertRes.success) {
+      return await interaction.editReply(
+        insertRes.msg || "에러가 발생하였습니다."
+      );
+    }
 
     await interaction.editReply("등록을 완료했습니다.");
   },

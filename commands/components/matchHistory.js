@@ -24,9 +24,13 @@ module.exports = {
         }
 
         await interaction.deferReply({ content: "...searching" });
-        const result = await getLatestMatched(user.id);
+        const result = await getLatestMatched(interaction.guildId, user.id);
         if (!result.success) {
-            return await interaction.reply("오류가 발생했습니다.");
+            return await interaction.editReply(result.msg || "오류가 발생했습니다.");
+        }
+
+        if (result.data.length <= 0) {
+            return await interaction.editReply("최근 전적이 없습니다.");
         }
 
         let match_data = [];

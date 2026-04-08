@@ -1,13 +1,15 @@
 const axios = require("axios");
-const { riot_token } = require("../../config.json");
+const { getRuntimeConfig } = require("../../config/runtime");
+
+const runtimeConfig = getRuntimeConfig();
 
 const ddragonApi = axios.create({
   baseURL:
-    "http://ddragon.leagueoflegends.com/cdn/10.11.1/data/ko_KR/champion.json",
+    "https://ddragon.leagueoflegends.com/cdn/10.11.1/data/ko_KR/champion.json",
 });
 
 const item = axios.create({
-  baseURL: "http://ddragon.leagueoflegends.com/cdn/13.8.1/data/ko_KR/item.json",
+  baseURL: "https://ddragon.leagueoflegends.com/cdn/13.8.1/data/ko_KR/item.json",
 });
 // http://ddragon.leagueoflegends.com/cdn/13.8.1/img/champion/{name}.png -챔피언 프로필
 // http://ddragon.leagueoflegends.com/cdn/13.8.1/img/item/{itemKey}.png -아이템
@@ -39,10 +41,19 @@ setChampionData();
 
 const getSummonerData = async (summonerName, summonerTag) => {
   try {
-    const reqUrl = `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${summonerName}/${summonerTag}?api_key=${riot_token}`;
-    const res = await axios.get(reqUrl);
+    const encodedName = encodeURIComponent(summonerName);
+    const encodedTag = encodeURIComponent(summonerTag);
+    const accountUrl = `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodedName}/${encodedTag}?api_key=${runtimeConfig.riot.token}`;
+    const accountRes = await axios.get(accountUrl);
+    const summonerUrl = `https://${runtimeConfig.riot.platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(
+      accountRes.data.puuid
+    )}?api_key=${runtimeConfig.riot.token}`;
+    const summonerRes = await axios.get(summonerUrl);
 
-    return res;
+    return {
+      account: accountRes.data,
+      summoner: summonerRes.data,
+    };
   } catch (e) {
     return null;
   }

@@ -15,6 +15,11 @@ test("deploy script uses git pull and compose restart flow", () => {
 
   assert.match(script, /git status --porcelain/);
   assert.match(script, /git pull --ff-only/);
+  assert.match(script, /git rev-parse --short HEAD/);
+  assert.match(script, /git log -1 --pretty=%s/);
+  assert.match(script, /BOT_DEPLOY_COMMIT/);
+  assert.match(script, /BOT_DEPLOY_MESSAGE/);
+  assert.match(script, /BOT_DEPLOYED_AT/);
   assert.match(script, /docker compose down/);
   assert.match(script, /docker compose up -d --build/);
   assert.match(script, /docker compose ps/);

@@ -1,5 +1,6 @@
 const MAX_DATABASE_NAME_LENGTH = 64;
 const GUILD_NOT_CONFIGURED = "GUILD_NOT_CONFIGURED";
+const EMPTY_JSON_OBJECT = "{}";
 
 function sanitizeDatabaseSegment(value) {
   return String(value ?? "")
@@ -57,9 +58,9 @@ function buildGuildSchemaStatements() {
       \`lose\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
       \`penta\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
       \`quadra\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
-      \`champions\` longtext NOT NULL,
-      \`lanes\` longtext NOT NULL,
-      \`friends\` longtext NOT NULL,
+      \`champions\` longtext NOT NULL DEFAULT '${EMPTY_JSON_OBJECT}',
+      \`lanes\` longtext NOT NULL DEFAULT '${EMPTY_JSON_OBJECT}',
+      \`friends\` longtext NOT NULL DEFAULT '${EMPTY_JSON_OBJECT}',
       \`t_kill\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
       \`t_death\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
       \`t_assist\` mediumint(8) UNSIGNED NOT NULL DEFAULT 0,
@@ -122,6 +123,15 @@ function buildGuildSchemaStatements() {
 }
 
 function buildGuildColumnMigrations() {
+  const buildJsonDefaultMigration = (columnName) => ({
+    tableName: "user",
+    columnName,
+    statement: `ALTER TABLE \`user\` MODIFY COLUMN \`${columnName}\` longtext NOT NULL DEFAULT '${EMPTY_JSON_OBJECT}'`,
+    needsUpdate(column) {
+      return column.Null !== "NO" || column.Default !== EMPTY_JSON_OBJECT;
+    },
+  });
+
   return [
     {
       tableName: "active_tournament_sessions",
@@ -129,6 +139,9 @@ function buildGuildColumnMigrations() {
       statement:
         "ALTER TABLE `active_tournament_sessions` ADD COLUMN `unity_voice_channel_id` varchar(50) DEFAULT NULL AFTER `team2_channel_id`",
     },
+    buildJsonDefaultMigration("champions"),
+    buildJsonDefaultMigration("lanes"),
+    buildJsonDefaultMigration("friends"),
   ];
 }
 

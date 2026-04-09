@@ -11,6 +11,9 @@ test("compose file defines bot and db services", () => {
   assert.match(compose, /restart:\s+unless-stopped/);
   assert.match(compose, /\/docker-entrypoint-initdb\.d\/01-bot\.sql/);
   assert.match(compose, /\/docker-entrypoint-initdb\.d\/02-guild-privileges\.sh/);
+  assert.match(compose, /BOT_DEPLOY_COMMIT:\s*"?\$\{BOT_DEPLOY_COMMIT/);
+  assert.match(compose, /BOT_DEPLOY_MESSAGE:\s*"?\$\{BOT_DEPLOY_MESSAGE/);
+  assert.match(compose, /BOT_DEPLOYED_AT:\s*"?\$\{BOT_DEPLOYED_AT/);
 });
 
 test("bootstrap and verify scripts exist", () => {

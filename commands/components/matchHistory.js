@@ -34,6 +34,9 @@ module.exports = {
         }
 
         let match_data = [];
+        const getPerformanceScore = (player) =>
+            Number(player?.performanceScore ?? player?.mmr ?? 0);
+
         for (let i = 0; i < result.data.length; i++) {
             const data = result.data[i];
             const time = new Date(Number(data.game_length));
@@ -53,7 +56,7 @@ module.exports = {
                     minionScore: purple_player.minionScore,
                     lane: purple_player.lane,
                     kda: purple_player.kda,
-                    mmr: purple_player.mmr
+                    performanceScore: getPerformanceScore(purple_player)
                 });
                 blue_players.push({
                     name: blue_player.playerName,
@@ -62,7 +65,7 @@ module.exports = {
                     minionScore: blue_player.minionScore,
                     lane: blue_player.lane,
                     kda: blue_player.kda,
-                    mmr: blue_player.mmr
+                    performanceScore: getPerformanceScore(blue_player)
                 });
             }
             match_data.push({
@@ -103,10 +106,10 @@ module.exports = {
                     text: "만든놈 - 환주, 진우",
                 });
             const purple_best = data.purple_team.sort((a, b) =>
-                b.mmr - a.mmr
+                b.performanceScore - a.performanceScore
             )[0]
             const blue_best = data.blue_team.sort((a, b) =>
-                b.mmr - a.mmr
+                b.performanceScore - a.performanceScore
             )[0]
             for (let j = 0; j < match_data[i].blue_team.length; j++) {
                 const blue_player = match_data[i].blue_team[j];
@@ -116,7 +119,8 @@ module.exports = {
                         name: `**${blue_player.name} - ${championKorList[blue_player.champion]} ${blue_best.name === blue_player.name ? (data.win_team === 200 ? "( MVP )" : "( ACE )") : ""}**`,
                         value: `**LV** : ${blue_player.level} \n
                     **CS** : ${blue_player.minionScore} / ${(Number(blue_player.minionScore) / Number(data.min)).toFixed(1)}\n
-                    **K/D/A** : ${blue_player.kda.kills} / ${blue_player.kda.deaths} / ${blue_player.kda.assist}`,
+                    **K/D/A** : ${blue_player.kda.kills} / ${blue_player.kda.deaths} / ${blue_player.kda.assist}\n
+                    **퍼포먼스 점수** : ${blue_player.performanceScore}`,
                         inline: true,
                     },
                     {
@@ -128,7 +132,8 @@ module.exports = {
                         name: `**${purple_player.name} - ${championKorList[purple_player.champion]} ${purple_best.name === purple_player.name ? (data.win_team === 100 ? "( MVP )" : "( ACE )") : ""}**`,
                         value: `**LV** : ${purple_player.level} \n
                     **CS** : ${purple_player.minionScore} / ${(Number(purple_player.minionScore) / Number(data.min)).toFixed(1)}\n
-                    **K/D/A** : ${purple_player.kda.kills} / ${purple_player.kda.deaths} / ${purple_player.kda.assist}`,
+                    **K/D/A** : ${purple_player.kda.kills} / ${purple_player.kda.deaths} / ${purple_player.kda.assist}\n
+                    **퍼포먼스 점수** : ${purple_player.performanceScore}`,
                         inline: true,
                     }
                 )

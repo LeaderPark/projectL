@@ -24,7 +24,7 @@ function buildPlayerName(participant) {
   return tagLine ? `${gameName}#${tagLine}` : gameName;
 }
 
-function calculateMmr(player, gameLengthMs) {
+function calculatePerformanceScore(player, gameLengthMs) {
   const time = Math.max(gameLengthMs / 60000, 1);
   const visionScorePerMin = player.visionScore / time / 2;
   const damagePerMin = player.totalDamage / time;
@@ -108,7 +108,7 @@ function buildTeam(side, players, gameLengthMs) {
   const totalKill = teamPlayers.reduce((sum, player) => sum + player.kda.kills, 0);
 
   teamPlayers.forEach((player) => {
-    player.mmr = calculateMmr(player, gameLengthMs);
+    player.performanceScore = calculatePerformanceScore(player, gameLengthMs);
   });
 
   return new Team(teamPlayers[0]?.result ?? 0, side, teamPlayers, totalKill);
@@ -129,7 +129,7 @@ function transformMatchPayload(payload) {
 }
 
 module.exports = {
-  calculateMmr,
+  calculatePerformanceScore,
   mapLane,
   transformMatchPayload,
 };

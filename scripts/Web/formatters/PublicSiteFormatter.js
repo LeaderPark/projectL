@@ -50,7 +50,7 @@ function normalizePlayer(player) {
     lane: player?.lane ?? "-",
     level: toNumber(player?.level),
     minionScore: toNumber(player?.minionScore),
-    mmrDelta: toNumber(player?.mmr),
+    performanceScore: toNumber(player?.performanceScore ?? player?.mmr),
     kdaText: `${kills}/${deaths}/${assists}`,
   };
 }

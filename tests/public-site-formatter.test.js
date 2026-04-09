@@ -21,7 +21,7 @@ test("formatMatchCard builds blue and purple team rows from stored match JSON", 
           level: 18,
           minionScore: 212,
           lane: "MIDDLE",
-          mmr: 22,
+          performanceScore: 22,
           kda: { kills: 9, deaths: 3, assist: 11 },
         },
         {
@@ -122,6 +122,8 @@ test("formatMatchCard builds blue and purple team rows from stored match JSON", 
   assert.equal(card.teams.blue.resultText, "승리");
   assert.equal(card.teams.purple.resultText, "패배");
   assert.equal(card.teams.blue.players[0].kdaText, "9/3/11");
+  assert.equal(card.teams.blue.players[0].performanceScore, 22);
+  assert.equal(card.teams.blue.players[1].performanceScore, 10);
 });
 
 test("formatPlayerProfileSummary calculates win rate and average kda", () => {

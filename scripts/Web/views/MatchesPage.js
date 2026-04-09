@@ -1,5 +1,6 @@
 const { renderLayout } = require("./Layout");
-const { renderMatchCard } = require("./ViewHelpers");
+const { buildGuildPath, renderMatchCard } = require("./ViewHelpers");
+const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderMatchesPage(model) {
   const body = `
@@ -10,23 +11,35 @@ function renderMatchesPage(model) {
           <p>${model.notice.description}</p>
         </section>
       ` : ""}
-      <section class="hero-card hero-card--compact">
-        <p class="hero-card__eyebrow">ProjectL History</p>
+      <section class="overview-hero hero-card hero-card--compact">
+        <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Timeline</p>
         <h1>전체 경기</h1>
-        <p>누적된 내전 경기 결과를 최신순으로 확인할 수 있습니다.</p>
+        <p>전체 전적 타임라인을 최신 경기부터 OP.GG 스타일의 압축 카드로 살펴볼 수 있습니다.</p>
       </section>
-      <section class="panel">
+      <section class="panel panel--timeline">
+        <div class="panel__header">
+          <h2>전체 전적 타임라인</h2>
+          <span>최신순</span>
+        </div>
         <div class="match-feed">
-          ${model.cards.map(renderMatchCard).join("")}
+          ${model.cards
+            .map((card) =>
+              renderMatchCard({
+                ...card,
+                href: buildGuildPath(model.guildId, `/matches/${card.id}`),
+              }, { showResult: false })
+            )
+            .join("")}
         </div>
       </section>
     </main>
   `;
 
   return renderLayout({
-    title: "ProjectL 전체 경기",
-    description: "ProjectL 전체 경기 히스토리",
+    title: `${PROJECT_DISPLAY_NAME} 전체 경기`,
+    description: `${PROJECT_DISPLAY_NAME} 전체 경기 히스토리`,
     body,
+    guildId: model.guildId,
   });
 }
 

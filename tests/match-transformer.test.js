@@ -10,6 +10,7 @@ test("transformMatchPayload maps Riot participants into the internal match model
     },
     info: {
       gameDuration: 1800,
+      gameStartTimestamp: Date.UTC(2024, 3, 9, 12, 15, 0),
       participants: [
         {
           riotIdGameName: "BlueTop",
@@ -89,6 +90,7 @@ test("transformMatchPayload maps Riot participants into the internal match model
 
   assert.equal(match.gameLength, 1800000);
   assert.equal(match.matchId, "KR_12345");
+  assert.equal(match.playedAtKst, "2024-04-09 21:15:00");
   assert.equal(match.blueTeam.side, 200);
   assert.equal(match.purpleTeam.side, 100);
   assert.equal(match.blueTeam.players.length, 1);

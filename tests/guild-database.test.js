@@ -23,6 +23,7 @@ test("buildGuildSchemaStatements includes gameplay tables", () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `user`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `matches`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `match_in_users`/);
+  assert.match(sql, /`played_at_kst`\s+datetime DEFAULT NULL/);
 });
 
 test("buildGuildSchemaStatements includes riot account and active session tables", () => {
@@ -113,6 +114,20 @@ test("buildGuildColumnMigrations covers upgrading active sessions with result in
       )
     );
   });
+});
+
+test("buildGuildColumnMigrations covers upgrading matches with a played-at KST column", () => {
+  const migrations = buildGuildColumnMigrations();
+  const migration = migrations.find(
+    ({ tableName, columnName }) =>
+      tableName === "matches" && columnName === "played_at_kst"
+  );
+
+  assert.ok(migration);
+  assert.match(
+    migration.statement,
+    /ALTER TABLE `matches` ADD COLUMN `played_at_kst` datetime DEFAULT NULL/
+  );
 });
 
 test("formatGuildConfigurationError guides admins to initialize the guild", () => {

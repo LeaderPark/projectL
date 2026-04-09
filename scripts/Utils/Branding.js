@@ -1,0 +1,9 @@
+const PROJECT_DISPLAY_NAME = "마법공학 분류모자";
+const PROJECT_LOGO_MARK = "마분";
+const PROJECT_RECORD_LABEL = `${PROJECT_DISPLAY_NAME} 전적`;
+
+module.exports = {
+  PROJECT_DISPLAY_NAME,
+  PROJECT_LOGO_MARK,
+  PROJECT_RECORD_LABEL,
+};

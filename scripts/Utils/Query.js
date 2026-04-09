@@ -162,6 +162,15 @@ function buildPublicMatchHistorySql(limit) {
   `.trim();
 }
 
+function buildPublicMatchByIdSql() {
+  return `
+    SELECT *
+    FROM matches
+    WHERE id = ?
+    LIMIT 1
+  `.trim();
+}
+
 async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
   const [rows] = await promisePool.query(
     `SELECT * FROM user WHERE discord_id = ? LIMIT 1`,
@@ -328,10 +337,11 @@ async function insertMatchDataWithExecutor(executor, match, name) {
     return { success: false, msg: "이미 데이터에 존재하는 경기입니다." };
   }
 
-  sql = `INSERT INTO matches (game_id, game_length, purple_team, blue_team) VALUES (?,?,?,?)`;
+  sql = `INSERT INTO matches (game_id, game_length, played_at_kst, purple_team, blue_team) VALUES (?,?,?,?,?)`;
   [result] = await executor.query(sql, [
     name,
     match.gameLength,
+    match.playedAtKst ?? null,
     JSON.stringify(match.purpleTeam),
     JSON.stringify(match.blueTeam),
   ]);
@@ -730,6 +740,28 @@ const getPublicMatchHistory = async (guildId, limit) => {
   }
 };
 
+const getPublicMatchById = async (guildId, matchId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(buildPublicMatchByIdSql(), [matchId]);
+
+    if (!rows.length) {
+      return {
+        success: false,
+        code: "MATCH_NOT_FOUND",
+        msg: "등록된 경기를 찾을 수 없습니다.",
+      };
+    }
+
+    return {
+      success: true,
+      data: rows[0],
+    };
+  } catch (error) {
+    return buildErrorResult(error, "공개 경기 상세를 불러오는 중 오류가 발생했습니다.");
+  }
+};
+
 const searchPublicPlayers = async (guildId, term) => {
   try {
     const promisePool = await getGuildPromisePool(guildId);
@@ -988,11 +1020,13 @@ const updateTournamentSessionResult = async (guildId, sessionId, updates) => {
 
 module.exports = {
   buildPublicLeaderboardSql,
+  buildPublicMatchByIdSql,
   buildPublicMatchHistorySql,
   buildPublicPlayerSearchSql,
   buildPublicSummarySql,
   buildGetUsersDataSql,
   getPublicLeaderboard,
+  getPublicMatchById,
   getPublicMatchHistory,
   getPublicPlayerProfile,
   getPublicSiteSummary,

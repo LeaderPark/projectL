@@ -6,11 +6,16 @@ const {
 } = require("../scripts/Web/CallbackServer");
 
 test("callback handler marks the matching session ready for post-game gather from Riot shortCode", async () => {
-  const calls = [];
+  const gatherCalls = [];
+  const resultCalls = [];
   const deps = {
     sessionStore: {
       async markCompletedPendingGather(tournamentCode, payload) {
-        calls.push({ tournamentCode, payload });
+        gatherCalls.push({ tournamentCode, payload });
+        return { success: true };
+      },
+      async markTournamentSessionResultPending(tournamentCode, payload) {
+        resultCalls.push({ tournamentCode, payload });
         return { success: true };
       },
     },
@@ -23,7 +28,13 @@ test("callback handler marks the matching session ready for post-game gather fro
 
   const result = await handleTournamentCallback(payload, deps);
 
-  assert.deepEqual(calls, [
+  assert.deepEqual(gatherCalls, [
+    {
+      tournamentCode: "KR-CODE-1",
+      payload,
+    },
+  ]);
+  assert.deepEqual(resultCalls, [
     {
       tournamentCode: "KR-CODE-1",
       payload,
@@ -33,11 +44,16 @@ test("callback handler marks the matching session ready for post-game gather fro
 });
 
 test("callback handler also accepts tournamentCode for local/internal calls", async () => {
-  const calls = [];
+  const gatherCalls = [];
+  const resultCalls = [];
   const deps = {
     sessionStore: {
       async markCompletedPendingGather(tournamentCode, payload) {
-        calls.push({ tournamentCode, payload });
+        gatherCalls.push({ tournamentCode, payload });
+        return { success: true };
+      },
+      async markTournamentSessionResultPending(tournamentCode, payload) {
+        resultCalls.push({ tournamentCode, payload });
         return { success: true };
       },
     },
@@ -50,7 +66,13 @@ test("callback handler also accepts tournamentCode for local/internal calls", as
 
   const result = await handleTournamentCallback(payload, deps);
 
-  assert.deepEqual(calls, [
+  assert.deepEqual(gatherCalls, [
+    {
+      tournamentCode: "KR-CODE-LEGACY",
+      payload,
+    },
+  ]);
+  assert.deepEqual(resultCalls, [
     {
       tournamentCode: "KR-CODE-LEGACY",
       payload,

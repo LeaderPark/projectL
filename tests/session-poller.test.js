@@ -177,3 +177,179 @@ test("pollTournamentSessions keeps the session retryable when post-game gather h
     { id: 31, status: "GATHER_FAILED", guildId: "guild-3" },
   ]);
 });
+
+test("pollTournamentSessions marks thrown gather errors as gather failures", async () => {
+  const transitions = [];
+
+  const sessionStore = {
+    async listPendingSessions() {
+      return [
+        {
+          id: 32,
+          guildId: "guild-3",
+          tournamentCode: "KR-TEST-4B",
+          status: "COMPLETED_PENDING_GATHER",
+        },
+      ];
+    },
+    async updateSessionStatus(id, status, guildId) {
+      transitions.push({ id, status, guildId });
+    },
+  };
+
+  const moveService = {
+    async moveSession() {
+      throw new Error("should not run moveSession while gathering");
+    },
+    async gatherSession() {
+      throw new Error("missing unity room");
+    },
+  };
+
+  await pollTournamentSessions({
+    sessionStore,
+    riotApi: {},
+    moveService,
+  });
+
+  assert.deepEqual(transitions, [
+    { id: 32, status: "GATHER_FAILED", guildId: "guild-3" },
+  ]);
+});
+
+test("pollTournamentSessions ingests pending match results after gathering users", async () => {
+  const transitions = [];
+  const resultTransitions = [];
+  const gathered = [];
+  const ingested = [];
+
+  const session = {
+    id: 40,
+    guildId: "guild-4",
+    tournamentCode: "KR-TEST-5",
+    status: "COMPLETED_PENDING_GATHER",
+    resultStatus: "PENDING",
+    resultGameId: "KR_12345",
+    resultAttempts: 0,
+  };
+
+  const sessionStore = {
+    async listPendingSessions() {
+      return [session];
+    },
+    async updateSessionStatus(id, status, guildId) {
+      transitions.push({ id, status, guildId });
+    },
+    async updateSessionResult(id, guildId, updates) {
+      resultTransitions.push({ id, guildId, updates });
+    },
+  };
+
+  const moveService = {
+    async moveSession() {
+      throw new Error("should not run moveSession while gathering");
+    },
+    async gatherSession(currentSession) {
+      gathered.push(currentSession);
+      return { moved: ["1"], failures: [] };
+    },
+  };
+
+  const resultService = {
+    async ingestSessionResult(currentSession) {
+      ingested.push(currentSession);
+      return { success: true };
+    },
+  };
+
+  await pollTournamentSessions({
+    sessionStore,
+    riotApi: {},
+    moveService,
+    resultService,
+  });
+
+  assert.deepEqual(gathered, [session]);
+  assert.deepEqual(ingested, [session]);
+  assert.deepEqual(transitions, [
+    { id: 40, status: "COMPLETED", guildId: "guild-4" },
+  ]);
+  assert.deepEqual(resultTransitions, [
+    {
+      id: 40,
+      guildId: "guild-4",
+      updates: {
+        status: "INGESTED",
+        attempts: 0,
+        error: null,
+      },
+    },
+  ]);
+});
+
+test("pollTournamentSessions keeps result ingestion retryable when stats fetch fails", async () => {
+  const transitions = [];
+  const resultTransitions = [];
+
+  const sessionStore = {
+    async listPendingSessions() {
+      return [
+        {
+          id: 41,
+          guildId: "guild-5",
+          tournamentCode: "KR-TEST-6",
+          status: "COMPLETED_PENDING_GATHER",
+          resultStatus: "PENDING",
+          resultGameId: "KR_12346",
+          resultAttempts: 2,
+        },
+      ];
+    },
+    async updateSessionStatus(id, status, guildId) {
+      transitions.push({ id, status, guildId });
+    },
+    async updateSessionResult(id, guildId, updates) {
+      resultTransitions.push({ id, guildId, updates });
+    },
+  };
+
+  const moveService = {
+    async moveSession() {
+      throw new Error("should not run moveSession while gathering");
+    },
+    async gatherSession() {
+      return { moved: ["1"], failures: [] };
+    },
+  };
+
+  const resultService = {
+    async ingestSessionResult() {
+      return {
+        success: false,
+        msg: "rate limited",
+      };
+    },
+  };
+
+  await pollTournamentSessions({
+    sessionStore,
+    riotApi: {},
+    moveService,
+    resultService,
+  });
+
+  assert.deepEqual(transitions, [
+    { id: 41, status: "COMPLETED", guildId: "guild-5" },
+  ]);
+  assert.deepEqual(resultTransitions, [
+    {
+      id: 41,
+      guildId: "guild-5",
+      updates: {
+        status: "FAILED",
+        attempts: 3,
+        error: "rate limited",
+      },
+    },
+  ]);
+});

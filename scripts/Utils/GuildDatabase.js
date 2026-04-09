@@ -113,6 +113,11 @@ function buildGuildSchemaStatements() {
       \`team2_discord_ids\` longtext NOT NULL,
       \`status\` varchar(30) NOT NULL DEFAULT 'LOBBY',
       \`last_event_at\` varchar(50) DEFAULT NULL,
+      \`result_status\` varchar(30) NOT NULL DEFAULT 'IDLE',
+      \`result_game_id\` varchar(50) DEFAULT NULL,
+      \`result_payload\` longtext DEFAULT NULL,
+      \`result_attempts\` int(10) UNSIGNED NOT NULL DEFAULT 0,
+      \`result_error\` longtext DEFAULT NULL,
       \`created_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       \`updated_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (\`id\`),
@@ -138,6 +143,36 @@ function buildGuildColumnMigrations() {
       columnName: "unity_voice_channel_id",
       statement:
         "ALTER TABLE `active_tournament_sessions` ADD COLUMN `unity_voice_channel_id` varchar(50) DEFAULT NULL AFTER `team2_channel_id`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "result_status",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_status` varchar(30) NOT NULL DEFAULT 'IDLE' AFTER `last_event_at`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "result_game_id",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_game_id` varchar(50) DEFAULT NULL AFTER `result_status`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "result_payload",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_payload` longtext DEFAULT NULL AFTER `result_game_id`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "result_attempts",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_attempts` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `result_payload`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "result_error",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_error` longtext DEFAULT NULL AFTER `result_attempts`",
     },
     buildJsonDefaultMigration("champions"),
     buildJsonDefaultMigration("lanes"),

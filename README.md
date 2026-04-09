@@ -14,7 +14,9 @@ This project runs a Discord bot backed by MariaDB. The local database no longer 
 - `compose.yaml`: bot + MariaDB stack
 - `.env.example`: required runtime variables template
 - `scripts/bootstrap.ps1`: creates `.env` if needed and starts the stack
+- `scripts/deploy.ps1`: pulls latest code and redeploys the Docker stack safely
 - `scripts/verify.ps1`: runs tests and validates compose configuration
+- `deploy.bat`: double-click entrypoint for one-click redeploy on the Windows host
 - `config/runtime.js`: environment-aware runtime config loader
 - `bot.sql`: initial MariaDB schema and seed data
 
@@ -52,6 +54,21 @@ Set-Location C:\projectL
 Set-Location C:\projectL
 .\scripts\verify.ps1
 ```
+
+## One-Click Deploy
+
+Run `deploy.bat` directly on the Windows host when you want to redeploy the bot with the latest Git changes.
+
+The deploy flow does this in order:
+
+- checks that `.env` exists and does not contain placeholder secrets
+- stops if the repository has local uncommitted changes
+- runs `git pull --ff-only`
+- runs `docker compose down`
+- runs `docker compose up -d --build`
+- checks `docker compose ps` output before reporting success
+
+When the process finishes, the cmd window stays open and waits for your Enter input so you can read the logs before it closes.
 
 ## Useful Commands
 

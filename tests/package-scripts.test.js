@@ -8,4 +8,5 @@ test("package.json exposes runtime verification commands", () => {
   assert.equal(pkg.scripts["test:runtime"], "node --test tests/*.test.js");
   assert.equal(pkg.scripts.verify, "powershell -ExecutionPolicy Bypass -File .\\scripts\\verify.ps1");
   assert.equal(pkg.scripts.bootstrap, "powershell -ExecutionPolicy Bypass -File .\\scripts\\bootstrap.ps1");
+  assert.equal(pkg.scripts.deploy, "powershell -ExecutionPolicy Bypass -File .\\scripts\\deploy.ps1");
 });

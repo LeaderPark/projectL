@@ -104,6 +104,8 @@ test("transformMatchPayload maps Riot participants into the internal match model
   assert.equal(match.purpleTeam.players[0].result, 0);
   assert.equal(match.blueTeam.totalKill, 10);
   assert.equal(match.purpleTeam.totalKill, 1);
-  assert.equal(typeof match.blueTeam.players[0].mmr, "number");
-  assert.equal(typeof match.purpleTeam.players[0].mmr, "number");
+  assert.equal(typeof match.blueTeam.players[0].performanceScore, "number");
+  assert.equal(typeof match.purpleTeam.players[0].performanceScore, "number");
+  assert.equal("mmr" in match.blueTeam.players[0], false);
+  assert.equal("mmr" in match.purpleTeam.players[0], false);
 });

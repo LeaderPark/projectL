@@ -70,7 +70,7 @@ class Player {
     this.pentaKill = penta;
     this.quadraKill = quadra;
 
-    this.mmr = 0;
+    this.performanceScore = 0;
   }
 }
 

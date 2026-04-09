@@ -19,6 +19,13 @@ test("legacy placeholder utility commands are removed", () => {
   );
 });
 
+test("manual replay upload command is removed", () => {
+  assert.equal(
+    fs.existsSync(path.join("commands", "riot", "upload.js")),
+    false
+  );
+});
+
 test("guild command deployment also clears legacy global commands", async (t) => {
   const deployScriptPath = require.resolve("../deploy-commands.js");
   const originalLoad = Module._load;

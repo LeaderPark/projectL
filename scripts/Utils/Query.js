@@ -144,12 +144,12 @@ function buildPublicPlayerSearchSql() {
   `;
 }
 
-function buildPublicLeaderboardSql() {
+function buildPublicLeaderboardSql(limit) {
   return `
     SELECT discord_id, name, mmr, win, lose
     FROM user
     ORDER BY mmr DESC, name ASC
-    LIMIT ?
+    ${Number.isFinite(limit) ? "LIMIT ?" : ""}
   `;
 }
 
@@ -708,10 +708,14 @@ const getPublicPlayerProfile = async (guildId, discordId) => {
   }
 };
 
-const getPublicLeaderboard = async (guildId, limit = 20) => {
+const getPublicLeaderboard = async (guildId, limit) => {
   try {
     const promisePool = await getGuildPromisePool(guildId);
-    const [rows] = await promisePool.query(buildPublicLeaderboardSql(), [limit]);
+    const hasLimit = Number.isFinite(limit);
+    const [rows] = await promisePool.query(
+      buildPublicLeaderboardSql(limit),
+      hasLimit ? [limit] : []
+    );
 
     return {
       success: true,

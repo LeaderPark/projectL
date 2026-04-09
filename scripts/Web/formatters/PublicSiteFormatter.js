@@ -28,6 +28,15 @@ function formatDuration(milliseconds) {
 }
 
 function formatPlayedAtText(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = String(value.getUTCFullYear()).padStart(4, "0");
+    const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(value.getUTCDate()).padStart(2, "0");
+    const hour = String(value.getUTCHours()).padStart(2, "0");
+    const minute = String(value.getUTCMinutes()).padStart(2, "0");
+    return `${year}.${month}.${day} ${hour}:${minute}`;
+  }
+
   const rawValue = String(value ?? "").trim();
   if (!rawValue) {
     return "";
@@ -41,7 +50,7 @@ function formatPlayedAtText(value) {
   }
 
   const [, year, month, day, hour, minute] = match;
-  return `${year}.${month}.${day} ${hour}:${minute} KST`;
+  return `${year}.${month}.${day} ${hour}:${minute}`;
 }
 
 function parseJson(value, fallback) {
@@ -151,6 +160,9 @@ function normalizePlayer(player, options = {}) {
   const championAsset = options.getChampionAsset?.(player?.championName);
   const spellIds = [toNumber(player?.spell1), toNumber(player?.spell2)];
   const keystoneId = toNumber(player?.keystoneId);
+  const secondaryRuneId = toNumber(
+    player?.secondaryRuneId ?? player?.subStyleId ?? player?.secondaryStyleId
+  );
   const itemIds = buildItemIds(player?.inventory);
 
   return {
@@ -175,6 +187,11 @@ function normalizePlayer(player, options = {}) {
     keystoneId,
     keystoneName: options.getRuneAsset?.(keystoneId)?.name ?? String(keystoneId),
     keystoneImageUrl: options.getRuneAsset?.(keystoneId)?.imageUrl ?? "",
+    secondaryRuneId,
+    secondaryRuneName:
+      options.getRuneAsset?.(secondaryRuneId)?.name ?? String(secondaryRuneId),
+    secondaryRuneImageUrl:
+      options.getRuneAsset?.(secondaryRuneId)?.imageUrl ?? "",
     itemIds,
     itemAssets: itemIds.map((itemId) => ({
       id: itemId,

@@ -120,6 +120,28 @@ test("getPublicLeaderboard returns players ordered for the public ranking table"
   assert.deepEqual(paramsSeen[0], [25]);
 });
 
+test("getPublicLeaderboard can fetch the full public ranking without a limit", async () => {
+  const statements = [];
+  const paramsSeen = [];
+  const { getPublicLeaderboard } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        statements.push(statement);
+        paramsSeen.push(params);
+        return [[{ discord_id: "1", name: "Alpha", mmr: 1700, win: 7, lose: 3 }]];
+      },
+    }),
+  });
+
+  const result = await getPublicLeaderboard("guild-1");
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.length, 1);
+  assert.match(statements[0], /ORDER BY mmr DESC, name ASC/i);
+  assert.doesNotMatch(statements[0], /LIMIT \?/i);
+  assert.deepEqual(paramsSeen[0], []);
+});
+
 test("getPublicMatchHistory returns the newest matches first", async () => {
   const statements = [];
   const paramsSeen = [];

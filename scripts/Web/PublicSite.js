@@ -13,6 +13,7 @@ const { renderLandingPage: renderLandingPageView } = require("./views/LandingPag
 const { renderMatchDetailPage: renderMatchDetailView } = require("./views/MatchDetailPage");
 const { renderMatchesPage } = require("./views/MatchesPage");
 const { renderPlayerPage } = require("./views/PlayerPage");
+const { renderRankingPage: renderRankingPageView } = require("./views/RankingPage");
 
 function buildEmptyHomeModel() {
   return {
@@ -29,6 +30,12 @@ function buildEmptyHomeModel() {
 function buildEmptyMatchesModel() {
   return {
     cards: [],
+  };
+}
+
+function buildEmptyRankingModel() {
+  return {
+    ranking: [],
   };
 }
 
@@ -178,6 +185,25 @@ function createPublicSiteHandlers({
           ? matchesResult.data.map((matchRow) =>
               formatMatchCard(matchRow, formatterOptions)
             )
+          : [],
+      });
+    },
+
+    async renderRankingPage(routeGuildId) {
+      const guildId = await getGuildId(routeGuildId);
+      if (!guildId) {
+        return renderRankingPageView({
+          guildId: "",
+          ...buildEmptyRankingModel(),
+          notice: buildSetupNotice(),
+        });
+      }
+
+      const leaderboardResult = await resolvedGetPublicLeaderboard(guildId);
+      return renderRankingPageView({
+        guildId,
+        ranking: leaderboardResult.success
+          ? leaderboardResult.data.map(formatLeaderboardEntry)
           : [],
       });
     },

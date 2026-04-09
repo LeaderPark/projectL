@@ -41,6 +41,7 @@ function createPublicSiteRouter({
   renderLandingPage,
   renderHomePage,
   renderMatchesPage,
+  renderRankingPage,
   renderMatchDetailPage,
   renderPlayerPage,
   searchPlayers,
@@ -80,6 +81,11 @@ function createPublicSiteRouter({
 
     if (scopedPath === "/matches") {
       sendHtml(res, 200, await renderMatchesPage(serverId));
+      return true;
+    }
+
+    if (scopedPath === "/ranking") {
+      sendHtml(res, 200, await renderRankingPage(serverId));
       return true;
     }
 

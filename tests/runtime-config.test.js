@@ -120,7 +120,7 @@ test("falls back to local config and secret files when env vars are missing", ()
     assert.equal(runtime.riot.platform, "kr");
     assert.equal(runtime.riot.tournamentRegion, "KR");
     assert.equal(runtime.riot.tournamentUseStub, true);
-    assert.equal(runtime.web.port, 3000);
+    assert.equal(runtime.web.port, 8000);
     assert.equal(runtime.web.publicGuildId, "file-guild-id");
     assert.equal(runtime.web.riotTournamentCallbackPath, "/riot/callback");
     assert.equal(runtime.database.host, "127.0.0.1");
@@ -155,7 +155,7 @@ test("guild id is optional in runtime config", () => {
 
     assert.equal(runtime.discord.guildId, undefined);
     assert.equal(runtime.riot.platform, "kr");
-    assert.equal(runtime.web.port, 3000);
+    assert.equal(runtime.web.port, 8000);
     assert.equal(runtime.web.publicGuildId, undefined);
   } finally {
     process.env = originalEnv;

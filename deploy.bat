@@ -12,5 +12,5 @@ if "%EXIT_CODE%"=="0" (
   echo [deploy] Deployment failed with exit code %EXIT_CODE%.
 )
 
-set /p _="배포 로그를 확인했으면 Enter를 눌러 창을 닫으세요: "
+set /p _="Press Enter to close this window after reviewing the deploy log: "
 exit /b %EXIT_CODE%

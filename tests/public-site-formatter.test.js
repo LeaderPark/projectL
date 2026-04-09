@@ -12,58 +12,58 @@ const {
 
 test("formatMatchCard builds blue and purple team rows from stored match JSON", () => {
   const card = formatMatchCard({
-    id: 9,
-    game_id: "KR-CODE-9",
-    game_length: String(31 * 60 * 1000 + 5 * 1000),
-    played_at_kst: "2024-04-09 21:15:00",
+    id: 1,
+    game_id: "DEMO-KR-001",
+    game_length: String(30 * 60 * 1000 + 50 * 1000),
+    played_at_kst: "2026-04-07 20:10:00",
     blue_team: JSON.stringify({
       side: 100,
       result: 1,
       players: [
         {
-          playerName: "Alpha",
-          championName: "Ahri",
-          level: 18,
-          minionScore: 212,
-          lane: "MIDDLE",
-          performanceScore: 22,
-          kda: { kills: 9, deaths: 3, assist: 11 },
-        },
-        {
-          playerName: "Bravo",
-          championName: "LeeSin",
-          level: 16,
-          minionScore: 144,
-          lane: "JUNGLE",
-          mmr: 10,
-          kda: { kills: 4, deaths: 5, assist: 14 },
-        },
-        {
-          playerName: "Charlie",
-          championName: "Jinx",
-          level: 17,
-          minionScore: 251,
-          lane: "BOTTOM",
-          mmr: 8,
-          kda: { kills: 7, deaths: 4, assist: 8 },
-        },
-        {
-          playerName: "Delta",
-          championName: "Nautilus",
-          level: 14,
-          minionScore: 38,
-          lane: "UTILITY",
-          mmr: 6,
-          kda: { kills: 2, deaths: 6, assist: 17 },
-        },
-        {
-          playerName: "Echo",
+          playerName: "테스트 알파",
           championName: "Renekton",
           level: 17,
-          minionScore: 205,
+          minionScore: 210,
           lane: "TOP",
-          mmr: 9,
-          kda: { kills: 6, deaths: 4, assist: 9 },
+          performanceScore: 18,
+          kda: { kills: 6, deaths: 3, assist: 8 },
+        },
+        {
+          playerName: "테스트 브라보",
+          championName: "LeeSin",
+          level: 16,
+          minionScore: 154,
+          lane: "JUNGLE",
+          mmr: 15,
+          kda: { kills: 4, deaths: 4, assist: 12 },
+        },
+        {
+          playerName: "테스트 찰리",
+          championName: "Ahri",
+          level: 18,
+          minionScore: 236,
+          lane: "MIDDLE",
+          mmr: 22,
+          kda: { kills: 9, deaths: 2, assist: 7 },
+        },
+        {
+          playerName: "테스트 델타",
+          championName: "Jinx",
+          level: 17,
+          minionScore: 248,
+          lane: "BOTTOM",
+          mmr: 19,
+          kda: { kills: 8, deaths: 3, assist: 9 },
+        },
+        {
+          playerName: "테스트 에코",
+          championName: "Thresh",
+          level: 14,
+          minionScore: 34,
+          lane: "UTILITY",
+          mmr: 14,
+          kda: { kills: 1, deaths: 4, assist: 17 },
         },
       ],
     }),
@@ -72,67 +72,68 @@ test("formatMatchCard builds blue and purple team rows from stored match JSON", 
       result: 0,
       players: [
         {
-          playerName: "Foxtrot",
-          championName: "Ornn",
+          playerName: "테스트 폭스트롯",
+          championName: "Aatrox",
           level: 16,
-          minionScore: 198,
+          minionScore: 201,
           lane: "TOP",
-          mmr: -7,
-          kda: { kills: 3, deaths: 6, assist: 5 },
+          mmr: 7,
+          kda: { kills: 3, deaths: 6, assist: 4 },
         },
         {
-          playerName: "Golf",
+          playerName: "테스트 골프",
           championName: "Viego",
           level: 15,
-          minionScore: 130,
+          minionScore: 147,
           lane: "JUNGLE",
-          mmr: -9,
-          kda: { kills: 4, deaths: 8, assist: 7 },
+          mmr: 8,
+          kda: { kills: 5, deaths: 5, assist: 3 },
         },
         {
-          playerName: "Hotel",
-          championName: "Syndra",
-          level: 17,
-          minionScore: 224,
-          lane: "MIDDLE",
-          mmr: -11,
-          kda: { kills: 8, deaths: 7, assist: 4 },
-        },
-        {
-          playerName: "India",
-          championName: "KaiSa",
+          playerName: "테스트 호텔",
+          championName: "Orianna",
           level: 16,
-          minionScore: 233,
-          lane: "BOTTOM",
-          mmr: -4,
-          kda: { kills: 5, deaths: 5, assist: 4 },
+          minionScore: 219,
+          lane: "MIDDLE",
+          mmr: 6,
+          kda: { kills: 4, deaths: 7, assist: 5 },
         },
         {
-          playerName: "Juliet",
-          championName: "Rakan",
+          playerName: "테스트 인디아",
+          championName: "Xayah",
+          level: 16,
+          minionScore: 231,
+          lane: "BOTTOM",
+          mmr: 9,
+          kda: { kills: 6, deaths: 5, assist: 2 },
+        },
+        {
+          playerName: "테스트 줄리엣",
+          championName: "Lulu",
           level: 13,
-          minionScore: 32,
+          minionScore: 29,
           lane: "UTILITY",
-          mmr: -3,
-          kda: { kills: 1, deaths: 7, assist: 9 },
+          mmr: 5,
+          kda: { kills: 0, deaths: 6, assist: 10 },
         },
       ],
     }),
   });
 
-  assert.equal(card.durationText, "31:05");
-  assert.equal(card.playedAtText, "2024.04.09 21:15 KST");
+  assert.equal(card.durationText, "30:50");
+  assert.equal(card.playedAtText, "2026.04.07 20:10");
   assert.equal(card.winningSide, "blue");
-  assert.equal(card.href, "/matches/9");
+  assert.equal(card.href, "/matches/1");
   assert.equal(card.teams.blue.players.length, 5);
   assert.equal(card.teams.purple.players.length, 5);
   assert.equal(card.teams.blue.resultText, "승리");
   assert.equal(card.teams.purple.resultText, "패배");
-  assert.equal(card.teams.blue.players[0].kdaText, "9/3/11");
-  assert.equal(card.teams.blue.players[0].performanceScore, 22);
+  assert.equal(card.teams.blue.players[0].kdaText, "6/3/8");
+  assert.equal(card.teams.blue.players[0].performanceScore, 18);
   assert.equal(card.teams.blue.players[0].damageText, "0");
   assert.equal(card.teams.blue.totalKillsText, "28");
-  assert.equal(card.teams.blue.players[1].performanceScore, 10);
+  assert.equal(card.teams.purple.totalKillsText, "18");
+  assert.equal(card.teams.blue.players[1].performanceScore, 15);
 });
 
 test("formatMatchCard localizes champion names and lanes when translators are provided", () => {
@@ -191,24 +192,25 @@ test("formatMatchCard builds OP.GG-style row metadata and image assets when asse
   const card = formatMatchCard(
     {
       id: 12,
-      game_id: "KR-CODE-12",
+      game_id: "DEMO-KR-001",
       game_length: String(26 * 60 * 1000),
-      played_at_kst: "2024-04-11 18:40:00",
+      played_at_kst: "2026-04-07 20:10:00",
       blue_team: JSON.stringify({
         result: 1,
-        totalKill: 22,
+        totalKill: 28,
         players: [
           {
-            playerName: "Alpha",
+            playerName: "테스트 찰리",
             championName: "Ahri",
             lane: "MIDDLE",
-            level: 16,
-            totalDamage: 22880,
-            visionScore: 15,
-            minionScore: 188,
+            level: 18,
+            totalDamage: 36200,
+            visionScore: 19,
+            minionScore: 236,
             spell1: 4,
             spell2: 14,
             keystoneId: 8112,
+            subStyleId: 8200,
             inventory: {
               item1: 6655,
               item2: 3020,
@@ -218,7 +220,7 @@ test("formatMatchCard builds OP.GG-style row metadata and image assets when asse
               item6: 3135,
               trinket: 3363,
             },
-            kda: { kills: 8, deaths: 2, assist: 7 },
+            kda: { kills: 9, deaths: 2, assist: 7 },
           },
         ],
       }),
@@ -248,13 +250,14 @@ test("formatMatchCard builds OP.GG-style row metadata and image assets when asse
       },
       runeAssets: {
         8112: { imageUrl: "https://cdn.test/rune/Electrocute.png" },
+        8200: { imageUrl: "https://cdn.test/rune/Sorcery.png" },
       },
     })
   );
 
   assert.equal(card.toggleId, "match-12-toggle");
   assert.equal(card.detailId, "match-12-detail");
-  assert.equal(card.playedAtText, "2024.04.11 18:40 KST");
+  assert.equal(card.playedAtText, "2026.04.07 20:10");
   assert.deepEqual(
     card.tabs.map((tab) => tab.label),
     ["종합", "OP 스코어", "팀 분석", "빌드", "기타"]
@@ -271,28 +274,52 @@ test("formatMatchCard builds OP.GG-style row metadata and image assets when asse
     card.teams.blue.players[0].keystoneImageUrl,
     "https://cdn.test/rune/Electrocute.png"
   );
+  assert.equal(card.teams.blue.players[0].secondaryRuneId, 8200);
+  assert.equal(
+    card.teams.blue.players[0].secondaryRuneImageUrl,
+    "https://cdn.test/rune/Sorcery.png"
+  );
   assert.equal(
     card.teams.blue.players[0].itemAssets[0].imageUrl,
     "https://cdn.test/item/6655.png"
   );
 });
 
+test("formatMatchCard formats Date-based played_at_kst values as wall-clock text without a timezone suffix", () => {
+  const card = formatMatchCard({
+    id: 13,
+    game_id: "DEMO-KR-013",
+    game_length: String(25 * 60 * 1000),
+    played_at_kst: new Date(Date.UTC(2026, 3, 9, 22, 15, 0)),
+    blue_team: JSON.stringify({
+      result: 1,
+      players: [],
+    }),
+    purple_team: JSON.stringify({
+      result: 0,
+      players: [],
+    }),
+  });
+
+  assert.equal(card.playedAtText, "2026.04.09 22:15");
+});
+
 test("formatMatchDetail builds detail-friendly rows with items, spells, and rune ids", () => {
   const detail = formatMatchDetail({
-    id: 9,
-    game_id: "KR-CODE-9",
-    game_length: String(31 * 60 * 1000 + 5 * 1000),
-    played_at_kst: "2024-04-09 21:15:00",
+    id: 1,
+    game_id: "DEMO-KR-001",
+    game_length: String(30 * 60 * 1000 + 50 * 1000),
+    played_at_kst: "2026-04-07 20:10:00",
     blue_team: JSON.stringify({
       side: 100,
       result: 1,
-      totalKill: 48,
+      totalKill: 28,
       players: [
         {
-          playerName: "Alpha",
+          playerName: "테스트 찰리",
           championName: "Ahri",
           level: 18,
-          minionScore: 212,
+          minionScore: 236,
           lane: "MIDDLE",
           performanceScore: 22,
           visionScore: 19,
@@ -300,6 +327,7 @@ test("formatMatchDetail builds detail-friendly rows with items, spells, and rune
           spell1: 4,
           spell2: 14,
           keystoneId: 8112,
+          subStyleId: 8200,
           inventory: {
             item1: 6655,
             item2: 3020,
@@ -309,48 +337,49 @@ test("formatMatchDetail builds detail-friendly rows with items, spells, and rune
             item6: 3135,
             trinket: 3363,
           },
-          kda: { kills: 9, deaths: 3, assist: 11 },
+          kda: { kills: 9, deaths: 2, assist: 7 },
         },
       ],
     }),
     purple_team: JSON.stringify({
       side: 200,
       result: 0,
-      totalKill: 31,
+      totalKill: 18,
       players: [
         {
-          playerName: "Bravo",
-          championName: "Ornn",
+          playerName: "테스트 폭스트롯",
+          championName: "Aatrox",
           level: 16,
-          minionScore: 198,
+          minionScore: 201,
           lane: "TOP",
-          performanceScore: -7,
-          visionScore: 8,
+          performanceScore: 7,
+          visionScore: 12,
           totalDamage: 21316,
           spell1: 12,
           spell2: 4,
-          keystoneId: 8439,
+          keystoneId: 8010,
+          subStyleId: 8400,
           inventory: {
-            item1: 3068,
+            item1: 6631,
             item2: 3047,
-            item3: 4401,
-            item4: 3075,
-            item5: 3109,
-            item6: 3143,
+            item3: 3071,
+            item4: 3053,
+            item5: 3065,
+            item6: 3026,
             trinket: 3364,
           },
-          kda: { kills: 3, deaths: 6, assist: 5 },
+          kda: { kills: 3, deaths: 6, assist: 4 },
         },
       ],
     }),
   });
 
-  assert.equal(detail.id, 9);
-  assert.equal(detail.gameId, "KR-CODE-9");
-  assert.equal(detail.durationText, "31:05");
-  assert.equal(detail.playedAtText, "2024.04.09 21:15 KST");
-  assert.equal(detail.teams.blue.totalKillsText, "48");
-  assert.equal(detail.teams.purple.totalKillsText, "31");
+  assert.equal(detail.id, 1);
+  assert.equal(detail.gameId, "DEMO-KR-001");
+  assert.equal(detail.durationText, "30:50");
+  assert.equal(detail.playedAtText, "2026.04.07 20:10");
+  assert.equal(detail.teams.blue.totalKillsText, "28");
+  assert.equal(detail.teams.purple.totalKillsText, "18");
   assert.deepEqual(detail.teams.blue.players[0].itemIds, [
     6655,
     3020,
@@ -362,8 +391,10 @@ test("formatMatchDetail builds detail-friendly rows with items, spells, and rune
   ]);
   assert.deepEqual(detail.teams.blue.players[0].spellIds, [4, 14]);
   assert.equal(detail.teams.blue.players[0].keystoneId, 8112);
+  assert.equal(detail.teams.blue.players[0].secondaryRuneId, 8200);
   assert.equal(detail.teams.blue.players[0].damageText, "36,200");
   assert.equal(detail.teams.blue.players[0].visionScoreText, "19");
+  assert.equal(detail.teams.purple.players[0].secondaryRuneId, 8400);
 });
 
 test("formatPlayerProfileSummary calculates win rate and average kda", () => {

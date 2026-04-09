@@ -45,6 +45,203 @@ function buildPlayerMeta(player) {
   return fragments.join(" · ");
 }
 
+function toNumberFromText(value) {
+  const numeric = Number(
+    String(value ?? "")
+      .replaceAll(",", "")
+      .replace(/[^\d.-]/g, "")
+  );
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function formatMetricValue(value) {
+  return new Intl.NumberFormat("ko-KR").format(Math.max(0, Math.round(value)));
+}
+
+function parseKdaText(value) {
+  const [kills, deaths, assists] = String(value ?? "0/0/0")
+    .split("/")
+    .map((part) => toNumberFromText(part));
+
+  return {
+    kills,
+    deaths,
+    assists,
+  };
+}
+
+function clampNumber(value, minimum, maximum) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function formatOpScore(value) {
+  return (clampNumber(4.2 + toNumberFromText(value) / 10, 0, 10)).toFixed(1);
+}
+
+function getTeamSideName(sideLabel) {
+  return sideLabel === "blue" ? "블루팀" : "레드팀";
+}
+
+function buildTeamMetrics(team) {
+  const players = team?.players ?? [];
+
+  return {
+    totalKills: toNumberFromText(team?.totalKillsText),
+    totalDamage: players.reduce(
+      (sum, player) => sum + toNumberFromText(player?.damageText),
+      0
+    ),
+    totalVision: players.reduce(
+      (sum, player) => sum + toNumberFromText(player?.visionScoreText),
+      0
+    ),
+    totalCs: players.reduce(
+      (sum, player) => sum + toNumberFromText(player?.minionScoreText),
+      0
+    ),
+  };
+}
+
+function buildScoreboardContext(card) {
+  const blueEntries = (card?.teams?.blue?.players ?? []).map((player) => ({
+    player,
+    side: "blue",
+  }));
+  const redEntries = (card?.teams?.purple?.players ?? []).map((player) => ({
+    player,
+    side: "red",
+  }));
+  const allEntries = [...blueEntries, ...redEntries];
+
+  const sortedByPerformance = [...allEntries].sort((left, right) => {
+    const performanceDelta =
+      toNumberFromText(formatOpScore(right.player?.performanceScore)) -
+      toNumberFromText(formatOpScore(left.player?.performanceScore));
+    if (performanceDelta !== 0) {
+      return performanceDelta;
+    }
+
+    const damageDelta =
+      toNumberFromText(right.player?.damageText) -
+      toNumberFromText(left.player?.damageText);
+    if (damageDelta !== 0) {
+      return damageDelta;
+    }
+
+    return String(left.player?.name ?? "").localeCompare(
+      String(right.player?.name ?? ""),
+      "ko"
+    );
+  });
+
+  const ranks = new Map();
+  sortedByPerformance.forEach((entry, index) => {
+    ranks.set(entry.player, index + 1);
+  });
+
+  const sortedBluePlayers = [...blueEntries].sort((left, right) => {
+    return (
+      toNumberFromText(formatOpScore(right.player?.performanceScore)) -
+        toNumberFromText(formatOpScore(left.player?.performanceScore)) ||
+      toNumberFromText(right.player?.damageText) -
+        toNumberFromText(left.player?.damageText)
+    );
+  });
+  const sortedRedPlayers = [...redEntries].sort((left, right) => {
+    return (
+      toNumberFromText(formatOpScore(right.player?.performanceScore)) -
+        toNumberFromText(formatOpScore(left.player?.performanceScore)) ||
+      toNumberFromText(right.player?.damageText) -
+        toNumberFromText(left.player?.damageText)
+    );
+  });
+
+  return {
+    teams: {
+      blue: buildTeamMetrics(card?.teams?.blue),
+      red: buildTeamMetrics(card?.teams?.purple),
+    },
+    winningSide: card?.winningSide === "blue" ? "blue" : "red",
+    ranks,
+    teamLeaders: {
+      blue: sortedBluePlayers[0]?.player ?? null,
+      red: sortedRedPlayers[0]?.player ?? null,
+    },
+    maxDamage: Math.max(
+      1,
+      ...allEntries.map((entry) => toNumberFromText(entry.player?.damageText))
+    ),
+    maxVision: Math.max(
+      1,
+      ...allEntries.map((entry) => toNumberFromText(entry.player?.visionScoreText))
+    ),
+    maxCs: Math.max(
+      1,
+      ...allEntries.map((entry) => toNumberFromText(entry.player?.minionScoreText))
+    ),
+  };
+}
+
+function isRenderableAsset(asset) {
+  return Boolean(asset?.imageUrl) || toNumberFromText(asset?.id) > 0;
+}
+
+function getRenderableAssets(assets = []) {
+  return assets.filter((asset) => isRenderableAsset(asset));
+}
+
+function buildPlayerRuneAssets(player) {
+  const primaryRune = {
+    id: player?.keystoneId,
+    name: player?.keystoneName,
+    imageUrl: player?.keystoneImageUrl,
+  };
+  const secondaryRune = {
+    id: player?.secondaryRuneId,
+    name: player?.secondaryRuneName,
+    imageUrl: player?.secondaryRuneImageUrl,
+  };
+
+  return [primaryRune, secondaryRune].filter((asset) => isRenderableAsset(asset));
+}
+
+function renderPlayerRunes(player, className) {
+  const runeAssets = buildPlayerRuneAssets(player);
+  if (!runeAssets.length) {
+    return "";
+  }
+
+  return renderIconGroup(runeAssets, className);
+}
+
+function buildPlayerStatSnapshot(player, teamMetrics) {
+  const { kills, deaths, assists } = parseKdaText(player?.kdaText);
+  const killParticipation =
+    teamMetrics?.totalKills > 0
+      ? Math.round(((kills + assists) / teamMetrics.totalKills) * 100)
+      : 0;
+  const kdaRatioText =
+    deaths <= 0 ? "Perfect" : `${((kills + assists) / deaths).toFixed(2)}:1`;
+
+  return {
+    kills,
+    deaths,
+    assists,
+    killParticipation,
+    kdaRatioText,
+  };
+}
+
+function buildItemBuildRows(player) {
+  const items = Array.isArray(player?.itemAssets) ? player.itemAssets : [];
+
+  return {
+    topRow: getRenderableAssets(items.slice(0, 3)),
+    bottomRow: getRenderableAssets(items.slice(3, 6)),
+    trinket: isRenderableAsset(items[6]) ? items[6] : null,
+  };
+}
+
 function renderCompactPlayer(player) {
   return `
     <li class="match-row__player">
@@ -56,11 +253,7 @@ function renderCompactPlayer(player) {
         )}
         <div class="match-row__spells-runes">
           ${renderIconGroup(player.spellAssets ?? [], "match-row__spells")}
-          ${renderAssetImage(
-            { imageUrl: player.keystoneImageUrl, name: player.keystoneName },
-            "match-row__rune-image",
-            player.keystoneId
-          )}
+          ${renderPlayerRunes(player, "match-row__runes")}
         </div>
       </div>
       <div class="match-row__player-main">
@@ -74,58 +267,6 @@ function renderCompactPlayer(player) {
       ${renderIconGroup(player.itemAssets ?? [], "match-row__items")}
     </li>
   `;
-}
-
-function renderTeamRoster(team, sideLabel) {
-  return `
-    <section class="match-row__team match-row__team--${escapeHtml(sideLabel)}">
-      <header class="match-row__team-header">
-        <div>
-          <strong>${escapeHtml(team.resultText)}</strong>
-          <span>${escapeHtml(sideLabel === "blue" ? "블루팀" : "레드팀")}</span>
-        </div>
-        <strong>${escapeHtml(team.totalKillsText)}킬</strong>
-      </header>
-      <ul class="match-row__player-list">
-        ${team.players.map(renderCompactPlayer).join("")}
-      </ul>
-    </section>
-  `;
-}
-
-function renderScoreboardRows(team, sideLabel) {
-  return team.players
-    .map(
-      (player) => `
-        <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
-          <div class="match-scoreboard__identity">
-            ${renderAssetImage(
-              { imageUrl: player.championImageUrl, name: player.championName },
-              "match-scoreboard__champion-image",
-              player.championName?.slice(0, 1)
-            )}
-            <div>
-              <strong>${escapeHtml(player.name)}</strong>
-              <span>${escapeHtml(buildPlayerMeta(player))}</span>
-            </div>
-          </div>
-          <div class="match-scoreboard__stat"><strong>${escapeHtml(player.kdaText)}</strong><span>KDA</span></div>
-          <div class="match-scoreboard__stat"><strong>${escapeHtml(player.damageText)}</strong><span>피해량</span></div>
-          <div class="match-scoreboard__stat"><strong>${escapeHtml(player.visionScoreText)}</strong><span>와드</span></div>
-          <div class="match-scoreboard__stat"><strong>${escapeHtml(player.minionScoreText)}</strong><span>CS</span></div>
-          <div class="match-scoreboard__build">
-            ${renderIconGroup(player.spellAssets ?? [], "match-scoreboard__spells")}
-            ${renderAssetImage(
-              { imageUrl: player.keystoneImageUrl, name: player.keystoneName },
-              "match-scoreboard__rune-image",
-              player.keystoneId
-            )}
-            ${renderIconGroup(player.itemAssets ?? [], "match-scoreboard__items")}
-          </div>
-        </li>
-      `
-    )
-    .join("");
 }
 
 function getFeaturedPlayer(card) {
@@ -157,16 +298,12 @@ function renderSummaryHighlight(card) {
             { imageUrl: featuredPlayer.championImageUrl, name: featuredPlayer.championName },
             "match-row__champion-image",
             featuredPlayer.championName?.slice(0, 1)
-          )}
-          <div class="match-row__spells-runes">
-            ${renderIconGroup(featuredPlayer.spellAssets ?? [], "match-row__spells")}
-            ${renderAssetImage(
-              { imageUrl: featuredPlayer.keystoneImageUrl, name: featuredPlayer.keystoneName },
-              "match-row__rune-image",
-              featuredPlayer.keystoneId
-            )}
-          </div>
+        )}
+        <div class="match-row__spells-runes">
+          ${renderIconGroup(featuredPlayer.spellAssets ?? [], "match-row__spells")}
+          ${renderPlayerRunes(featuredPlayer, "match-row__runes")}
         </div>
+      </div>
         <div class="match-row__summary-highlight-copy">
           <strong class="match-row__player-name">${escapeHtml(featuredPlayer.name)}</strong>
           <span class="match-row__player-meta">${escapeHtml(buildPlayerMeta(featuredPlayer))}</span>
@@ -183,72 +320,342 @@ function renderSummaryHighlight(card) {
   `;
 }
 
-function renderTabPanel(card, tabId) {
-  if (tabId === "summary") {
-    return `
-      <div class="match-row__panel-body match-row__panel-body--teams">
-        ${renderTeamRoster(card.teams.blue, "blue")}
-        ${renderTeamRoster(card.teams.purple, "red")}
-      </div>
-    `;
-  }
+function renderScoreboardColumns() {
+  return `
+    <div class="match-scoreboard__columns">
+      <span>플레이어</span>
+      <span>OP Score</span>
+      <span>KDA</span>
+      <span>피해량</span>
+      <span>와드</span>
+      <span>CS</span>
+      <span>아이템</span>
+    </div>
+  `;
+}
 
-  if (tabId === "op-score") {
-    return `
-      <div class="match-scoreboard">
-        <div class="match-scoreboard__section">
-          <header class="match-scoreboard__section-header"><strong>승리 (${escapeHtml(card.teams.blue.totalKillsText)}킬)</strong></header>
-          <ul class="match-scoreboard__list">
-            ${renderScoreboardRows(card.teams.blue, "blue")}
-          </ul>
+function renderScoreboardItemBuild(player) {
+  const { topRow, bottomRow, trinket } = buildItemBuildRows(player);
+
+  return `
+    <div class="match-scoreboard__build-items">
+      <div class="match-scoreboard__build-row">
+        ${renderIconGroup(topRow, "match-scoreboard__items")}
+        <div class="match-scoreboard__build-trinket">
+          ${
+            trinket
+              ? renderAssetImage(
+                  trinket,
+                  "match-scoreboard__items__icon",
+                  String(trinket?.id ?? "")
+                )
+              : ""
+          }
         </div>
-        <div class="match-scoreboard__section">
-          <header class="match-scoreboard__section-header"><strong>패배 (${escapeHtml(card.teams.purple.totalKillsText)}킬)</strong></header>
-          <ul class="match-scoreboard__list">
-            ${renderScoreboardRows(card.teams.purple, "red")}
-          </ul>
+      </div>
+      <div class="match-scoreboard__build-row">
+        ${renderIconGroup(bottomRow, "match-scoreboard__items")}
+      </div>
+    </div>
+  `;
+}
+
+function renderScoreboardIdentity(player) {
+  return `
+    <div class="match-scoreboard__identity">
+      ${renderAssetImage(
+        { imageUrl: player.championImageUrl, name: player.championName },
+        "match-scoreboard__champion-image",
+        player.championName?.slice(0, 1)
+      )}
+      <div class="match-scoreboard__summoners">
+        ${renderIconGroup(player.spellAssets ?? [], "match-scoreboard__spells")}
+      </div>
+      <div class="match-scoreboard__rune-stack">
+        ${renderPlayerRunes(player, "match-scoreboard__runes-block")}
+      </div>
+      <div class="match-scoreboard__identity-copy">
+        <strong>${escapeHtml(player.name)}</strong>
+        <span>${escapeHtml(buildPlayerMeta(player))}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderScoreboardMeter(widthPercent, tone) {
+  const normalizedWidth = clampNumber(widthPercent, 0, 100);
+
+  return `
+    <span class="match-scoreboard__meter">
+      <span class="match-scoreboard__meter-fill match-scoreboard__meter-fill--${escapeHtml(tone)}" style="width: ${normalizedWidth}%;"></span>
+    </span>
+  `;
+}
+
+function getPerformanceBadgeText(player, sideLabel, context) {
+  if (context.teamLeaders[sideLabel] === player) {
+    return context.winningSide === sideLabel ? "MVP" : "ACE";
+  }
+
+  const rank = context.ranks.get(player) ?? 0;
+  return rank > 0 ? `${rank}위` : "-";
+}
+
+function getPerformanceBadgeModifier(text) {
+  if (text === "MVP") {
+    return "mvp";
+  }
+
+  if (text === "ACE") {
+    return "ace";
+  }
+
+  return "rank";
+}
+
+function renderSummaryTeamCard(player, sideLabel, context) {
+  const teamMetrics = context.teams[sideLabel];
+
+  if (!player) {
+    return `
+      <div class="match-row__summary-team match-row__summary-team--${escapeHtml(sideLabel)}">
+        <span class="match-row__summary-side">${escapeHtml(
+          sideLabel === "blue" ? "블루팀" : "레드팀"
+        )}</span>
+        <div class="match-row__summary-player match-row__summary-player--empty">
+          <span>표시할 플레이어 데이터가 없습니다.</span>
         </div>
       </div>
     `;
   }
 
-  if (tabId === "team-analysis") {
-    return `
-      <div class="match-row__team-analysis">
-        <article><span>블루팀 킬</span><strong>${escapeHtml(card.teams.blue.totalKillsText)}</strong></article>
-        <article><span>레드팀 킬</span><strong>${escapeHtml(card.teams.purple.totalKillsText)}</strong></article>
-        <article><span>게임 길이</span><strong>${escapeHtml(card.durationText)}</strong></article>
-        <article><span>게임 ID</span><strong>${escapeHtml(card.gameId)}</strong></article>
-      </div>
-    `;
-  }
+  const { killParticipation, kdaRatioText } = buildPlayerStatSnapshot(
+    player,
+    teamMetrics
+  );
+  const badgeText = getPerformanceBadgeText(player, sideLabel, context);
+  const badgeModifier = getPerformanceBadgeModifier(badgeText);
 
-  if (tabId === "build") {
-    return `
-      <div class="match-build-grid">
-        ${[...card.teams.blue.players, ...card.teams.purple.players]
-          .map(
-            (player) => `
-              <article class="match-build-grid__player">
-                <header>
-                  <strong>${escapeHtml(player.name)}</strong>
-                  <span>${escapeHtml(player.championName)}</span>
-                </header>
-                ${renderIconGroup(player.spellAssets ?? [], "match-build-grid__spells")}
-                ${renderAssetImage(
-                  { imageUrl: player.keystoneImageUrl, name: player.keystoneName },
-                  "match-build-grid__rune-image",
-                  player.keystoneId
-                )}
-                ${renderIconGroup(player.itemAssets ?? [], "match-build-grid__items")}
-              </article>
-            `
-          )
+  return `
+    <div class="match-row__summary-team match-row__summary-team--${escapeHtml(sideLabel)}">
+      <span class="match-row__summary-side">${escapeHtml(
+        sideLabel === "blue" ? "블루팀" : "레드팀"
+      )}</span>
+      <div class="match-row__summary-player">
+        <div class="match-row__champion-block">
+          ${renderAssetImage(
+            { imageUrl: player.championImageUrl, name: player.championName },
+            "match-row__champion-image",
+            player.championName?.slice(0, 1)
+          )}
+          <div class="match-row__spells-runes">
+            ${renderIconGroup(player.spellAssets ?? [], "match-row__spells")}
+            ${renderPlayerRunes(player, "match-row__runes")}
+          </div>
+        </div>
+        <div class="match-row__summary-player-copy">
+          <strong class="match-row__player-name">${escapeHtml(player.name)}</strong>
+          <span class="match-row__player-meta">${escapeHtml(buildPlayerMeta(player))}</span>
+        </div>
+        <div class="match-row__summary-player-score">
+          <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
+          <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(
+            badgeModifier
+          )}">${escapeHtml(badgeText)}</span>
+        </div>
+        <div class="match-row__summary-player-kda">
+          <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
+          <span>${escapeHtml(kdaRatioText)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderScoreboardRow(player, sideLabel, teamMetrics, context) {
+  const { killParticipation, kdaRatioText } = buildPlayerStatSnapshot(
+    player,
+    teamMetrics
+  );
+  const damageValue = toNumberFromText(player.damageText);
+  const visionValue = toNumberFromText(player.visionScoreText);
+  const badgeText = getPerformanceBadgeText(player, sideLabel, context);
+  const badgeModifier = getPerformanceBadgeModifier(badgeText);
+
+  return `
+    <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
+      ${renderScoreboardIdentity(player)}
+      <div class="match-scoreboard__score">
+        <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
+        <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
+      </div>
+      <div class="match-scoreboard__kda">
+        <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
+        <span>${escapeHtml(kdaRatioText)}</span>
+      </div>
+      <div class="match-scoreboard__damage">
+        <strong>${escapeHtml(player.damageText)}</strong>
+        ${renderScoreboardMeter((damageValue / context.maxDamage) * 100, sideLabel)}
+      </div>
+      <div class="match-scoreboard__stat">
+        <strong>${escapeHtml(player.visionScoreText)}</strong>
+        ${renderScoreboardMeter((visionValue / context.maxVision) * 100, sideLabel)}
+      </div>
+      <div class="match-scoreboard__stat match-scoreboard__stat--cs">
+        <strong>${escapeHtml(player.minionScoreText)}</strong>
+        <span>분당 ${escapeHtml(player.csPerMinuteText)}</span>
+      </div>
+      <div class="match-scoreboard__build">
+        ${renderScoreboardItemBuild(player)}
+      </div>
+    </li>
+  `;
+}
+
+function renderScoreboardTeam(team, sideLabel, context) {
+  const teamMetrics = context.teams[sideLabel];
+
+  return `
+    <section class="match-scoreboard__team match-scoreboard__team--${escapeHtml(sideLabel)}">
+      <header class="match-scoreboard__team-header">
+        <div class="match-scoreboard__team-heading">
+          <strong>${escapeHtml(team.resultText)} (${escapeHtml(getTeamSideName(sideLabel))})</strong>
+          <span>${escapeHtml(team.totalKillsText)}킬 · 피해량 ${escapeHtml(formatMetricValue(teamMetrics.totalDamage))} · 시야 ${escapeHtml(formatMetricValue(teamMetrics.totalVision))}</span>
+        </div>
+      </header>
+      ${renderScoreboardColumns()}
+      <ul class="match-scoreboard__list">
+        ${(team.players ?? [])
+          .map((player) => renderScoreboardRow(player, sideLabel, teamMetrics, context))
           .join("")}
-      </div>
-    `;
-  }
+      </ul>
+    </section>
+  `;
+}
 
+function renderTotalsComparisonRow(label, blueValue, redValue) {
+  const total = Math.max(blueValue + redValue, 1);
+  const blueWidth = (blueValue / total) * 100;
+  const redWidth = (redValue / total) * 100;
+
+  return `
+    <article class="match-scoreboard__totals-row">
+      <div class="match-scoreboard__totals-value match-scoreboard__totals-value--blue">
+        <strong>${escapeHtml(formatMetricValue(blueValue))}</strong>
+      </div>
+      <div class="match-scoreboard__totals-bar-group">
+        <span class="match-scoreboard__totals-label">${escapeHtml(label)}</span>
+        <div class="match-scoreboard__totals-bar">
+          <span class="match-scoreboard__totals-bar-fill match-scoreboard__totals-bar-fill--blue" style="width: ${clampNumber(blueWidth, 0, 100)}%;"></span>
+          <span class="match-scoreboard__totals-bar-fill match-scoreboard__totals-bar-fill--red" style="width: ${clampNumber(redWidth, 0, 100)}%;"></span>
+        </div>
+      </div>
+      <div class="match-scoreboard__totals-value match-scoreboard__totals-value--red">
+        <strong>${escapeHtml(formatMetricValue(redValue))}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderScoreboardTotals(context) {
+  return `
+    <section class="match-scoreboard__totals">
+      ${renderTotalsComparisonRow(
+        "Total Kill",
+        context.teams.blue.totalKills,
+        context.teams.red.totalKills
+      )}
+      ${renderTotalsComparisonRow(
+        "Total Damage",
+        context.teams.blue.totalDamage,
+        context.teams.red.totalDamage
+      )}
+      ${renderTotalsComparisonRow(
+        "Total Vision",
+        context.teams.blue.totalVision,
+        context.teams.red.totalVision
+      )}
+    </section>
+  `;
+}
+
+function renderDetailedScoreboard(card) {
+  const context = buildScoreboardContext(card);
+
+  return `
+    <div class="match-scoreboard">
+      ${renderScoreboardTeam(card.teams.blue, "blue", context)}
+      ${renderScoreboardTotals(context)}
+      ${renderScoreboardTeam(card.teams.purple, "red", context)}
+    </div>
+  `;
+}
+
+function renderTeamAnalysisPanel(card) {
+  const context = buildScoreboardContext(card);
+  const blueLeadDamagePlayer =
+    [...(card.teams.blue.players ?? [])].sort(
+      (left, right) =>
+        toNumberFromText(right.damageText) - toNumberFromText(left.damageText)
+    )[0] ?? null;
+  const redLeadDamagePlayer =
+    [...(card.teams.purple.players ?? [])].sort(
+      (left, right) =>
+        toNumberFromText(right.damageText) - toNumberFromText(left.damageText)
+    )[0] ?? null;
+
+  return `
+    <div class="match-row__panel-stack">
+      <div class="match-row__team-analysis">
+        <article>
+          <span>블루팀 핵심 딜러</span>
+          <strong>${escapeHtml(blueLeadDamagePlayer?.name ?? "-")}</strong>
+          <span>${escapeHtml(blueLeadDamagePlayer?.damageText ?? "0")} 피해</span>
+        </article>
+        <article>
+          <span>레드팀 핵심 딜러</span>
+          <strong>${escapeHtml(redLeadDamagePlayer?.name ?? "-")}</strong>
+          <span>${escapeHtml(redLeadDamagePlayer?.damageText ?? "0")} 피해</span>
+        </article>
+        <article>
+          <span>게임 길이</span>
+          <strong>${escapeHtml(card.durationText)}</strong>
+          <span>${escapeHtml(card.playedAtText || "기록 없음")}</span>
+        </article>
+        <article>
+          <span>게임 ID</span>
+          <strong>${escapeHtml(card.gameId || "-")}</strong>
+          <span>Match #${escapeHtml(card.id)}</span>
+        </article>
+      </div>
+      ${renderScoreboardTotals(context)}
+    </div>
+  `;
+}
+
+function renderBuildPanel(card) {
+  return `
+    <div class="match-build-grid">
+      ${[...card.teams.blue.players, ...card.teams.purple.players]
+        .map(
+          (player) => `
+            <article class="match-build-grid__player">
+              <header>
+                <strong>${escapeHtml(player.name)}</strong>
+                <span>${escapeHtml(player.championName)} · ${escapeHtml(player.lane)}</span>
+              </header>
+              ${renderIconGroup(player.spellAssets ?? [], "match-build-grid__spells")}
+              ${renderPlayerRunes(player, "match-build-grid__runes")}
+              ${renderIconGroup(player.itemAssets ?? [], "match-build-grid__items")}
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderOtherPanel(card) {
   return `
     <div class="match-row__other-grid">
       ${[...card.teams.blue.players, ...card.teams.purple.players]
@@ -258,7 +665,7 @@ function renderTabPanel(card, tabId) {
               <strong>${escapeHtml(player.name)}</strong>
               <span>라인 ${escapeHtml(player.lane)}</span>
               <span>레벨 ${escapeHtml(player.level)}</span>
-              <span>퍼포먼스 ${escapeHtml(player.performanceScore)}</span>
+              <span>퍼포먼스 ${escapeHtml(formatOpScore(player.performanceScore))}</span>
               <span>CS/분 ${escapeHtml(player.csPerMinuteText)}</span>
             </article>
           `
@@ -268,60 +675,64 @@ function renderTabPanel(card, tabId) {
   `;
 }
 
-function renderMatchDetailSection(card) {
+function renderTabPanel(card, tabId) {
+  if (tabId === "summary" || tabId === "op-score") {
+    return renderDetailedScoreboard(card);
+  }
+
+  if (tabId === "team-analysis") {
+    return renderTeamAnalysisPanel(card);
+  }
+
+  if (tabId === "build") {
+    return renderBuildPanel(card);
+  }
+
+  return renderOtherPanel(card);
+}
+
+function renderMatchDetailSection(card, options = {}) {
+  const detailId = options.detailId ?? card.detailId;
+  const hiddenAttribute = options.expanded ? "" : "hidden";
+
   return `
     <section
       class="match-row__detail"
-      id="${escapeHtml(card.detailId)}"
-      data-match-detail="${escapeHtml(card.detailId)}"
-      hidden
+      id="${escapeHtml(detailId)}"
+      data-match-detail="${escapeHtml(detailId)}"
+      ${hiddenAttribute}
     >
-      <div class="match-row__tabs" role="tablist" aria-label="매치 상세 탭">
-        ${card.tabs
-          .map(
-            (tab, index) => `
-              <button
-                type="button"
-                class="match-row__tab${index === 0 ? " is-active" : ""}"
-                data-match-tab="${escapeHtml(tab.id)}"
-                data-match-tab-target="${escapeHtml(card.detailId)}"
-                aria-selected="${index === 0 ? "true" : "false"}"
-              >${escapeHtml(tab.label)}</button>
-            `
-          )
-          .join("")}
-      </div>
-      <div class="match-row__panels">
-        ${card.tabs
-          .map(
-            (tab, index) => `
-              <section
-                class="match-row__panel${index === 0 ? " is-active" : ""}"
-                data-match-panel="${escapeHtml(tab.id)}"
-                data-match-panel-parent="${escapeHtml(card.detailId)}"
-                ${index === 0 ? "" : "hidden"}
-              >
-                ${renderTabPanel(card, tab.id)}
-              </section>
-            `
-          )
-          .join("")}
-      </div>
+      ${renderDetailedScoreboard(card)}
     </section>
   `;
 }
 
-function renderMatchCard(card) {
+function renderMatchDetailShell(card, options = {}) {
+  const detailId = options.detailId ?? `${card.detailId}-page`;
+
+  return `
+    <section class="panel match-detail-shell">
+      ${renderMatchDetailSection({ ...card, detailId }, { expanded: true })}
+    </section>
+  `;
+}
+
+function renderMatchCard(card, options = {}) {
+  const { showResult = true, showSummaryHighlight = true } = options;
+  const context = buildScoreboardContext(card);
+
   return `
     <article class="match-row match-row--${escapeHtml(card.winningSide)}" data-match-row="${escapeHtml(card.id)}">
-      <div class="match-row__summary">
-        <div class="match-row__result">
-          <strong>${escapeHtml(card.teams[card.winningSide].resultText)}</strong>
-          <span>내전</span>
-        </div>
+      <div class="match-row__summary${showResult ? "" : " match-row__summary--public"}">
+        ${showResult ? `
+          <div class="match-row__result">
+            <strong>${escapeHtml(card.teams[card.winningSide].resultText)}</strong>
+            <span>내전</span>
+          </div>
+        ` : ""}
         <button
           type="button"
-          class="match-row__summary-button"
+          class="match-row__summary-button${showSummaryHighlight ? "" : " match-row__summary-button--public"}"
           data-match-toggle="${escapeHtml(card.toggleId)}"
           aria-expanded="false"
           aria-controls="${escapeHtml(card.detailId)}"
@@ -332,21 +743,15 @@ function renderMatchCard(card) {
             <span>${escapeHtml(card.gameId || "Custom Match")}</span>
             ${card.playedAtText ? `<span class="match-row__played-at">${escapeHtml(card.playedAtText)}</span>` : ""}
           </div>
-          <div class="match-row__summary-teams">
-            <div class="match-row__summary-team">
-              <span class="match-row__summary-side">블루</span>
-              <strong>${escapeHtml(card.teams.blue.totalKillsText)}킬</strong>
-              <span>${escapeHtml(card.teams.blue.players[0]?.name ?? "-")}</span>
-            </div>
-            <div class="match-row__summary-team">
-              <span class="match-row__summary-side">레드</span>
-              <strong>${escapeHtml(card.teams.purple.totalKillsText)}킬</strong>
-              <span>${escapeHtml(card.teams.purple.players[0]?.name ?? "-")}</span>
-            </div>
+          <div class="match-row__summary-teams${showSummaryHighlight ? "" : " match-row__summary-teams--public"}">
+            ${renderSummaryTeamCard(context.teamLeaders.blue, "blue", context)}
+            ${renderSummaryTeamCard(context.teamLeaders.red, "red", context)}
           </div>
-          <div class="match-row__summary-builds">
-            ${renderSummaryHighlight(card)}
-          </div>
+          ${showSummaryHighlight ? `
+            <div class="match-row__summary-builds">
+              ${renderSummaryHighlight(card)}
+            </div>
+          ` : ""}
           <span class="match-row__caret" aria-hidden="true">⌄</span>
         </button>
         <a class="match-row__detail-link" href="${escapeHtml(card.href ?? `/matches/${card.id}`)}">링크</a>
@@ -378,5 +783,6 @@ module.exports = {
   escapeHtml,
   renderAssetImage,
   renderMatchCard,
+  renderMatchDetailShell,
   renderSimpleRows,
 };

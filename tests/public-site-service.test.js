@@ -28,6 +28,9 @@ function buildAssetManifest() {
     runeAssets: {
       8112: { imageUrl: "https://cdn.test/rune/Electrocute.png" },
       8439: { imageUrl: "https://cdn.test/rune/Resolve.png" },
+      8400: { imageUrl: "https://cdn.test/rune/Resolve.png" },
+      8200: { imageUrl: "https://cdn.test/rune/Sorcery.png" },
+      8300: { imageUrl: "https://cdn.test/rune/Inspiration.png" },
     },
   };
 }
@@ -69,9 +72,9 @@ test("public site handlers render the home page using the configured guild conte
         data: [
           {
             id: 4,
-            game_id: "KR-4",
-            game_length: String(24 * 60 * 1000),
-            played_at_kst: "2024-04-09 21:15:00",
+            game_id: "DEMO-KR-001",
+            game_length: String(30 * 60 * 1000 + 50 * 1000),
+            played_at_kst: "2026-04-07 20:10:00",
             blue_team: JSON.stringify({
               result: 1,
               totalKill: 17,
@@ -87,6 +90,7 @@ test("public site handlers render the home page using the configured guild conte
                   spell1: 4,
                   spell2: 14,
                   keystoneId: 8112,
+                  subStyleId: 8200,
                   inventory: {
                     item1: 6655,
                     item2: 3020,
@@ -115,6 +119,7 @@ test("public site handlers render the home page using the configured guild conte
                   spell1: 12,
                   spell2: 4,
                   keystoneId: 8439,
+                  subStyleId: 8300,
                   inventory: {
                     item1: 3068,
                     item2: 3047,
@@ -144,7 +149,8 @@ test("public site handlers render the home page using the configured guild conte
   assert.match(html, /전체 내전 전적/);
   assert.match(html, /Alpha/);
   assert.match(html, /Ahri\.png/);
-  assert.match(html, /2024\.04\.09 21:15 KST/);
+  assert.match(html, /2026\.04\.07 20:10/);
+  assert.match(html, /Sorcery\.png/);
   assert.match(html, /승리/);
   assert.match(html, /패배/);
 });
@@ -193,6 +199,57 @@ test("public site handlers prefer the guild id passed into renderers", async () 
   await site.renderHomePage("guild-9");
 
   assert.deepEqual(seenGuildIds, ["guild-9", "guild-9", "guild-9"]);
+});
+
+test("public site handlers render the ranking page using the scoped guild context", async () => {
+  const seenGuildIds = [];
+  const site = createPublicSiteHandlers({
+    preferredGuildId: "guild-fallback",
+    async getChampionNameMap() {
+      return {
+        ahri: "아리",
+      };
+    },
+    async getRiotAssetManifest() {
+      return buildAssetManifest();
+    },
+    async getPublicSiteSummary() {
+      throw new Error("not used");
+    },
+    async getPublicLeaderboard(guildId, limit) {
+      seenGuildIds.push({ guildId, limit });
+      return {
+        success: true,
+        data: [
+          { discord_id: "1", name: "Alpha", mmr: 1700, win: 7, lose: 3 },
+          { discord_id: "2", name: "Bravo", mmr: 1650, win: 6, lose: 4 },
+        ],
+      };
+    },
+    async getPublicMatchHistory() {
+      throw new Error("not used");
+    },
+    async getPublicMatchById() {
+      throw new Error("not used");
+    },
+    async getPublicPlayerProfile() {
+      throw new Error("not used");
+    },
+    async getLatestMatched() {
+      throw new Error("not used");
+    },
+    async searchPublicPlayers() {
+      throw new Error("not used");
+    },
+  });
+
+  const html = await site.renderRankingPage("guild-9");
+
+  assert.deepEqual(seenGuildIds, [{ guildId: "guild-9", limit: undefined }]);
+  assert.match(html, /전체 랭킹/);
+  assert.match(html, /Alpha/);
+  assert.match(html, /Bravo/);
+  assert.match(html, /\/guild-9\/players\/1/);
 });
 
 test("public site handlers do not guess a public guild when none is configured", async () => {
@@ -286,9 +343,9 @@ test("public site handlers return null for unknown player pages and map search r
         data: [
           {
             id: 9,
-            game_id: "KR-9",
+            game_id: "DEMO-KR-002",
             game_length: String(30 * 60 * 1000),
-            played_at_kst: "2024-04-08 20:05:00",
+            played_at_kst: "2026-04-08 21:05:00",
             blue_team: JSON.stringify({
               result: 1,
               players: [
@@ -303,6 +360,7 @@ test("public site handlers return null for unknown player pages and map search r
                   spell1: 4,
                   spell2: 14,
                   keystoneId: 8112,
+                  subStyleId: 8200,
                   inventory: {
                     item1: 6655,
                     item2: 3020,
@@ -338,7 +396,7 @@ test("public site handlers return null for unknown player pages and map search r
   assert.match(playerHtml, /아리/);
   assert.match(playerHtml, /미드/);
   assert.match(playerHtml, /Ahri\.png/);
-  assert.match(playerHtml, /2024\.04\.08 20:05 KST/);
+  assert.match(playerHtml, /2026\.04\.08 21:05/);
   assert.match(playerHtml, /승리/);
   assert.match(playerHtml, /패배/);
   assert.deepEqual(searchResults, [{ discordId: "1", name: "Alpha" }]);
@@ -379,9 +437,9 @@ test("public site handlers render a match detail page and return null for unknow
         success: true,
         data: {
           id: 9,
-          game_id: "KR-9",
+          game_id: "DEMO-KR-001",
           game_length: String(30 * 60 * 1000),
-          played_at_kst: "2024-04-07 19:55:00",
+          played_at_kst: "2026-04-07 20:10:00",
           blue_team: JSON.stringify({
             result: 1,
             totalKill: 48,
@@ -398,6 +456,7 @@ test("public site handlers render a match detail page and return null for unknow
                 spell1: 4,
                 spell2: 14,
                 keystoneId: 8112,
+                subStyleId: 8200,
                 inventory: {
                   item1: 6655,
                   item2: 3020,
@@ -431,7 +490,7 @@ test("public site handlers render a match detail page and return null for unknow
   assert.match(matchHtml, /경기 상세/);
   assert.match(matchHtml, /36,200/);
   assert.match(matchHtml, /Electrocute\.png/);
-  assert.match(matchHtml, /2024\.04\.07 19:55 KST/);
+  assert.match(matchHtml, /2026\.04\.07 20:10/);
   assert.match(matchHtml, /승리/);
   assert.match(matchHtml, /패배/);
 });

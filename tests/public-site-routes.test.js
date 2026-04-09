@@ -55,6 +55,9 @@ function createTestServer() {
     async renderMatchesPage(serverId) {
       return `<main>전체 경기 ${serverId}</main>`;
     },
+    async renderRankingPage(serverId) {
+      return `<main>전체 랭킹 ${serverId}</main>`;
+    },
     async renderMatchDetailPage(serverId, matchId) {
       if (matchId === "404") {
         return null;
@@ -171,8 +174,11 @@ test("public stylesheet keeps recent-match player rows readable in narrow cards"
   );
   assert.match(response.body, /\.match-card__link\s*\{/);
   assert.match(response.body, /\.match-detail-player__items\s*\{/);
-  assert.match(response.body, /\.match-row__tabs\s*\{/);
   assert.match(response.body, /\.match-row__summary-button\s*\{/);
+  assert.match(response.body, /\.match-scoreboard__columns\s*\{/);
+  assert.match(response.body, /\.match-scoreboard__totals\s*\{/);
+  assert.match(response.body, /\.match-detail-shell\s*\{/);
+  assert.match(response.body, /\.match-scoreboard__build-items\s*\{/);
 });
 
 test("public stylesheet gives match detail player containers explicit padding", async () => {
@@ -204,4 +210,11 @@ test("router serves the guild-scoped home page", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.match(response.body, /전체 내전 전적 123456789/);
+});
+
+test("router serves the guild-scoped ranking page", async () => {
+  const response = await requestServer(createTestServer(), "/123456789/ranking");
+
+  assert.equal(response.statusCode, 200);
+  assert.match(response.body, /전체 랭킹 123456789/);
 });

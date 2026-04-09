@@ -246,6 +246,10 @@ input {
   border-collapse: collapse;
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
 .ranking-table th,
 .ranking-table td {
   padding: 14px 10px;
@@ -644,6 +648,19 @@ body {
   color: var(--color-text);
 }
 
+.ranking-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ranking-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ranking-table td a:hover,
+.ranking-table td a:focus-visible {
+  color: var(--color-accent-strong);
+}
+
 .match-card__link {
   display: block;
 }
@@ -972,6 +989,10 @@ body {
   min-height: 126px;
 }
 
+.match-row__summary--public {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .match-row__result {
   display: grid;
   align-content: center;
@@ -995,9 +1016,10 @@ body {
 
 .match-row__summary-button {
   display: grid;
-  grid-template-columns: 130px minmax(0, 220px) minmax(0, 1fr) 24px;
+  grid-template-columns: 130px minmax(420px, 0.95fr) minmax(280px, 1.05fr) 24px;
   gap: 16px;
   align-items: stretch;
+  min-width: 0;
   width: 100%;
   padding: 0;
   border: 0;
@@ -1005,6 +1027,10 @@ body {
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.match-row__summary-button--public {
+  grid-template-columns: 112px minmax(0, 1fr) 24px;
 }
 
 .match-row__summary-button:hover {
@@ -1039,16 +1065,101 @@ body {
 
 .match-row__summary-teams {
   display: grid;
-  align-content: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  padding-right: 8px;
+  align-items: stretch;
+  min-width: 0;
+  padding-right: 12px;
   border-right: 1px solid rgba(154, 169, 202, 0.08);
+}
+
+.match-row__summary-teams--public {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  padding-right: 18px;
+  border-right: 0;
 }
 
 .match-row__summary-team {
   display: grid;
-  gap: 3px;
-  padding: 0;
+  gap: 8px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 14px 16px;
+  border: 1px solid rgba(154, 169, 202, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.match-row__summary-team--blue {
+  background: rgba(65, 113, 214, 0.1);
+}
+
+.match-row__summary-team--red {
+  background: rgba(207, 77, 103, 0.1);
+}
+
+.match-row__summary-player {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) max-content;
+  grid-template-areas:
+    "champion copy score"
+    "champion copy kda";
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.match-row__summary-player--empty {
+  grid-template-columns: 1fr;
+  grid-template-areas: none;
+  min-height: auto;
+}
+
+.match-row__summary-player > .match-row__champion-block {
+  grid-area: champion;
+}
+
+.match-row__summary-player-copy,
+.match-row__summary-player-score,
+.match-row__summary-player-kda {
+  min-width: 0;
+}
+
+.match-row__summary-player-copy {
+  display: grid;
+  gap: 4px;
+  grid-area: copy;
+  align-self: center;
+}
+
+.match-row__summary-player-score {
+  display: grid;
+  gap: 6px;
+  grid-area: score;
+  align-self: end;
+  justify-items: end;
+}
+
+.match-row__summary-player-kda {
+  display: grid;
+  gap: 4px;
+  grid-area: kda;
+  align-self: start;
+  justify-items: end;
+  text-align: right;
+}
+
+.match-row__summary-player-kda strong {
+  display: block;
+  white-space: nowrap;
+}
+
+.match-row__summary-player-kda span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 }
 
 .match-row__summary-builds {
@@ -1106,17 +1217,17 @@ body {
 
 .match-row__champion-block {
   display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 8px;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
   align-items: center;
 }
 
 .match-row__champion-image,
 .match-scoreboard__champion-image,
 .match-detail-player__champion-image {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   object-fit: cover;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -1136,10 +1247,13 @@ body {
 }
 
 .match-row__spells,
+.match-row__runes,
 .match-row__items,
 .match-scoreboard__spells,
+.match-scoreboard__runes,
 .match-scoreboard__items,
 .match-build-grid__spells,
+.match-build-grid__runes,
 .match-build-grid__items {
   display: flex;
   flex-wrap: wrap;
@@ -1147,10 +1261,14 @@ body {
 }
 
 .match-row__spells__icon,
+.match-row__runes__icon,
 .match-row__items__icon,
 .match-scoreboard__spells__icon,
+.match-scoreboard__runes__icon,
+.match-scoreboard__runes-block__icon,
 .match-scoreboard__items__icon,
 .match-build-grid__spells__icon,
+.match-build-grid__runes__icon,
 .match-build-grid__items__icon,
 .match-row__rune-image,
 .match-scoreboard__rune-image,
@@ -1158,9 +1276,9 @@ body {
 .match-detail-player__spells__icon,
 .match-detail-player__runes__icon,
 .match-detail-player__items__icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
   object-fit: cover;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -1320,6 +1438,10 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.match-detail-player {
+  grid-template-columns: minmax(220px, 1.15fr) minmax(320px, 1fr) minmax(260px, 0.95fr);
+}
+
 .match-scoreboard__identity,
 .match-detail-player__identity {
   display: grid;
@@ -1395,8 +1517,8 @@ body {
 }
 
 @media (max-width: 1200px) {
-  .match-row__summary,
-  .match-row__summary-button,
+  .match-row__summary:not(.match-row__summary--public),
+  .match-row__summary-button:not(.match-row__summary-button--public),
   .match-row__summary-highlight,
   .match-row__player,
   .match-scoreboard__row,
@@ -1412,5 +1534,413 @@ body {
   .match-row__summary-teams {
     border-right: 0;
     padding-right: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .match-row__summary-teams {
+    grid-template-columns: 1fr;
+  }
+}
+
+.match-detail-shell {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.match-detail-shell__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid rgba(154, 169, 202, 0.12);
+  background:
+    linear-gradient(180deg, rgba(83, 131, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(7, 12, 23, 0.72);
+}
+
+.match-detail-shell__summary article {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.match-detail-shell__summary span {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.match-detail-shell .match-row__detail {
+  padding: 0;
+  border-top: 0;
+  background: transparent;
+}
+
+.match-detail-shell .match-row__tabs {
+  margin-bottom: 0;
+  padding: 16px 18px 12px;
+  background: rgba(9, 15, 27, 0.7);
+}
+
+.match-detail-shell .match-row__panels {
+  padding: 18px;
+}
+
+.match-row__panel-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.match-scoreboard {
+  display: grid;
+  gap: 16px;
+}
+
+.match-scoreboard__team {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(154, 169, 202, 0.12);
+  border-radius: 16px;
+  background: rgba(13, 19, 34, 0.94);
+}
+
+.match-scoreboard__team--blue {
+  border-color: rgba(65, 113, 214, 0.24);
+  background:
+    linear-gradient(180deg, rgba(65, 113, 214, 0.12), rgba(13, 19, 34, 0.94) 28%),
+    rgba(13, 19, 34, 0.94);
+}
+
+.match-scoreboard__team--red {
+  border-color: rgba(207, 77, 103, 0.24);
+  background:
+    linear-gradient(180deg, rgba(207, 77, 103, 0.12), rgba(13, 19, 34, 0.94) 28%),
+    rgba(13, 19, 34, 0.94);
+}
+
+.match-scoreboard__team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.match-scoreboard__team-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.match-scoreboard__team-heading span {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+}
+
+.match-scoreboard__columns {
+  display: grid;
+  grid-template-columns: minmax(252px, 1.22fr) minmax(84px, 0.44fr) minmax(148px, 0.78fr) minmax(148px, 0.78fr) minmax(84px, 0.42fr) minmax(96px, 0.46fr) minmax(224px, 1.02fr);
+  gap: 16px;
+  align-items: center;
+  padding: 10px 18px;
+  border-top: 1px solid rgba(154, 169, 202, 0.1);
+  border-bottom: 1px solid rgba(154, 169, 202, 0.1);
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.match-scoreboard__columns span:last-child {
+  justify-self: start;
+}
+
+.match-scoreboard__list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match-scoreboard__row {
+  display: grid;
+  grid-template-columns: minmax(252px, 1.22fr) minmax(84px, 0.44fr) minmax(148px, 0.78fr) minmax(148px, 0.78fr) minmax(84px, 0.42fr) minmax(96px, 0.46fr) minmax(224px, 1.02fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(154, 169, 202, 0.08);
+  background: transparent;
+}
+
+.match-scoreboard__row:last-child {
+  border-bottom: 0;
+}
+
+.match-scoreboard__identity {
+  display: grid;
+  grid-template-columns: 52px 24px 24px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.match-scoreboard__identity-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.match-scoreboard__identity-copy strong,
+.match-scoreboard__identity-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-scoreboard__identity-copy span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.match-scoreboard__summoners,
+.match-scoreboard__rune-stack {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  justify-items: center;
+}
+
+.match-scoreboard__summoners .match-scoreboard__spells,
+.match-scoreboard__rune-stack .match-scoreboard__runes-block {
+  display: grid;
+  gap: 4px;
+}
+
+.match-scoreboard__score,
+.match-scoreboard__kda,
+.match-scoreboard__damage,
+.match-scoreboard__stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.match-scoreboard__score {
+  justify-items: center;
+}
+
+.match-scoreboard__kda span,
+.match-scoreboard__stat span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.match-scoreboard__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.match-scoreboard__badge--mvp {
+  background: rgba(255, 193, 71, 0.16);
+  color: #ffd974;
+}
+
+.match-scoreboard__badge--ace {
+  background: rgba(151, 113, 255, 0.18);
+  color: #d0bcff;
+}
+
+.match-scoreboard__badge--rank {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+}
+
+.match-scoreboard__damage strong,
+.match-scoreboard__stat strong {
+  line-height: 1;
+}
+
+.match-scoreboard__meter {
+  position: relative;
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.match-scoreboard__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.match-scoreboard__meter-fill--blue {
+  background: linear-gradient(90deg, rgba(65, 113, 214, 0.72), #70a2ff);
+}
+
+.match-scoreboard__meter-fill--red {
+  background: linear-gradient(90deg, rgba(207, 77, 103, 0.72), #ff8ca3);
+}
+
+.match-scoreboard__build {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.match-scoreboard__build-items {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  justify-items: start;
+}
+
+.match-scoreboard__build-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.match-scoreboard__build-trinket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  flex: 0 0 auto;
+}
+
+.match-scoreboard__build-row .match-scoreboard__items {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.match-scoreboard__build-row .match-scoreboard__items__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.match-scoreboard__build-trinket .match-scoreboard__items__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.match-scoreboard__totals {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(154, 169, 202, 0.12);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    rgba(10, 16, 30, 0.94);
+}
+
+.match-scoreboard__totals-row {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) minmax(72px, auto);
+  gap: 12px;
+  align-items: center;
+}
+
+.match-scoreboard__totals-value {
+  display: grid;
+  gap: 4px;
+}
+
+.match-scoreboard__totals-value--blue {
+  justify-items: start;
+  color: #bcd0ff;
+}
+
+.match-scoreboard__totals-value--red {
+  justify-items: end;
+  color: #ffc1ce;
+}
+
+.match-scoreboard__totals-bar-group {
+  display: grid;
+  gap: 6px;
+}
+
+.match-scoreboard__totals-label {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.match-scoreboard__totals-bar {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.match-scoreboard__totals-bar-fill {
+  display: block;
+  height: 100%;
+  flex: 0 0 auto;
+}
+
+.match-scoreboard__totals-bar-fill--blue {
+  background: linear-gradient(90deg, rgba(65, 113, 214, 0.82), #6fa0ff);
+}
+
+.match-scoreboard__totals-bar-fill--red {
+  background: linear-gradient(90deg, rgba(207, 77, 103, 0.82), #ff8fa6);
+}
+
+@media (max-width: 1200px) {
+  .match-detail-shell__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .match-scoreboard__columns {
+    display: none;
+  }
+
+  .match-scoreboard__row,
+  .match-scoreboard__build,
+  .match-scoreboard__totals-row {
+    grid-template-columns: 1fr;
+  }
+
+  .match-scoreboard__build {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .match-detail-shell__summary {
+    grid-template-columns: 1fr;
   }
 }

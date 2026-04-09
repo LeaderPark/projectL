@@ -58,7 +58,7 @@ function renderHomePage(model) {
                 renderMatchCard({
                   ...card,
                   href: buildGuildPath(model.guildId, `/matches/${card.id}`),
-                }, { showResult: false })
+                }, { showResult: false, showSummaryHighlight: false })
               )
               .join("")}
           </div>

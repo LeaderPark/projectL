@@ -25,6 +25,9 @@ test("transformMatchPayload maps Riot participants into the internal match model
               {
                 selections: [{ perk: 8010 }],
               },
+              {
+                style: 8400,
+              },
             ],
           },
           kills: 10,
@@ -60,6 +63,9 @@ test("transformMatchPayload maps Riot participants into the internal match model
             styles: [
               {
                 selections: [{ perk: 8439 }],
+              },
+              {
+                style: 8300,
               },
             ],
           },
@@ -98,12 +104,14 @@ test("transformMatchPayload maps Riot participants into the internal match model
   assert.equal(match.blueTeam.players[0].playerName, "BlueTop#KR1");
   assert.equal(match.blueTeam.players[0].lane, "TOP");
   assert.equal(match.blueTeam.players[0].result, 1);
+  assert.equal(match.blueTeam.players[0].subStyleId, 8400);
   assert.equal(match.blueTeam.players[0].inventory.item1, 1001);
   assert.equal(match.blueTeam.players[0].inventory.item4, 3071);
   assert.equal(match.blueTeam.players[0].inventory.trinket, 3364);
   assert.equal(match.purpleTeam.players[0].playerName, "PurpleSupport#KR1");
   assert.equal(match.purpleTeam.players[0].lane, "SUPPORT");
   assert.equal(match.purpleTeam.players[0].result, 0);
+  assert.equal(match.purpleTeam.players[0].subStyleId, 8300);
   assert.equal(match.blueTeam.totalKill, 10);
   assert.equal(match.purpleTeam.totalKill, 1);
   assert.equal(typeof match.blueTeam.players[0].performanceScore, "number");

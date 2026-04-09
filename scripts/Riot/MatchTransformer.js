@@ -75,6 +75,7 @@ function buildInventory(participant) {
 function buildPlayer(participant) {
   const keystoneId =
     participant?.perks?.styles?.[0]?.selections?.[0]?.perk ?? 0;
+  const subStyleId = participant?.perks?.styles?.[1]?.style ?? 0;
 
   return new Player(
     buildPlayerName(participant),
@@ -84,6 +85,7 @@ function buildPlayer(participant) {
     Number(participant?.teamId ?? 0),
     participant?.win ? "Win" : "Fail",
     Number(keystoneId),
+    Number(subStyleId),
     new Kda(
       Number(participant?.kills ?? 0),
       Number(participant?.deaths ?? 0),

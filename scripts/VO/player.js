@@ -13,6 +13,7 @@ class Player {
    * @param {Team} team
    * @param {string} win
    * @param {int} keystoneId
+   * @param {int} subStyleId
    * @param {Kda} kda
    * @param {Lane} lane
    * @param {int} minionScore
@@ -33,6 +34,7 @@ class Player {
     team,
     win,
     keystoneId,
+    subStyleId,
     kda,
     lane,
     minionScore,
@@ -54,6 +56,7 @@ class Player {
     this.level = level;
     this.minionScore = minionScore;
     this.keystoneId = keystoneId;
+    this.subStyleId = subStyleId;
 
     this.spell1 = spell1;
     this.spell2 = spell2;

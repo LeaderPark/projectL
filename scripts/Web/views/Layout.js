@@ -1,11 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const {
-  PROJECT_DISPLAY_NAME,
-  PROJECT_LOGO_MARK,
-  PROJECT_RECORD_LABEL,
-} = require("../../Utils/Branding");
+const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 const { buildGuildPath, escapeHtml } = require("./ViewHelpers");
 
 function getAssetHref(fileName) {
@@ -17,18 +13,19 @@ function getAssetHref(fileName) {
 function renderHeader(guildId) {
   const homeHref = buildGuildPath(guildId);
   const matchesHref = buildGuildPath(guildId, "/matches");
+  const rankingHref = buildGuildPath(guildId, "/ranking");
   const playerSearchAction = buildGuildPath(guildId, "/players");
   const playerSearchEndpoint = buildGuildPath(guildId, "/api/search");
 
   return `
         <header class="site-header">
           <a class="site-logo" href="${escapeHtml(homeHref)}">
-            <span class="site-logo__mark">${escapeHtml(PROJECT_LOGO_MARK)}</span>
-            <span class="site-logo__text">${escapeHtml(PROJECT_RECORD_LABEL)}</span>
+            <span class="site-logo__text">${escapeHtml(PROJECT_DISPLAY_NAME)}</span>
           </a>
           <nav class="site-nav">
             <a href="${escapeHtml(homeHref)}">홈</a>
             <a href="${escapeHtml(matchesHref)}">전체 경기</a>
+            <a href="${escapeHtml(rankingHref)}">랭킹</a>
           </nav>
           <form
             class="site-search"

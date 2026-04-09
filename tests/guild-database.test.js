@@ -31,6 +31,11 @@ test("buildGuildSchemaStatements includes riot account and active session tables
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `riot_accounts`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `active_tournament_sessions`/);
   assert.match(sql, /unity_voice_channel_id/);
+  assert.match(sql, /result_status/);
+  assert.match(sql, /result_game_id/);
+  assert.match(sql, /result_payload/);
+  assert.match(sql, /result_attempts/);
+  assert.match(sql, /result_error/);
 });
 
 test("buildGuildSchemaStatements gives player aggregate fields JSON defaults", () => {
@@ -81,6 +86,33 @@ test("buildGuildColumnMigrations covers upgrading active sessions with a unity r
     unityMigration.statement,
     /ALTER TABLE `active_tournament_sessions` ADD COLUMN `unity_voice_channel_id`/
   );
+});
+
+test("buildGuildColumnMigrations covers upgrading active sessions with result ingestion columns", () => {
+  const migrations = buildGuildColumnMigrations();
+  const expectedColumns = [
+    "result_status",
+    "result_game_id",
+    "result_payload",
+    "result_attempts",
+    "result_error",
+  ];
+
+  expectedColumns.forEach((columnName) => {
+    const migration = migrations.find(
+      ({ tableName, columnName: currentColumnName }) =>
+        tableName === "active_tournament_sessions" &&
+        currentColumnName === columnName
+    );
+
+    assert.ok(migration, `${columnName} migration missing`);
+    assert.match(
+      migration.statement,
+      new RegExp(
+        `ALTER TABLE \`active_tournament_sessions\` ADD COLUMN \`${columnName}\``
+      )
+    );
+  });
 });
 
 test("formatGuildConfigurationError guides admins to initialize the guild", () => {

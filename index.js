@@ -5,11 +5,13 @@ const { getRuntimeConfig } = require("./config/runtime");
 const client = require("./scripts/Utils/Client");
 const { buildBotPresenceActivity } = require("./scripts/Discord/BotPresence");
 const { createTournamentApi } = require("./scripts/Riot/TournamentApi");
+const { transformMatchPayload } = require("./scripts/Riot/MatchTransformer");
 const {
   createDatabaseSessionStore,
   createGuildMoveService,
   createSessionPoller,
 } = require("./scripts/Tournament/SessionPoller");
+const { persistMatchResult } = require("./scripts/Utils/Query");
 const { createCallbackServer } = require("./scripts/Web/CallbackServer");
 const { createPublicSiteHandlers } = require("./scripts/Web/PublicSite");
 const { createPublicSiteRouter } = require("./scripts/Web/PublicSiteRouter");
@@ -88,10 +90,26 @@ client.once(Events.ClientReady, (value) => {
   });
 
   const sessionStore = createDatabaseSessionStore();
+  const resultService = {
+    async ingestSessionResult(session) {
+      if (!session?.resultGameId) {
+        return {
+          success: false,
+          msg: "callback payload에 gameId가 없어 경기 결과를 조회할 수 없습니다.",
+        };
+      }
+
+      const payload = await riotApi.getMatchById(session.resultGameId);
+      const match = transformMatchPayload(payload);
+
+      return persistMatchResult(session.guildId, match, session.resultGameId);
+    },
+  };
   const poller = createSessionPoller({
     sessionStore,
     riotApi,
     moveService: createGuildMoveService(client),
+    resultService,
     intervalMs: runtimeConfig.riot.tournamentPollIntervalMs,
   });
   const publicSiteHandlers = createPublicSiteHandlers({

@@ -273,74 +273,39 @@ const registraion = async (guildId, discordId, name, puuid) =>
   });
 
 async function resolveUsersByPuuids(guildId, puuids) {
-  if (!puuids.length) {
-    return { success: true, data: [] };
-  }
-
   try {
     const promisePool = await getGuildPromisePool(guildId);
-    const placeholders = buildInClausePlaceholders(puuids.length);
-    const [rows] = await promisePool.query(
-      `SELECT u.*, u.puuid AS linked_puuid
-       FROM user u
-       WHERE u.puuid IN (${placeholders})
-       UNION
-       SELECT u.*, ra.puuid AS linked_puuid
-       FROM user u
-       JOIN riot_accounts ra ON ra.discord_id = u.discord_id
-       WHERE ra.puuid IN (${placeholders})`,
-      [...puuids, ...puuids]
-    );
-
-    return { success: true, data: rows };
+    return await resolveUsersByPuuidsWithExecutor(promisePool, puuids);
   } catch (error) {
     return buildErrorResult(error, "연결된 라이엇 계정을 불러오는 중 오류가 발생했습니다.");
   }
 }
 
+async function resolveUsersByPuuidsWithExecutor(executor, puuids) {
+  if (!puuids.length) {
+    return { success: true, data: [] };
+  }
+
+  const placeholders = buildInClausePlaceholders(puuids.length);
+  const [rows] = await executor.query(
+    `SELECT u.*, u.puuid AS linked_puuid
+     FROM user u
+     WHERE u.puuid IN (${placeholders})
+     UNION
+     SELECT u.*, ra.puuid AS linked_puuid
+     FROM user u
+     JOIN riot_accounts ra ON ra.discord_id = u.discord_id
+     WHERE ra.puuid IN (${placeholders})`,
+    [...puuids, ...puuids]
+  );
+
+  return { success: true, data: rows };
+}
+
 const insertMatchData = async (guildId, match, name) => {
   try {
-    const validationError = validateMatchInsertPayload(match, name);
-    if (validationError) {
-      return validationError;
-    }
-
     const promisePool = await getGuildPromisePool(guildId);
-    let sql = `SELECT * FROM matches WHERE game_id = ?`;
-    let [result] = await promisePool.query(sql, [name]);
-
-    if (result.length > 0) {
-      return { success: false, msg: "이미 데이터에 존재하는 경기입니다." };
-    }
-
-    sql = `INSERT INTO matches (game_id, game_length, purple_team, blue_team) VALUES (?,?,?,?)`;
-    [result] = await promisePool.query(sql, [
-      name,
-      match.gameLength,
-      JSON.stringify(match.purpleTeam),
-      JSON.stringify(match.blueTeam),
-    ]);
-
-    const matchId = result.insertId;
-    const puuids = [...match.blueTeam.players, ...match.purpleTeam.players]
-      .map((player) => player.puuid)
-      .filter(Boolean);
-
-    const linkedUsers = await resolveUsersByPuuids(guildId, puuids);
-    if (!linkedUsers.success) {
-      return linkedUsers;
-    }
-
-    const uniqueDiscordIds = [...new Set(linkedUsers.data.map((row) => row.discord_id))];
-    if (uniqueDiscordIds.length > 0) {
-      const values = uniqueDiscordIds.map(() => "(?, ?)").join(", ");
-      const params = uniqueDiscordIds.flatMap((discordId) => [matchId, discordId]);
-      const sql3 = `INSERT INTO match_in_users (match_id, user_id) VALUES ${values}`;
-
-      await promisePool.query(sql3, params);
-    }
-
-    return { success: true };
+    return await insertMatchDataWithExecutor(promisePool, match, name);
   } catch (error) {
     return buildErrorResult(
       error,
@@ -349,119 +314,233 @@ const insertMatchData = async (guildId, match, name) => {
   }
 };
 
+async function insertMatchDataWithExecutor(executor, match, name) {
+  const validationError = validateMatchInsertPayload(match, name);
+  if (validationError) {
+    return validationError;
+  }
+
+  let sql = `SELECT * FROM matches WHERE game_id = ?`;
+  let [result] = await executor.query(sql, [name]);
+
+  if (result.length > 0) {
+    return { success: false, msg: "이미 데이터에 존재하는 경기입니다." };
+  }
+
+  sql = `INSERT INTO matches (game_id, game_length, purple_team, blue_team) VALUES (?,?,?,?)`;
+  [result] = await executor.query(sql, [
+    name,
+    match.gameLength,
+    JSON.stringify(match.purpleTeam),
+    JSON.stringify(match.blueTeam),
+  ]);
+
+  const matchId = result.insertId;
+  const puuids = [...match.blueTeam.players, ...match.purpleTeam.players]
+    .map((player) => player.puuid)
+    .filter(Boolean);
+
+  const linkedUsers = await resolveUsersByPuuidsWithExecutor(executor, puuids);
+  if (!linkedUsers.success) {
+    return linkedUsers;
+  }
+
+  const uniqueDiscordIds = [...new Set(linkedUsers.data.map((row) => row.discord_id))];
+  if (uniqueDiscordIds.length > 0) {
+    const values = uniqueDiscordIds.map(() => "(?, ?)").join(", ");
+    const params = uniqueDiscordIds.flatMap((discordId) => [matchId, discordId]);
+    const sql3 = `INSERT INTO match_in_users (match_id, user_id) VALUES ${values}`;
+
+    await executor.query(sql3, params);
+  }
+
+  return { success: true, matchId };
+}
+
 const updateUserData = async (guildId, match) => {
   try {
     const promisePool = await getGuildPromisePool(guildId);
-    const players = [...match.blueTeam.players, ...match.purpleTeam.players];
-    const linkedUsers = await resolveUsersByPuuids(
-      guildId,
-      players.map((player) => player.puuid).filter(Boolean)
-    );
-
-    if (!linkedUsers.success) {
-      return linkedUsers;
-    }
-
-    const updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? WHERE discord_id = ?`;
-    const linkedByPuuid = new Map();
-    linkedUsers.data.forEach((row) => {
-      linkedByPuuid.set(row.linked_puuid, row);
-    });
-
-    const notRegistUser = [];
-
-    for await (const p of players) {
-      const user = linkedByPuuid.get(p.puuid);
-      if (!user) {
-        notRegistUser.push(p.playerName);
-        continue;
-      }
-
-      let mmr = Number(user.mmr) + p.mmr;
-      if (mmr <= 300) {
-        mmr = 300;
-      }
-
-      const win = Number(user.win) + (p.result ? 1 : 0);
-      const lose = Number(user.lose) + (p.result ? 0 : 1);
-      const penta = Number(user.penta) + p.pentaKill;
-      const quadra = Number(user.quadra) + p.quadraKill;
-
-      const champions = user.champions === "" ? {} : JSON.parse(user.champions);
-      const lanes = user.lanes === "" ? {} : JSON.parse(user.lanes);
-      const friends = user.friends === "" ? {} : JSON.parse(user.friends);
-
-      if (!champions[p.championName]) {
-        champions[p.championName] = {
-          kills: 0,
-          deaths: 0,
-          assist: 0,
-          win: 0,
-          lose: 0,
-        };
-      }
-      champions[p.championName].kills += p.kda.kills;
-      champions[p.championName].deaths += p.kda.deaths;
-      champions[p.championName].assist += p.kda.assist;
-      champions[p.championName].win += p.result ? 1 : 0;
-      champions[p.championName].lose += p.result ? 0 : 1;
-
-      if (!lanes[p.lane]) {
-        lanes[p.lane] = {
-          win: 0,
-          lose: 0,
-        };
-      }
-      lanes[p.lane].win += p.result ? 1 : 0;
-      lanes[p.lane].lose += p.result ? 0 : 1;
-
-      for (const pp of players) {
-        if (pp === p || pp.win !== p.win) {
-          continue;
-        }
-
-        if (!friends[pp.playerName]) {
-          friends[pp.playerName] = { win: 0, lose: 0 };
-        }
-
-        friends[pp.playerName].win += p.result ? 1 : 0;
-        friends[pp.playerName].lose += p.result ? 0 : 1;
-      }
-
-      const tKill = Number(user.t_kill) + p.kda.kills;
-      const tDeath = Number(user.t_death) + p.kda.deaths;
-      const tAssist = Number(user.t_assist) + p.kda.assist;
-      const teamTotalKill = p.team === match.blueTeam.side
-        ? match.blueTeam.totalKill
-        : match.purpleTeam.totalKill;
-      const safeTeamTotalKill = teamTotalKill > 0 ? teamTotalKill : 1;
-      const tKillRate =
-        Number(user.t_kill_rate) +
-        Math.floor(((p.kda.kills + p.kda.assist) / safeTeamTotalKill) * 100);
-
-      await promisePool.query(updateSql, [
-        mmr,
-        win,
-        lose,
-        penta,
-        quadra,
-        JSON.stringify(champions),
-        JSON.stringify(lanes),
-        JSON.stringify(friends),
-        tKill,
-        tDeath,
-        tAssist,
-        tKillRate,
-        user.discord_id,
-      ]);
-    }
-
-    return { success: true, user: [...new Set(notRegistUser)] };
+    return await updateUserDataWithExecutor(promisePool, match);
   } catch (error) {
     return buildErrorResult(
       error,
       "updateUserData 중 예기치 못한 오류가 발생하였습니다."
     );
+  }
+};
+
+async function updateUserDataWithExecutor(executor, match) {
+  const players = [...match.blueTeam.players, ...match.purpleTeam.players];
+  const linkedUsers = await resolveUsersByPuuidsWithExecutor(
+    executor,
+    players.map((player) => player.puuid).filter(Boolean)
+  );
+
+  if (!linkedUsers.success) {
+    return linkedUsers;
+  }
+
+  const updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? WHERE discord_id = ?`;
+  const linkedByPuuid = new Map();
+  linkedUsers.data.forEach((row) => {
+    linkedByPuuid.set(row.linked_puuid, row);
+  });
+
+  const notRegistUser = [];
+
+  for await (const p of players) {
+    const user = linkedByPuuid.get(p.puuid);
+    if (!user) {
+      notRegistUser.push(p.playerName);
+      continue;
+    }
+
+    let mmr = Number(user.mmr) + p.mmr;
+    if (mmr <= 300) {
+      mmr = 300;
+    }
+
+    const win = Number(user.win) + (p.result ? 1 : 0);
+    const lose = Number(user.lose) + (p.result ? 0 : 1);
+    const penta = Number(user.penta) + p.pentaKill;
+    const quadra = Number(user.quadra) + p.quadraKill;
+
+    const champions = user.champions === "" ? {} : JSON.parse(user.champions);
+    const lanes = user.lanes === "" ? {} : JSON.parse(user.lanes);
+    const friends = user.friends === "" ? {} : JSON.parse(user.friends);
+
+    if (!champions[p.championName]) {
+      champions[p.championName] = {
+        kills: 0,
+        deaths: 0,
+        assist: 0,
+        win: 0,
+        lose: 0,
+      };
+    }
+    champions[p.championName].kills += p.kda.kills;
+    champions[p.championName].deaths += p.kda.deaths;
+    champions[p.championName].assist += p.kda.assist;
+    champions[p.championName].win += p.result ? 1 : 0;
+    champions[p.championName].lose += p.result ? 0 : 1;
+
+    if (!lanes[p.lane]) {
+      lanes[p.lane] = {
+        win: 0,
+        lose: 0,
+      };
+    }
+    lanes[p.lane].win += p.result ? 1 : 0;
+    lanes[p.lane].lose += p.result ? 0 : 1;
+
+    for (const pp of players) {
+      if (pp === p || pp.win !== p.win) {
+        continue;
+      }
+
+      if (!friends[pp.playerName]) {
+        friends[pp.playerName] = { win: 0, lose: 0 };
+      }
+
+      friends[pp.playerName].win += p.result ? 1 : 0;
+      friends[pp.playerName].lose += p.result ? 0 : 1;
+    }
+
+    const tKill = Number(user.t_kill) + p.kda.kills;
+    const tDeath = Number(user.t_death) + p.kda.deaths;
+    const tAssist = Number(user.t_assist) + p.kda.assist;
+    const teamTotalKill = p.team === match.blueTeam.side
+      ? match.blueTeam.totalKill
+      : match.purpleTeam.totalKill;
+    const safeTeamTotalKill = teamTotalKill > 0 ? teamTotalKill : 1;
+    const tKillRate =
+      Number(user.t_kill_rate) +
+      Math.floor(((p.kda.kills + p.kda.assist) / safeTeamTotalKill) * 100);
+
+    await executor.query(updateSql, [
+      mmr,
+      win,
+      lose,
+      penta,
+      quadra,
+      JSON.stringify(champions),
+      JSON.stringify(lanes),
+      JSON.stringify(friends),
+      tKill,
+      tDeath,
+      tAssist,
+      tKillRate,
+      user.discord_id,
+    ]);
+  }
+
+  return { success: true, user: [...new Set(notRegistUser)] };
+}
+
+const persistMatchResult = async (guildId, match, name) => {
+  let connection;
+
+  try {
+    const canonicalGameId = match?.matchId ?? name;
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
+    }
+
+    const insertResult = await insertMatchDataWithExecutor(
+      executor,
+      match,
+      canonicalGameId
+    );
+    if (!insertResult.success) {
+      if (insertResult.msg === "이미 데이터에 존재하는 경기입니다.") {
+        if (typeof executor.commit === "function") {
+          await executor.commit();
+        }
+
+        return { success: true, alreadyProcessed: true, user: [] };
+      }
+
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return insertResult;
+    }
+
+    const updateResult = await updateUserDataWithExecutor(executor, match);
+    if (!updateResult.success) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return updateResult;
+    }
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
+    return { success: true, user: updateResult.user ?? [] };
+  } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
+    return buildErrorResult(
+      error,
+      "경기 결과를 저장하는 중 예기치 못한 오류가 발생하였습니다."
+    );
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
   }
 };
 
@@ -680,7 +759,8 @@ const listPendingTournamentSessions = async (guildId) => {
     const [rows] = await promisePool.query(
       `SELECT *
        FROM active_tournament_sessions
-       WHERE status IN ('LOBBY', 'CHAMP_SELECT_STARTED', 'MOVE_FAILED', 'COMPLETED_PENDING_GATHER', 'GATHER_FAILED')
+       WHERE status IN ('LOBBY', 'CHAMP_SELECT_STARTED', 'MOVE_FAILED', 'COMPLETED_PENDING_GATHER', 'GATHER_FAILED', 'COMPLETED')
+         AND (status <> 'COMPLETED' OR result_status IN ('PENDING', 'FAILED'))
        ORDER BY id ASC`
     );
 
@@ -700,6 +780,11 @@ const listPendingTournamentSessions = async (guildId) => {
         team2DiscordIds: parseDiscordIdList(row.team2_discord_ids),
         status: row.status,
         lastEventAt: row.last_event_at,
+        resultStatus: row.result_status,
+        resultGameId: row.result_game_id,
+        resultPayload: row.result_payload,
+        resultAttempts: row.result_attempts,
+        resultError: row.result_error,
       })),
     };
   } catch (error) {
@@ -794,6 +879,67 @@ const markTournamentSessionCompletedPendingGather = async (
   }
 };
 
+const markTournamentSessionResultPending = async (
+  guildId,
+  tournamentCode,
+  callbackPayload
+) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [result] = await promisePool.query(
+      `UPDATE active_tournament_sessions
+       SET result_status = 'PENDING',
+           result_game_id = ?,
+           result_payload = ?,
+           result_attempts = 0,
+           result_error = NULL
+       WHERE tournament_code = ?`,
+      [
+        String(callbackPayload?.gameId ?? ""),
+        JSON.stringify(callbackPayload ?? {}),
+        tournamentCode,
+      ]
+    );
+
+    return {
+      success: result.affectedRows > 0,
+      msg:
+        result.affectedRows > 0
+          ? undefined
+          : "매칭되는 활성 토너먼트 세션이 없습니다.",
+    };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "토너먼트 결과 수집 대기 상태를 기록하는 중 오류가 발생했습니다."
+    );
+  }
+};
+
+const updateTournamentSessionResult = async (guildId, sessionId, updates) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    await promisePool.query(
+      `UPDATE active_tournament_sessions
+       SET result_status = ?, result_attempts = ?, result_error = ?
+       WHERE id = ?`,
+      [
+        updates.status,
+        updates.attempts ?? 0,
+        updates.error ?? null,
+        sessionId,
+      ]
+    );
+
+    return { success: true };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "토너먼트 결과 상태를 갱신하는 중 오류가 발생했습니다."
+    );
+  }
+};
+
 module.exports = {
   buildPublicLeaderboardSql,
   buildPublicMatchHistorySql,
@@ -811,12 +957,15 @@ module.exports = {
   insertMatchData,
   listPendingTournamentSessions,
   parseDiscordIdList,
+  persistMatchResult,
   registerRiotAccount,
   registraion,
   searchPublicPlayers,
   markTournamentSessionCompletedPendingGather,
+  markTournamentSessionResultPending,
   replaceActiveTournamentSession,
   resolveUsersByPuuids,
   updateTournamentSessionStatus,
+  updateTournamentSessionResult,
   updateUserData,
 };

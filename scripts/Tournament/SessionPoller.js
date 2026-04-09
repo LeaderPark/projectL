@@ -8,7 +8,18 @@ function hasMoveFailures(result) {
   return Array.isArray(result?.failures) && result.failures.length > 0;
 }
 
-async function pollTournamentSessions({ sessionStore, riotApi, moveService }) {
+function hasPendingResult(session) {
+  return (
+    session?.resultStatus === "PENDING" || session?.resultStatus === "FAILED"
+  );
+}
+
+async function pollTournamentSessions({
+  sessionStore,
+  riotApi,
+  moveService,
+  resultService,
+}) {
   const sessions = await sessionStore.listPendingSessions();
 
   for (const session of sessions) {
@@ -23,33 +34,60 @@ async function pollTournamentSessions({ sessionStore, riotApi, moveService }) {
           hasMoveFailures(gatherResult) ? "GATHER_FAILED" : "COMPLETED",
           session.guildId
         );
-        continue;
-      }
+      } else {
+        const events = await riotApi.getLobbyEventsByCode(session.tournamentCode);
+        if (!hasChampSelectStarted(events)) {
+          continue;
+        }
 
-      const events = await riotApi.getLobbyEventsByCode(session.tournamentCode);
-      if (!hasChampSelectStarted(events)) {
-        continue;
+        const moveResult = await moveService.moveSession(session);
+        const lastEventAt = events[events.length - 1]?.timestamp ?? null;
+        await sessionStore.updateSessionStatus(
+          session.id,
+          hasMoveFailures(moveResult) ? "MOVE_FAILED" : "MOVED",
+          session.guildId,
+          lastEventAt
+        );
       }
-
-      const moveResult = await moveService.moveSession(session);
-      const lastEventAt = events[events.length - 1]?.timestamp ?? null;
-      await sessionStore.updateSessionStatus(
-        session.id,
-        hasMoveFailures(moveResult) ? "MOVE_FAILED" : "MOVED",
-        session.guildId,
-        lastEventAt
-      );
     } catch (error) {
       console.error(
         `Failed to process tournament session ${session.id}:`,
         error?.message ?? error
       );
       if (session.guildId) {
+        const failureStatus =
+          session.status === "COMPLETED_PENDING_GATHER" ||
+          session.status === "GATHER_FAILED"
+            ? "GATHER_FAILED"
+            : "MOVE_FAILED";
+
         await sessionStore.updateSessionStatus(
           session.id,
-          "MOVE_FAILED",
+          failureStatus,
           session.guildId
         );
+      }
+      continue;
+    }
+
+    if (hasPendingResult(session) && resultService) {
+      try {
+        const ingestionResult = await resultService.ingestSessionResult(session);
+        const nextAttempts = ingestionResult.success
+          ? session.resultAttempts ?? 0
+          : (session.resultAttempts ?? 0) + 1;
+
+        await sessionStore.updateSessionResult(session.id, session.guildId, {
+          status: ingestionResult.success ? "INGESTED" : "FAILED",
+          attempts: nextAttempts,
+          error: ingestionResult.success ? null : ingestionResult.msg ?? "result ingestion failed",
+        });
+      } catch (error) {
+        await sessionStore.updateSessionResult(session.id, session.guildId, {
+          status: "FAILED",
+          attempts: (session.resultAttempts ?? 0) + 1,
+          error: error?.message ?? "result ingestion failed",
+        });
       }
     }
   }
@@ -60,6 +98,8 @@ function createDatabaseSessionStore() {
   const {
     listPendingTournamentSessions,
     markTournamentSessionCompletedPendingGather,
+    markTournamentSessionResultPending,
+    updateTournamentSessionResult,
     updateTournamentSessionStatus,
   } = require("../Utils/Query");
 
@@ -86,11 +126,34 @@ function createDatabaseSessionStore() {
     async updateSessionStatus(sessionId, status, guildId, lastEventAt = null) {
       return updateTournamentSessionStatus(guildId, sessionId, status, lastEventAt);
     },
+    async updateSessionResult(sessionId, guildId, updates) {
+      return updateTournamentSessionResult(guildId, sessionId, updates);
+    },
     async markCompletedPendingGather(tournamentCode, payload) {
       const guilds = await listGuildSettings();
 
       for (const guild of guilds) {
         const result = await markTournamentSessionCompletedPendingGather(
+          guild.guild_id,
+          tournamentCode,
+          payload
+        );
+
+        if (result.success) {
+          return result;
+        }
+      }
+
+      return {
+        success: false,
+        msg: "매칭되는 활성 토너먼트 세션이 없습니다.",
+      };
+    },
+    async markTournamentSessionResultPending(tournamentCode, payload) {
+      const guilds = await listGuildSettings();
+
+      for (const guild of guilds) {
+        const result = await markTournamentSessionResultPending(
           guild.guild_id,
           tournamentCode,
           payload
@@ -177,6 +240,7 @@ function createSessionPoller({
   sessionStore,
   riotApi,
   moveService,
+  resultService,
   intervalMs = 10000,
 }) {
   let running = false;
@@ -189,7 +253,12 @@ function createSessionPoller({
 
     running = true;
     try {
-      await pollTournamentSessions({ sessionStore, riotApi, moveService });
+      await pollTournamentSessions({
+        sessionStore,
+        riotApi,
+        moveService,
+        resultService,
+      });
     } finally {
       running = false;
     }
@@ -229,5 +298,6 @@ module.exports = {
   createSessionPoller,
   hasChampSelectStarted,
   hasMoveFailures,
+  hasPendingResult,
   pollTournamentSessions,
 };

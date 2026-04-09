@@ -21,6 +21,20 @@ async function handleTournamentCallback(body, deps) {
     };
   }
 
+  if (typeof deps.sessionStore.markTournamentSessionResultPending === "function") {
+    const ingestionResult = await deps.sessionStore.markTournamentSessionResultPending(
+      tournamentCode,
+      body
+    );
+
+    if (!ingestionResult?.success) {
+      return {
+        status: 500,
+        body: "result ingestion queue failed",
+      };
+    }
+  }
+
   return {
     status: 200,
     body: "ok",

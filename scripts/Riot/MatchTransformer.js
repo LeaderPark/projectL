@@ -114,6 +114,48 @@ function buildTeam(side, players, gameLengthMs) {
   return new Team(teamPlayers[0]?.result ?? 0, side, teamPlayers, totalKill);
 }
 
+function formatKstDateTime(epochMs) {
+  const numericEpoch = Number(epochMs);
+  if (!Number.isFinite(numericEpoch) || numericEpoch <= 0) {
+    return null;
+  }
+
+  const kstDate = new Date(numericEpoch + 9 * 60 * 60 * 1000);
+  const year = kstDate.getUTCFullYear();
+  const month = String(kstDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(kstDate.getUTCDate()).padStart(2, "0");
+  const hour = String(kstDate.getUTCHours()).padStart(2, "0");
+  const minute = String(kstDate.getUTCMinutes()).padStart(2, "0");
+  const second = String(kstDate.getUTCSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+function resolvePlayedAtKst(payload, gameLengthMs) {
+  const gameStartTimestamp = Number(payload?.info?.gameStartTimestamp);
+  const gameCreationTimestamp = Number(payload?.info?.gameCreation);
+  const gameEndTimestamp = Number(payload?.info?.gameEndTimestamp);
+
+  if (Number.isFinite(gameStartTimestamp) && gameStartTimestamp > 0) {
+    return formatKstDateTime(gameStartTimestamp);
+  }
+
+  if (Number.isFinite(gameCreationTimestamp) && gameCreationTimestamp > 0) {
+    return formatKstDateTime(gameCreationTimestamp);
+  }
+
+  if (
+    Number.isFinite(gameEndTimestamp) &&
+    gameEndTimestamp > 0 &&
+    Number.isFinite(gameLengthMs) &&
+    gameLengthMs > 0
+  ) {
+    return formatKstDateTime(gameEndTimestamp - gameLengthMs);
+  }
+
+  return null;
+}
+
 function transformMatchPayload(payload) {
   const participants = Array.isArray(payload?.info?.participants)
     ? payload.info.participants.map(buildPlayer)
@@ -124,12 +166,15 @@ function transformMatchPayload(payload) {
   const blueTeam = buildTeam(Side.BLUE, participants, gameLengthMs);
   const match = new Match(gameLengthMs, purpleTeam, blueTeam);
   match.matchId = payload?.metadata?.matchId ?? null;
+  match.playedAtKst = resolvePlayedAtKst(payload, gameLengthMs);
 
   return match;
 }
 
 module.exports = {
   calculatePerformanceScore,
+  formatKstDateTime,
   mapLane,
+  resolvePlayedAtKst,
   transformMatchPayload,
 };

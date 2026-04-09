@@ -24,10 +24,15 @@ test("server command exposes setup subcommands", () => {
   const json = command.data.toJSON();
 
   assert.equal(json.name, "서버설정");
+  assert.equal(json.description, "현재 서버의 마법공학 분류모자 설정을 관리합니다.");
   assert.equal(json.options.length, 3);
   assert.deepEqual(
     json.options.map((option) => option.name),
     ["보기", "초기화", "공용통화방"]
+  );
+  assert.equal(
+    json.options[0].description,
+    "현재 서버의 마법공학 분류모자 설정 상태를 확인합니다."
   );
   assert.equal(json.options[2].options[0].name, "채널");
 });

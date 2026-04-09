@@ -46,6 +46,7 @@ function loadQueryModule(dbOverrides = {}) {
 function buildSampleMatch() {
   return {
     gameLength: 1800000,
+    playedAtKst: "2024-04-09 21:15:00",
     blueTeam: {
       side: 200,
       totalKill: 10,
@@ -126,6 +127,7 @@ test("persistMatchResult treats duplicate game ids as idempotent success", async
 });
 
 test("persistMatchResult rolls back when user stat updates fail after match insert", async () => {
+  const insertedRows = [];
   let rolledBack = false;
   let committed = false;
   const { persistMatchResult } = loadQueryModule({
@@ -139,6 +141,7 @@ test("persistMatchResult rolls back when user stat updates fail after match inse
             }
 
             if (/INSERT INTO matches/i.test(statement)) {
+              insertedRows.push(params);
               return [{ insertId: 123 }];
             }
 
@@ -189,12 +192,20 @@ test("persistMatchResult rolls back when user stat updates fail after match inse
 
   assert.equal(result.success, false);
   assert.match(result.msg, /user update failed/);
+  assert.deepEqual(insertedRows[0], [
+    "KR_12346",
+    1800000,
+    "2024-04-09 21:15:00",
+    JSON.stringify(buildSampleMatch().purpleTeam),
+    JSON.stringify(buildSampleMatch().blueTeam),
+  ]);
   assert.equal(rolledBack, true);
   assert.equal(committed, false);
 });
 
 test("persistMatchResult prefers the transformed canonical match id over a raw callback id", async () => {
   const insertedGameIds = [];
+  const insertedPlayedAtKst = [];
   const match = buildSampleMatch();
   match.matchId = "KR_12347";
 
@@ -210,6 +221,7 @@ test("persistMatchResult prefers the transformed canonical match id over a raw c
 
             if (/INSERT INTO matches/i.test(statement)) {
               insertedGameIds.push(params[0]);
+              insertedPlayedAtKst.push(params[2]);
               return [{ insertId: 124 }];
             }
 
@@ -231,6 +243,7 @@ test("persistMatchResult prefers the transformed canonical match id over a raw c
 
   assert.equal(result.success, true);
   assert.deepEqual(insertedGameIds, ["KR_12347"]);
+  assert.deepEqual(insertedPlayedAtKst, ["2024-04-09 21:15:00"]);
 });
 
 test("persistMatchResult updates rating from match result expectations instead of replay stat deltas", async () => {

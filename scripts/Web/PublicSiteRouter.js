@@ -11,6 +11,10 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function isGuildIdSegment(value) {
+  return /^\d+$/.test(String(value ?? ""));
+}
+
 function serveAssetFile(res, filePath) {
   if (!fs.existsSync(filePath)) {
     sendHtml(res, 404, "not found");
@@ -25,14 +29,19 @@ function serveAssetFile(res, filePath) {
         ? "application/javascript; charset=utf-8"
         : "application/octet-stream";
 
-  res.writeHead(200, { "Content-Type": contentType });
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Cache-Control": "no-store",
+  });
   res.end(fs.readFileSync(filePath, "utf8"));
 }
 
 function createPublicSiteRouter({
   assetsDir,
+  renderLandingPage,
   renderHomePage,
   renderMatchesPage,
+  renderMatchDetailPage,
   renderPlayerPage,
   searchPlayers,
   renderNotFoundPage,
@@ -46,29 +55,72 @@ function createPublicSiteRouter({
     const pathname = requestUrl.pathname;
 
     if (pathname === "/") {
-      sendHtml(res, 200, await renderHomePage());
+      sendHtml(res, 200, await renderLandingPage());
       return true;
     }
 
-    if (pathname === "/matches") {
-      sendHtml(res, 200, await renderMatchesPage());
+    if (pathname === "/public/site.css" || pathname === "/public/site.js") {
+      serveAssetFile(res, path.join(assetsDir, path.basename(pathname)));
       return true;
     }
 
-    if (pathname === "/api/search") {
+    const segments = pathname.split("/").filter(Boolean);
+    const [serverId, ...scopedSegments] = segments;
+
+    if (!isGuildIdSegment(serverId)) {
+      return false;
+    }
+
+    const scopedPath = `/${scopedSegments.join("/")}`.replace(/\/$/, "") || "/";
+
+    if (scopedPath === "/") {
+      sendHtml(res, 200, await renderHomePage(serverId));
+      return true;
+    }
+
+    if (scopedPath === "/matches") {
+      sendHtml(res, 200, await renderMatchesPage(serverId));
+      return true;
+    }
+
+    if (scopedPath.startsWith("/matches/")) {
+      const matchId = scopedPath.slice("/matches/".length);
+      const html = await renderMatchDetailPage(serverId, matchId);
+
+      if (html) {
+        sendHtml(res, 200, html);
+      } else {
+        sendHtml(
+          res,
+          404,
+          renderNotFoundPage({
+            title: "경기를 찾을 수 없습니다",
+            description: "등록된 경기 기록이 아니에요.",
+          })
+        );
+      }
+
+      return true;
+    }
+
+    if (scopedPath === "/api/search") {
       const query = requestUrl.searchParams.get("q") ?? "";
-      const players = query.trim() ? await searchPlayers(query.trim()) : [];
+      const players = query.trim()
+        ? await searchPlayers(serverId, query.trim())
+        : [];
       sendJson(res, 200, players);
       return true;
     }
 
-    if (pathname === "/players") {
+    if (scopedPath === "/players") {
       const query = requestUrl.searchParams.get("q") ?? "";
-      const players = query.trim() ? await searchPlayers(query.trim()) : [];
+      const players = query.trim()
+        ? await searchPlayers(serverId, query.trim())
+        : [];
 
       if (players.length > 0) {
         res.writeHead(302, {
-          Location: `/players/${players[0].discordId}`,
+          Location: `/${encodeURIComponent(serverId)}/players/${encodeURIComponent(players[0].discordId)}`,
         });
         res.end();
         return true;
@@ -85,14 +137,9 @@ function createPublicSiteRouter({
       return true;
     }
 
-    if (pathname === "/public/site.css" || pathname === "/public/site.js") {
-      serveAssetFile(res, path.join(assetsDir, path.basename(pathname)));
-      return true;
-    }
-
-    if (pathname.startsWith("/players/")) {
-      const discordId = pathname.slice("/players/".length);
-      const html = await renderPlayerPage(discordId);
+    if (scopedPath.startsWith("/players/")) {
+      const discordId = scopedPath.slice("/players/".length);
+      const html = await renderPlayerPage(serverId, discordId);
 
       if (html) {
         sendHtml(res, 200, html);

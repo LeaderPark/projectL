@@ -141,6 +141,42 @@ test("getPublicMatchHistory returns the newest matches first", async () => {
   assert.deepEqual(paramsSeen[0], [15]);
 });
 
+test("getPublicMatchById returns the requested match row", async () => {
+  const statements = [];
+  const paramsSeen = [];
+  const { getPublicMatchById } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        statements.push(statement);
+        paramsSeen.push(params);
+        return [[{ id: 9, game_id: "KR-9" }]];
+      },
+    }),
+  });
+
+  const result = await getPublicMatchById("guild-1", 9);
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.id, 9);
+  assert.match(statements[0], /WHERE id = \?/i);
+  assert.deepEqual(paramsSeen[0], [9]);
+});
+
+test("getPublicMatchById returns a missing result when the match does not exist", async () => {
+  const { getPublicMatchById } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query() {
+        return [[]];
+      },
+    }),
+  });
+
+  const result = await getPublicMatchById("guild-1", 404);
+
+  assert.equal(result.success, false);
+  assert.equal(result.code, "MATCH_NOT_FOUND");
+});
+
 test("searchPublicPlayers wraps the search term for public name matching", async () => {
   const paramsSeen = [];
   const { searchPublicPlayers } = loadQueryModule({

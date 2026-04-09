@@ -8,6 +8,7 @@ const {
   initializeGuildDatabase,
   updateGuildUnityVoiceChannel,
 } = require("../../scripts/Utils/DB");
+const { PROJECT_DISPLAY_NAME } = require("../../scripts/Utils/Branding");
 const { formatGuildConfigurationError } = require("../../scripts/Utils/GuildDatabase");
 
 function canManageGuild(interaction) {
@@ -56,12 +57,12 @@ function formatGuildSettingsSummary(settings, unityVoiceChannel) {
 function buildServerCommandData() {
   return new SlashCommandBuilder()
     .setName("서버설정")
-    .setDescription("현재 서버의 ProjectL 설정을 관리합니다.")
+    .setDescription(`현재 서버의 ${PROJECT_DISPLAY_NAME} 설정을 관리합니다.`)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("보기")
-        .setDescription("현재 서버의 ProjectL 설정 상태를 확인합니다.")
+        .setDescription(`현재 서버의 ${PROJECT_DISPLAY_NAME} 설정 상태를 확인합니다.`)
     )
     .addSubcommand((subcommand) =>
       subcommand

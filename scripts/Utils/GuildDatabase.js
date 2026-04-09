@@ -71,6 +71,7 @@ function buildGuildSchemaStatements() {
       \`id\` int(11) NOT NULL AUTO_INCREMENT,
       \`game_id\` varchar(50) NOT NULL,
       \`game_length\` varchar(50) NOT NULL,
+      \`played_at_kst\` datetime DEFAULT NULL,
       \`purple_team\` longtext NOT NULL,
       \`blue_team\` longtext NOT NULL,
       PRIMARY KEY (\`id\`)
@@ -138,6 +139,12 @@ function buildGuildColumnMigrations() {
   });
 
   return [
+    {
+      tableName: "matches",
+      columnName: "played_at_kst",
+      statement:
+        "ALTER TABLE `matches` ADD COLUMN `played_at_kst` datetime DEFAULT NULL AFTER `game_length`",
+    },
     {
       tableName: "active_tournament_sessions",
       columnName: "unity_voice_channel_id",

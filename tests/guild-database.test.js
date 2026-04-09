@@ -33,6 +33,14 @@ test("buildGuildSchemaStatements includes riot account and active session tables
   assert.match(sql, /unity_voice_channel_id/);
 });
 
+test("buildGuildSchemaStatements gives player aggregate fields JSON defaults", () => {
+  const sql = buildGuildSchemaStatements().join("\n");
+
+  assert.match(sql, /`champions`\s+longtext NOT NULL DEFAULT '\{\}'/);
+  assert.match(sql, /`lanes`\s+longtext NOT NULL DEFAULT '\{\}'/);
+  assert.match(sql, /`friends`\s+longtext NOT NULL DEFAULT '\{\}'/);
+});
+
 test("buildControlSchemaStatements includes a unity voice channel setting", () => {
   const sql = buildControlSchemaStatements().join("\n");
 

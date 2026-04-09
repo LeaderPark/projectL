@@ -14,7 +14,7 @@ function loadDbModule() {
   return require("../scripts/Utils/DB");
 }
 
-test("ensureColumns only applies ALTER statements for missing columns", async () => {
+test("ensureColumns applies ALTER statements for missing or mismatched columns", async () => {
   const { ensureColumns } = loadDbModule();
   const seenChecks = [];
   const executedStatements = [];
@@ -23,7 +23,11 @@ test("ensureColumns only applies ALTER statements for missing columns", async ()
       if (statement.startsWith("SHOW COLUMNS")) {
         seenChecks.push({ statement, params });
         if (params[0] === "existing_column") {
-          return [[{ Field: "existing_column" }]];
+          return [[{ Field: "existing_column", Null: "YES", Default: null }]];
+        }
+
+        if (params[0] === "champions") {
+          return [[{ Field: "champions", Null: "NO", Default: null }]];
         }
 
         return [[]];
@@ -47,17 +51,31 @@ test("ensureColumns only applies ALTER statements for missing columns", async ()
       statement:
         "ALTER TABLE `guild_settings` ADD COLUMN `unity_voice_channel_id` varchar(50) DEFAULT NULL",
     },
+    {
+      tableName: "user",
+      columnName: "champions",
+      statement:
+        "ALTER TABLE `user` MODIFY COLUMN `champions` longtext NOT NULL DEFAULT '{}'",
+      needsUpdate(column) {
+        return column.Default !== "{}";
+      },
+    },
   ]);
 
-  assert.equal(seenChecks.length, 2);
+  assert.equal(seenChecks.length, 3);
   assert.deepEqual(
     seenChecks.map(({ params }) => params[0]),
-    ["existing_column", "unity_voice_channel_id"]
+    ["existing_column", "unity_voice_channel_id", "champions"]
   );
   assert.deepEqual(executedStatements, [
     {
       statement:
         "ALTER TABLE `guild_settings` ADD COLUMN `unity_voice_channel_id` varchar(50) DEFAULT NULL",
+      params: [],
+    },
+    {
+      statement:
+        "ALTER TABLE `user` MODIFY COLUMN `champions` longtext NOT NULL DEFAULT '{}'",
       params: [],
     },
   ]);

@@ -19,6 +19,8 @@ function buildErrorResult(error, fallbackMessage) {
   };
 }
 
+const EMPTY_JSON_OBJECT = "{}";
+
 function buildInClausePlaceholders(length) {
   return Array.from({ length }, () => "?").join(",");
 }
@@ -92,7 +94,14 @@ async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
   await promisePool.query(
     `INSERT INTO user (discord_id, puuid, name, champions, lanes, friends)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [discordId, puuid, displayName, "", "", ""]
+    [
+      discordId,
+      puuid,
+      displayName,
+      EMPTY_JSON_OBJECT,
+      EMPTY_JSON_OBJECT,
+      EMPTY_JSON_OBJECT,
+    ]
   );
 
   return {

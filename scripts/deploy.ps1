@@ -60,6 +60,20 @@ Invoke-Step -Label "Pulling the latest changes" -Action {
   git pull --ff-only
 }
 
+Invoke-Step -Label "Collecting deployment metadata" -Action {
+  $env:BOT_DEPLOY_COMMIT = (git rev-parse --short HEAD).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    throw "git rev-parse failed with exit code $LASTEXITCODE"
+  }
+
+  $env:BOT_DEPLOY_MESSAGE = (git log -1 --pretty=%s).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    throw "git log failed with exit code $LASTEXITCODE"
+  }
+
+  $env:BOT_DEPLOYED_AT = [DateTime]::UtcNow.ToString("o")
+}
+
 Invoke-Step -Label "Validating docker compose configuration" -Action {
   docker compose --env-file $envPath config *> $null
 }

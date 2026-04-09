@@ -52,7 +52,13 @@ async function ensureColumns(promisePool, migrations) {
       [migration.columnName]
     );
 
-    if (rows.length > 0) {
+    const existingColumn = rows[0];
+    const shouldApply =
+      rows.length === 0 ||
+      (typeof migration.needsUpdate === "function" &&
+        migration.needsUpdate(existingColumn));
+
+    if (!shouldApply) {
       continue;
     }
 

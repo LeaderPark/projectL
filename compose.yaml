@@ -42,6 +42,9 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_TIMEZONE: ${DB_TIMEZONE:-Z}
+      BOT_DEPLOY_COMMIT: "${BOT_DEPLOY_COMMIT:-}"
+      BOT_DEPLOY_MESSAGE: "${BOT_DEPLOY_MESSAGE:-}"
+      BOT_DEPLOYED_AT: "${BOT_DEPLOYED_AT:-}"
 
 volumes:
   db_data:

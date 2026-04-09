@@ -1,3 +1,8 @@
+const {
+  calculateExpectedScore,
+  getTeamAverageRating,
+} = require("./MatchmakingRating");
+
 function sumTeamMmr(team) {
   return team.reduce((sum, entry) => sum + Number(entry?.user?.mmr ?? 0), 0);
 }
@@ -27,15 +32,19 @@ function isBetterCandidate(candidate, best) {
     return true;
   }
 
-  if (candidate.mmrGap !== best.mmrGap) {
-    return candidate.mmrGap < best.mmrGap;
+  if (candidate.balanceScore !== best.balanceScore) {
+    return candidate.balanceScore < best.balanceScore;
   }
 
   if (candidate.repeatPenalty !== best.repeatPenalty) {
     return candidate.repeatPenalty < best.repeatPenalty;
   }
 
-  return candidate.team1MMR <= best.team1MMR;
+  if (candidate.mmrGap !== best.mmrGap) {
+    return candidate.mmrGap < best.mmrGap;
+  }
+
+  return candidate.team1ExpectedScore <= best.team1ExpectedScore;
 }
 
 function buildCandidate(entries, selectedIndexes, previousTeams) {
@@ -43,12 +52,20 @@ function buildCandidate(entries, selectedIndexes, previousTeams) {
   const team2Members = entries.filter((_, index) => !selectedIndexes.has(index));
   const team1MMR = sumTeamMmr(team1Members);
   const team2MMR = sumTeamMmr(team2Members);
+  const team1ExpectedScore = calculateExpectedScore(
+    getTeamAverageRating(team1Members.map((entry) => entry.user)),
+    getTeamAverageRating(team2Members.map((entry) => entry.user))
+  );
+  const team2ExpectedScore = 1 - team1ExpectedScore;
 
   return {
     team1Members,
     team2Members,
     team1MMR,
     team2MMR,
+    team1ExpectedScore,
+    team2ExpectedScore,
+    balanceScore: Math.abs(team1ExpectedScore - 0.5),
     mmrGap: Math.abs(team1MMR - team2MMR),
     repeatPenalty: calculateRepeatPenalty(
       team1Members,

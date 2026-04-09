@@ -2,6 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { balanceTeams } = require("../scripts/Utils/TeamBalancer");
+const {
+  calculateExpectedScore,
+  getTeamAverageRating,
+} = require("../scripts/Utils/MatchmakingRating");
 
 function buildEntry(id, mmr) {
   return {
@@ -47,17 +51,56 @@ function bruteForceMinimum(entries) {
   return minimumGap;
 }
 
-test("balanceTeams finds a minimum-gap 5v5 split", () => {
+function bruteForceBestBalance(entries) {
+  const indices = entries.map((_, index) => index);
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  function choose(start, picked) {
+    if (picked.length === 5) {
+      const selected = new Set(picked);
+      const team1 = indices
+        .filter((index) => selected.has(index))
+        .map((index) => entries[index].user);
+      const team2 = indices
+        .filter((index) => !selected.has(index))
+        .map((index) => entries[index].user);
+      const expectedScore = calculateExpectedScore(
+        getTeamAverageRating(team1),
+        getTeamAverageRating(team2)
+      );
+
+      bestScore = Math.min(bestScore, Math.abs(expectedScore - 0.5));
+      return;
+    }
+
+    for (let index = start; index < indices.length; index += 1) {
+      picked.push(index);
+      choose(index + 1, picked);
+      picked.pop();
+    }
+  }
+
+  choose(0, []);
+  return bestScore;
+}
+
+test("balanceTeams returns the split whose expected win rate is closest to 50%", () => {
   const entries = [
     1700, 1620, 1580, 1510, 1490, 1410, 1380, 1320, 1270, 1220,
   ].map((mmr, index) => buildEntry(`player-${index + 1}`, mmr));
 
   const result = balanceTeams(entries);
   const actualGap = Math.abs(sumMmr(result.team1Members) - sumMmr(result.team2Members));
+  const actualBalance = Math.abs(result.team1ExpectedScore - 0.5);
 
   assert.equal(result.team1Members.length, 5);
   assert.equal(result.team2Members.length, 5);
   assert.equal(actualGap, bruteForceMinimum(entries));
+  assert.equal(actualBalance, bruteForceBestBalance(entries));
+  assert.equal(
+    Number((result.team1ExpectedScore + result.team2ExpectedScore).toFixed(6)),
+    1
+  );
 });
 
 test("balanceTeams uses repeat-team avoidance as a tiebreaker when MMR is equal", () => {

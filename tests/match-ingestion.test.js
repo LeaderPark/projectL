@@ -232,3 +232,86 @@ test("persistMatchResult prefers the transformed canonical match id over a raw c
   assert.equal(result.success, true);
   assert.deepEqual(insertedGameIds, ["KR_12347"]);
 });
+
+test("persistMatchResult updates rating from match result expectations instead of replay stat deltas", async () => {
+  const appliedRatings = new Map();
+  const match = buildSampleMatch();
+  match.blueTeam.players[0].performanceScore = -99;
+  match.purpleTeam.players[0].performanceScore = 99;
+
+  const { persistMatchResult } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async getConnection() {
+        return {
+          async beginTransaction() {},
+          async query(statement, params) {
+            if (/SELECT \* FROM matches/i.test(statement)) {
+              return [[]];
+            }
+
+            if (/INSERT INTO matches/i.test(statement)) {
+              return [{ insertId: 125 }];
+            }
+
+            if (/INSERT INTO match_in_users/i.test(statement)) {
+              return [{ affectedRows: 2 }];
+            }
+
+            if (/SELECT u\.\*, u\.puuid AS linked_puuid/i.test(statement)) {
+              return [[
+                {
+                  discord_id: "discord-blue",
+                  linked_puuid: "puuid-blue",
+                  mmr: 1400,
+                  win: 20,
+                  lose: 20,
+                  penta: 0,
+                  quadra: 0,
+                  champions: "{}",
+                  lanes: "{}",
+                  friends: "{}",
+                  t_kill: 0,
+                  t_death: 0,
+                  t_assist: 0,
+                  t_kill_rate: 0,
+                },
+                {
+                  discord_id: "discord-purple",
+                  linked_puuid: "puuid-purple",
+                  mmr: 1000,
+                  win: 20,
+                  lose: 20,
+                  penta: 0,
+                  quadra: 0,
+                  champions: "{}",
+                  lanes: "{}",
+                  friends: "{}",
+                  t_kill: 0,
+                  t_death: 0,
+                  t_assist: 0,
+                  t_kill_rate: 0,
+                },
+              ]];
+            }
+
+            if (/UPDATE user SET mmr/i.test(statement)) {
+              appliedRatings.set(params[12], params[0]);
+              return [{ affectedRows: 1 }];
+            }
+
+            throw new Error(`Unexpected SQL: ${statement}`);
+          },
+          async commit() {},
+          async rollback() {},
+          release() {},
+        };
+      },
+    }),
+  });
+
+  const result = await persistMatchResult("guild-1", match, "KR_12348");
+
+  assert.equal(result.success, true);
+  assert.equal(appliedRatings.get("discord-blue"), 1402);
+  assert.equal(appliedRatings.get("discord-purple"), 998);
+});

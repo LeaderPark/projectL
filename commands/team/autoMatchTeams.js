@@ -6,10 +6,10 @@ const {
   getUsersData,
   replaceActiveTournamentSession,
 } = require("../../scripts/Utils/Query");
+const { balanceTeams } = require("../../scripts/Utils/TeamBalancer");
 const {
+  TeamData,
   TeamDataSaver,
-  CheckTeamMember,
-  ConvertTeam,
 } = require("../../scripts/Utils/SaveTeamData");
 
 function buildRandomEntry(member) {
@@ -235,33 +235,18 @@ module.exports = {
           );
         }
 
-        for (let i = 0; i < users.data.length; i++) {
-          const user = users.data[i];
-          const member = members.find((x) => x.user.id === user.discord_id);
-          if (!member) {
-            continue;
-          }
+        const entries = users.data
+          .map((user) => {
+            const member = members.find((x) => x.user.id === user.discord_id);
+            return member ? { member, user } : null;
+          })
+          .filter(Boolean);
 
-          if (team1MMR > team2MMR || team1Members.length >= 5) {
-            team2MMR += user.mmr;
-            team2Members.push({ member, user });
-          } else {
-            team1MMR += user.mmr;
-            team1Members.push({ member, user });
-          }
-        }
-
-        const shouldConvert = CheckTeamMember(team1Members, team2Members);
-        if (shouldConvert) {
-          const [convertedTeam1, convertedTeam2] = ConvertTeam(
-            team1Members,
-            team2Members
-          );
-          team1Members = convertedTeam1;
-          team2Members = convertedTeam2;
-          team1MMR = team1Members.reduce((sum, entry) => sum + entry.user.mmr, 0);
-          team2MMR = team2Members.reduce((sum, entry) => sum + entry.user.mmr, 0);
-        }
+        const balancedTeams = balanceTeams(entries, TeamData);
+        team1Members = balancedTeams.team1Members;
+        team2Members = balancedTeams.team2Members;
+        team1MMR = balancedTeams.team1MMR;
+        team2MMR = balancedTeams.team2MMR;
 
         TeamDataSaver(team1Members, team2Members);
         break;

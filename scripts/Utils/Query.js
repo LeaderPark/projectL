@@ -1,4 +1,5 @@
 const { getGuildPromisePool } = require("./DB");
+const { buildMatchmakingAdjustments } = require("./MatchmakingRating");
 const {
   formatGuildConfigurationError,
   isGuildConfigurationError,
@@ -386,6 +387,51 @@ async function updateUserDataWithExecutor(executor, match) {
     linkedByPuuid.set(row.linked_puuid, row);
   });
 
+  const ratingInputsByPuuid = new Map();
+  match.blueTeam.players.forEach((player) => {
+    const user = linkedByPuuid.get(player.puuid);
+    ratingInputsByPuuid.set(player.puuid, {
+      playerId: player.puuid,
+      mmr: Number(user?.mmr ?? 1000),
+      win: Number(user?.win ?? 0),
+      lose: Number(user?.lose ?? 0),
+    });
+  });
+  match.purpleTeam.players.forEach((player) => {
+    const user = linkedByPuuid.get(player.puuid);
+    ratingInputsByPuuid.set(player.puuid, {
+      playerId: player.puuid,
+      mmr: Number(user?.mmr ?? 1000),
+      win: Number(user?.win ?? 0),
+      lose: Number(user?.lose ?? 0),
+    });
+  });
+
+  const blueWon = Boolean(match.blueTeam.players[0]?.result);
+  const ratingAdjustments = blueWon
+    ? buildMatchmakingAdjustments({
+        winningTeam: match.blueTeam.players.map((player) =>
+          ratingInputsByPuuid.get(player.puuid)
+        ),
+        losingTeam: match.purpleTeam.players.map((player) =>
+          ratingInputsByPuuid.get(player.puuid)
+        ),
+      })
+    : buildMatchmakingAdjustments({
+        winningTeam: match.purpleTeam.players.map((player) =>
+          ratingInputsByPuuid.get(player.puuid)
+        ),
+        losingTeam: match.blueTeam.players.map((player) =>
+          ratingInputsByPuuid.get(player.puuid)
+        ),
+      });
+  const deltaByPuuid = new Map(
+    [...ratingAdjustments.winners, ...ratingAdjustments.losers].map((entry) => [
+      entry.playerId,
+      entry.delta,
+    ])
+  );
+
   const notRegistUser = [];
 
   for await (const p of players) {
@@ -395,7 +441,7 @@ async function updateUserDataWithExecutor(executor, match) {
       continue;
     }
 
-    let mmr = Number(user.mmr) + p.mmr;
+    let mmr = Number(user.mmr) + Number(deltaByPuuid.get(p.puuid) ?? 0);
     if (mmr <= 300) {
       mmr = 300;
     }

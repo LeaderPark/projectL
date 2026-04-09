@@ -43,12 +43,14 @@ module.exports = {
     if (!result)
       return await interaction.editReply("존재하지 않는 소환사 입니다.");
 
+    const summonerId = result.summoner?.id ?? result.account.puuid;
+
     //db insert
     const insertRes = await registerRiotAccount(interaction.guildId, user.id, {
       riotGameName: result.account.gameName || userName,
       riotTagLine: result.account.tagLine || userTag,
       puuid: result.account.puuid,
-      summonerId: result.summoner.id,
+      summonerId,
     });
 
     if (!insertRes.success) {

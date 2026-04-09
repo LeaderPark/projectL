@@ -43,54 +43,9 @@ function loadQueryModule(dbOverrides = {}) {
   return queryModule;
 }
 
-test("registerRiotAccount seeds JSON stat fields for a newly linked Discord user", async () => {
-  const userInsertCalls = [];
-  const riotAccountInsertCalls = [];
-  const { registerRiotAccount } = loadQueryModule({
-    getGuildPromisePool: async () => ({
-      async query(statement, params) {
-        if (/FROM riot_accounts/i.test(statement)) {
-          return [[]];
-        }
-
-        if (/SELECT \* FROM user/i.test(statement)) {
-          return [[]];
-        }
-
-        if (/INSERT INTO user/i.test(statement)) {
-          userInsertCalls.push(params);
-          return [{ affectedRows: 1 }];
-        }
-
-        if (/INSERT INTO riot_accounts/i.test(statement)) {
-          riotAccountInsertCalls.push(params);
-          return [{ affectedRows: 1 }];
-        }
-
-        throw new Error(`Unexpected SQL: ${statement}`);
-      },
-    }),
-  });
-
-  const result = await registerRiotAccount("guild-1", "discord-1", {
-    riotGameName: "eggcat",
-    riotTagLine: "KR1",
-    puuid: "puuid-1",
-    summonerId: "summoner-1",
-  });
-
-  assert.equal(result.success, true);
-  assert.deepEqual(userInsertCalls, [
-    ["discord-1", "puuid-1", "eggcat#KR1", "{}", "{}", "{}"],
-  ]);
-  assert.deepEqual(riotAccountInsertCalls, [
-    ["discord-1", "eggcat", "KR1", "puuid-1", "summoner-1"],
-  ]);
-});
-
-test("registerRiotAccount rejects missing required riot identifiers before querying the database", async () => {
+test("insertMatchData rejects replay payloads that are missing required match fields", async () => {
   let queryCount = 0;
-  const { registerRiotAccount } = loadQueryModule({
+  const { insertMatchData } = loadQueryModule({
     getGuildPromisePool: async () => ({
       async query() {
         queryCount += 1;
@@ -99,15 +54,40 @@ test("registerRiotAccount rejects missing required riot identifiers before query
     }),
   });
 
-  const result = await registerRiotAccount("guild-1", "discord-1", {
-    riotGameName: "eggcat",
-    riotTagLine: "KR1",
-    puuid: "puuid-1",
-    summonerId: undefined,
+  const result = await insertMatchData(
+    "guild-1",
+    {
+      purpleTeam: { players: [] },
+      blueTeam: { players: [] },
+    },
+    "match-1"
+  );
+
+  assert.equal(result.success, false);
+  assert.equal(result.code, "INVALID_INPUT");
+  assert.match(result.msg, /게임 길이/);
+  assert.equal(queryCount, 0);
+});
+
+test("replaceActiveTournamentSession rejects missing required session identifiers before querying", async () => {
+  let queryCount = 0;
+  const { replaceActiveTournamentSession } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query() {
+        queryCount += 1;
+        return [[]];
+      },
+    }),
+  });
+
+  const result = await replaceActiveTournamentSession("guild-1", {
+    sourceChannelId: "voice-1",
+    team1ChannelId: "blue-1",
+    team2ChannelId: "purple-1",
   });
 
   assert.equal(result.success, false);
   assert.equal(result.code, "INVALID_INPUT");
-  assert.match(result.msg, /소환사 ID/);
+  assert.match(result.msg, /토너먼트 코드/);
   assert.equal(queryCount, 0);
 });

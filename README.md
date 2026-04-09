@@ -11,7 +11,7 @@ This project runs a Discord bot backed by MariaDB. The local database no longer 
 
 ## Files
 
-- `compose.yaml`: bot + MariaDB stack
+- `compose.yaml`: bot + MariaDB + Adminer stack
 - `.env.example`: required runtime variables template
 - `scripts/bootstrap.ps1`: creates `.env` if needed and starts the stack
 - `scripts/deploy.ps1`: pulls latest code and redeploys the Docker stack safely
@@ -55,6 +55,18 @@ Set-Location C:\projectL
 .\scripts\verify.ps1
 ```
 
+5. Open the database UI if you want to inspect data in a browser:
+
+`Adminer` is available at `http://localhost:8081` by default. You can change the host port with `ADMINER_PUBLIC_PORT` in `.env`.
+
+Use these values to log in:
+
+- `System`: `MariaDB`
+- `Server`: `db`
+- `Username`: `DB_USER` from `.env` (or `root`)
+- `Password`: `DB_PASSWORD` from `.env` (or `DB_ROOT_PASSWORD`)
+- `Database`: `DB_NAME` from `.env` for the control database, or the guild-specific database name such as `bot_guild_<guild_id>`
+
 ## One-Click Deploy
 
 Run `deploy.bat` directly on the Windows host when you want to redeploy the bot with the latest Git changes.
@@ -75,6 +87,7 @@ When the process finishes, the cmd window stays open and waits for your Enter in
 ```powershell
 Set-Location C:\projectL
 docker compose up -d --build
+start http://localhost:8081
 docker compose logs -f bot
 docker compose logs -f db
 docker compose down
@@ -83,6 +96,7 @@ docker compose down
 ## Notes
 
 - The MariaDB host port defaults to `3307` to reduce collisions with other local database installs.
+- The Adminer web UI host port defaults to `8081`.
 - Files in `/docker-entrypoint-initdb.d` only run on first database initialization. If you need a full reset, run `docker compose down -v` before starting again.
 - If you upgraded from an older database volume and `/서버설정 초기화` fails with `Access denied ... to database 'bot_guild_...'`, grant `CREATE` on `*.*` and `ALL PRIVILEGES` on ``${DB_NAME}_guild_%`` to `${DB_USER}`, or recreate the DB volume once.
 - `npm start` still works for a legacy local setup when matching local secret files exist.

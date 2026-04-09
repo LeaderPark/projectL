@@ -142,7 +142,7 @@ function loadRuntimeConfig(options = {}) {
         firstNonEmpty(
           process.env.WEB_PORT,
           legacyConfig.webPort,
-          3000
+          8000
         )
       ),
       publicGuildId: firstNonEmpty(

@@ -42,11 +42,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "${WEB_PUBLIC_PORT:-8000}:8000"
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
       RIOT_API_TOKEN: ${RIOT_API_TOKEN}
+      RIOT_PLATFORM: ${RIOT_PLATFORM:-kr}
+      RIOT_TOURNAMENT_REGION: ${RIOT_TOURNAMENT_REGION:-KR}
+      RIOT_TOURNAMENT_CALLBACK_URL: ${RIOT_TOURNAMENT_CALLBACK_URL}
+      RIOT_TOURNAMENT_USE_STUB: ${RIOT_TOURNAMENT_USE_STUB:-true}
+      RIOT_TOURNAMENT_POLL_INTERVAL_MS: ${RIOT_TOURNAMENT_POLL_INTERVAL_MS:-10000}
+      RIOT_TOURNAMENT_CALLBACK_PATH: ${RIOT_TOURNAMENT_CALLBACK_PATH:-/riot/callback}
+      WEB_PORT: ${WEB_PORT:-8000}
+      WEB_PUBLIC_GUILD_ID: ${WEB_PUBLIC_GUILD_ID}
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: ${DB_NAME}
@@ -56,6 +66,15 @@ services:
       BOT_DEPLOY_COMMIT: "${BOT_DEPLOY_COMMIT:-}"
       BOT_DEPLOY_MESSAGE: "${BOT_DEPLOY_MESSAGE:-}"
       BOT_DEPLOYED_AT: "${BOT_DEPLOYED_AT:-}"
+
+  cloudflared:
+    profiles: ["cloudflare"]
+    image: ${CLOUDFLARED_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      bot:
+        condition: service_started
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
 
 volumes:
   db_data:

@@ -16,10 +16,47 @@ test("compose file defines bot and db services", () => {
   assert.match(compose, /BOT_DEPLOYED_AT:\s*"?\$\{BOT_DEPLOYED_AT/);
 });
 
+test("compose file publishes the bot web port to a configurable host port", () => {
+  const compose = fs.readFileSync("compose.yaml", "utf8");
+
+  assert.match(compose, /^\s{4}ports:\s*$/m);
+  assert.match(compose, /\$\{WEB_PUBLIC_PORT:-8000\}:8000/);
+  assert.match(compose, /WEB_PORT:\s+\$\{WEB_PORT:-8000\}/);
+  assert.match(compose, /RIOT_TOURNAMENT_CALLBACK_URL:\s+\$\{RIOT_TOURNAMENT_CALLBACK_URL\}/);
+});
+
+test("compose file defines an optional cloudflared tunnel service", () => {
+  const compose = fs.readFileSync("compose.yaml", "utf8");
+
+  assert.match(compose, /^\s{2}cloudflared:\s*$/m);
+  assert.match(compose, /profiles:\s*\["cloudflare"\]/);
+  assert.match(compose, /command:\s+tunnel --no-autoupdate run --token \$\{CF_TUNNEL_TOKEN\}/);
+});
+
 test("bootstrap and verify scripts exist", () => {
   assert.equal(fs.existsSync("scripts/bootstrap.ps1"), true);
   assert.equal(fs.existsSync("scripts/verify.ps1"), true);
+  assert.equal(fs.existsSync("scripts/start-cloudflare-tunnel.ps1"), true);
   assert.equal(fs.existsSync("scripts/db-init/02-guild-privileges.sh"), true);
   assert.equal(fs.existsSync(".env.example"), true);
   assert.equal(fs.existsSync("Dockerfile"), true);
+  assert.equal(fs.existsSync("ops/cloudflare-tunnel.md"), true);
+});
+
+test(".env.example documents the web port and cloudflare settings", () => {
+  const envExample = fs.readFileSync(".env.example", "utf8");
+
+  assert.match(envExample, /^WEB_PORT=8000$/m);
+  assert.match(envExample, /^WEB_PUBLIC_PORT=8000$/m);
+  assert.match(envExample, /^CLOUDFLARED_IMAGE=cloudflare\/cloudflared:latest$/m);
+  assert.match(envExample, /^CF_TUNNEL_TOKEN=__CHANGE_ME__$/m);
+  assert.match(envExample, /^CF_PUBLIC_HOSTNAME=lol\.leaderpark\.net$/m);
+});
+
+test("README documents the public and local site URLs", () => {
+  const readme = fs.readFileSync("README.md", "utf8");
+
+  assert.match(readme, /http:\/\/localhost:8000\//);
+  assert.match(readme, /https:\/\/lol\.leaderpark\.net\/?/);
+  assert.match(readme, /http:\/\/bot:8000/);
 });

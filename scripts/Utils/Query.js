@@ -25,6 +25,86 @@ function buildInClausePlaceholders(length) {
   return Array.from({ length }, () => "?").join(",");
 }
 
+function hasRequiredValue(value) {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  return true;
+}
+
+function buildInvalidInputResult(message) {
+  return {
+    success: false,
+    code: "INVALID_INPUT",
+    msg: message,
+  };
+}
+
+function validateRiotAccount(account) {
+  if (!hasRequiredValue(account?.riotGameName)) {
+    return buildInvalidInputResult("소환사 이름 정보가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(account?.riotTagLine)) {
+    return buildInvalidInputResult("소환사 태그 정보가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(account?.puuid)) {
+    return buildInvalidInputResult("라이엇 PUUID 정보가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(account?.summonerId)) {
+    return buildInvalidInputResult("라이엇 소환사 ID 정보가 누락되었습니다.");
+  }
+
+  return null;
+}
+
+function validateMatchInsertPayload(match, name) {
+  if (!hasRequiredValue(name)) {
+    return buildInvalidInputResult("경기 ID 정보가 누락되었습니다.");
+  }
+
+  if (!Number.isFinite(Number(match?.gameLength)) || Number(match?.gameLength) <= 0) {
+    return buildInvalidInputResult("리플레이의 게임 길이 정보가 올바르지 않습니다.");
+  }
+
+  if (!match?.purpleTeam || !Array.isArray(match.purpleTeam.players)) {
+    return buildInvalidInputResult("리플레이의 퍼플팀 정보가 올바르지 않습니다.");
+  }
+
+  if (!match?.blueTeam || !Array.isArray(match.blueTeam.players)) {
+    return buildInvalidInputResult("리플레이의 블루팀 정보가 올바르지 않습니다.");
+  }
+
+  return null;
+}
+
+function validateTournamentSession(session) {
+  if (!hasRequiredValue(session?.tournamentCode)) {
+    return buildInvalidInputResult("토너먼트 코드가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(session?.sourceChannelId)) {
+    return buildInvalidInputResult("원본 음성채널 정보가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(session?.team1ChannelId)) {
+    return buildInvalidInputResult("블루팀 음성채널 정보가 누락되었습니다.");
+  }
+
+  if (!hasRequiredValue(session?.team2ChannelId)) {
+    return buildInvalidInputResult("퍼플팀 음성채널 정보가 누락되었습니다.");
+  }
+
+  return null;
+}
+
 function buildRiotDisplayName(gameName, tagLine) {
   return `${gameName}#${tagLine}`;
 }
@@ -113,6 +193,11 @@ async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
 
 async function registerRiotAccount(guildId, discordId, account) {
   try {
+    const validationError = validateRiotAccount(account);
+    if (validationError) {
+      return validationError;
+    }
+
     const promisePool = await getGuildPromisePool(guildId);
     const displayName = buildRiotDisplayName(
       account.riotGameName,
@@ -215,6 +300,11 @@ async function resolveUsersByPuuids(guildId, puuids) {
 
 const insertMatchData = async (guildId, match, name) => {
   try {
+    const validationError = validateMatchInsertPayload(match, name);
+    if (validationError) {
+      return validationError;
+    }
+
     const promisePool = await getGuildPromisePool(guildId);
     let sql = `SELECT * FROM matches WHERE game_id = ?`;
     let [result] = await promisePool.query(sql, [name]);
@@ -546,6 +636,11 @@ function parseDiscordIdList(raw) {
 
 const replaceActiveTournamentSession = async (guildId, session) => {
   try {
+    const validationError = validateTournamentSession(session);
+    if (validationError) {
+      return validationError;
+    }
+
     const promisePool = await getGuildPromisePool(guildId);
 
     await promisePool.query(

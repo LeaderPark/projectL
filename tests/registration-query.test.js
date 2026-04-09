@@ -87,3 +87,27 @@ test("registerRiotAccount seeds JSON stat fields for a newly linked Discord user
     ["discord-1", "eggcat", "KR1", "puuid-1", "summoner-1"],
   ]);
 });
+
+test("registerRiotAccount rejects missing required riot identifiers before querying the database", async () => {
+  let queryCount = 0;
+  const { registerRiotAccount } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query() {
+        queryCount += 1;
+        return [[]];
+      },
+    }),
+  });
+
+  const result = await registerRiotAccount("guild-1", "discord-1", {
+    riotGameName: "eggcat",
+    riotTagLine: "KR1",
+    puuid: "puuid-1",
+    summonerId: undefined,
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.code, "INVALID_INPUT");
+  assert.match(result.msg, /소환사 ID/);
+  assert.equal(queryCount, 0);
+});

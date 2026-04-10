@@ -5,8 +5,8 @@ const fs = require("node:fs");
 test("deploy launcher exists and waits for operator input", () => {
   const batchFile = fs.readFileSync("deploy.bat", "utf8");
 
-  assert.match(batchFile, /powershell/i);
-  assert.match(batchFile, /scripts\\deploy\.ps1/i);
+  assert.match(batchFile, /docker compose down/i);
+  assert.match(batchFile, /docker compose up -d --build/i);
   assert.match(batchFile, /set\s+\/p/i);
 });
 

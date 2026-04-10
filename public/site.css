@@ -1016,8 +1016,11 @@ body {
 
 .match-row__summary-button {
   display: grid;
-  grid-template-columns: 130px minmax(420px, 0.95fr) minmax(280px, 1.05fr) 24px;
-  gap: 16px;
+  grid-template-columns: minmax(420px, 0.95fr) minmax(280px, 1.05fr) 24px;
+  grid-template-areas:
+    "meta meta caret"
+    "teams builds caret";
+  gap: 0;
   align-items: stretch;
   min-width: 0;
   width: 100%;
@@ -1030,26 +1033,24 @@ body {
 }
 
 .match-row__summary-button--public {
-  grid-template-columns: 112px minmax(0, 1fr) 24px;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  grid-template-areas:
+    "meta meta"
+    "teams caret";
 }
 
 .match-row__summary-button:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.match-row__meta,
-.match-row__summary-team,
-.match-row__summary-builds,
-.match-row__detail-link {
-  padding: 18px 0;
-}
-
 .match-row__meta {
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  padding-left: 18px;
-  border-right: 1px solid rgba(154, 169, 202, 0.08);
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 18px;
+  border-bottom: 1px solid rgba(154, 169, 202, 0.08);
 }
 
 .match-row__meta-label,
@@ -1058,18 +1059,23 @@ body {
   font-size: 0.8rem;
 }
 
+.match-row__meta strong {
+  line-height: 1;
+}
+
 .match-row__played-at {
   color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
 .match-row__summary-teams {
+  grid-area: teams;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: stretch;
   min-width: 0;
-  padding-right: 12px;
+  padding: 14px 12px 18px 18px;
   border-right: 1px solid rgba(154, 169, 202, 0.08);
 }
 
@@ -1077,7 +1083,7 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
-  padding-right: 18px;
+  padding: 14px 18px 18px;
   border-right: 0;
 }
 
@@ -1102,7 +1108,7 @@ body {
 
 .match-row__summary-player {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) max-content;
+  grid-template-columns: 112px minmax(0, 1fr) max-content;
   grid-template-areas:
     "champion copy score"
     "champion copy kda";
@@ -1136,11 +1142,13 @@ body {
 }
 
 .match-row__summary-player-score {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   grid-area: score;
   align-self: end;
-  justify-items: end;
+  white-space: nowrap;
 }
 
 .match-row__summary-player-kda {
@@ -1163,9 +1171,11 @@ body {
 }
 
 .match-row__summary-builds {
+  grid-area: builds;
   display: grid;
   align-content: center;
-  padding-right: 10px;
+  padding: 18px 18px 18px 16px;
+  border-left: 1px solid rgba(154, 169, 202, 0.08);
 }
 
 .match-row__summary-highlight {
@@ -1217,8 +1227,8 @@ body {
 
 .match-row__champion-block {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 10px;
+  grid-template-columns: 52px 54px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1243,7 +1253,9 @@ body {
 
 .match-row__spells-runes {
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(2, 24px);
+  gap: 4px 6px;
+  align-items: start;
 }
 
 .match-row__spells,
@@ -1258,6 +1270,13 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.match-row__spells,
+.match-row__runes {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
 }
 
 .match-row__spells__icon,
@@ -1323,6 +1342,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  grid-area: caret;
   align-self: center;
   margin-right: 14px;
   font-size: 1.3rem;
@@ -1335,6 +1355,7 @@ body {
 .match-row__detail-link {
   display: inline-flex;
   align-items: center;
+  padding: 18px;
   padding-right: 18px;
   color: var(--color-text-muted);
 }
@@ -1518,7 +1539,6 @@ body {
 
 @media (max-width: 1200px) {
   .match-row__summary:not(.match-row__summary--public),
-  .match-row__summary-button:not(.match-row__summary-button--public),
   .match-row__summary-highlight,
   .match-row__player,
   .match-scoreboard__row,
@@ -1530,16 +1550,48 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .match-row__meta,
-  .match-row__summary-teams {
+  .match-row__summary-button:not(.match-row__summary-button--public) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "meta"
+      "teams"
+      "builds"
+      "caret";
+  }
+
+  .match-row__summary-button:not(.match-row__summary-button--public) .match-row__summary-teams {
     border-right: 0;
     padding-right: 18px;
+  }
+
+  .match-row__summary-button:not(.match-row__summary-button--public) .match-row__summary-builds {
+    padding: 18px;
+    border-left: 0;
+    border-top: 1px solid rgba(154, 169, 202, 0.08);
+  }
+
+  .match-row__summary-button:not(.match-row__summary-button--public) .match-row__caret {
+    justify-self: end;
+    margin: 0 18px 18px;
   }
 }
 
 @media (max-width: 720px) {
+  .match-row__summary-button--public {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "meta"
+      "teams"
+      "caret";
+  }
+
   .match-row__summary-teams {
     grid-template-columns: 1fr;
+  }
+
+  .match-row__summary-button--public .match-row__caret {
+    justify-self: end;
+    margin: 0 18px 18px;
   }
 }
 

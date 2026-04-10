@@ -527,7 +527,19 @@ test("renderMatchCard hides the result strip and uses the compact public summary
 
   assert.doesNotMatch(html, /class="match-row__result"/);
   assert.match(html, /class="match-row__summary match-row__summary--public"/);
+  assert.match(
+    html,
+    /class="match-row__meta">[\s\S]*Match #1[\s\S]*30:50[\s\S]*DEMO-KR-001[\s\S]*2026\.04\.07 20:10/
+  );
   assert.match(html, /class="match-row__summary-teams match-row__summary-teams--public"/);
+  assert.match(
+    html,
+    /match-row__summary-team--blue[\s\S]*Flash\.png[\s\S]*Ignite\.png[\s\S]*Electrocute\.png[\s\S]*Sorcery\.png[\s\S]*6\.4[\s\S]*MVP[\s\S]*9\/2\/7 \(57%\)[\s\S]*8\.00:1/
+  );
+  assert.match(
+    html,
+    /match-row__summary-team--red[\s\S]*Heal\.png[\s\S]*Flash\.png[\s\S]*LethalTempo\.png[\s\S]*Inspiration\.png[\s\S]*5\.1[\s\S]*ACE[\s\S]*6\/5\/2 \(44%\)[\s\S]*1\.60:1/
+  );
   assert.match(html, /match-row__summary-team--red[\s\S]*테스트 인디아/);
 });
 
@@ -669,19 +681,31 @@ test("public match summary styles drop the left result strip and distribute team
   );
   assert.match(
     css,
-    /\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*112px\s+minmax\(0,\s*1fr\)\s+24px;/
+    /\.match-row__summary-button\s*\{[\s\S]*grid-template-columns:\s*minmax\(420px,\s*0\.95fr\)\s+minmax\(280px,\s*1\.05fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta caret"\s*"teams builds caret";/
   );
   assert.match(
     css,
-    /\.match-row__summary-player\s*\{[\s\S]*grid-template-columns:\s*64px\s+minmax\(0,\s*1fr\)\s+max-content;[\s\S]*grid-template-areas:\s*"champion copy score"\s*"champion copy kda";/
+    /\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta"\s*"teams caret";/
   );
   assert.match(
     css,
-    /\.match-row__summary-player-score\s*\{[\s\S]*grid-area:\s*score;[\s\S]*justify-items:\s*end;/
+    /\.match-row__meta\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-wrap:\s*wrap;/
   );
   assert.match(
     css,
-    /\.match-row__summary-player-kda\s*\{[\s\S]*grid-area:\s*kda;[\s\S]*justify-items:\s*end;/
+    /\.match-row__summary-player\s*\{[\s\S]*grid-template-columns:\s*112px\s+minmax\(0,\s*1fr\)\s+max-content;[\s\S]*grid-template-areas:\s*"champion copy score"\s*"champion copy kda";/
+  );
+  assert.match(
+    css,
+    /\.match-row__spells-runes\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*24px\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__spells,\s*\.match-row__runes\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*1fr;/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary-player-score\s*\{[\s\S]*display:\s*flex;[\s\S]*justify-content:\s*flex-end;/
   );
   assert.match(
     css,

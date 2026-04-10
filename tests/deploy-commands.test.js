@@ -26,6 +26,13 @@ test("manual replay upload command is removed", () => {
   );
 });
 
+test("information command is removed", () => {
+  assert.equal(
+    fs.existsSync(path.join("commands", "components", "infomation.js")),
+    false
+  );
+});
+
 test("guild command deployment also clears legacy global commands", async (t) => {
   const deployScriptPath = require.resolve("../deploy-commands.js");
   const originalLoad = Module._load;

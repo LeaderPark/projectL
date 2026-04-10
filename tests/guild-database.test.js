@@ -37,6 +37,9 @@ test("buildGuildSchemaStatements includes riot account and active session tables
   assert.match(sql, /result_payload/);
   assert.match(sql, /result_attempts/);
   assert.match(sql, /result_error/);
+  assert.match(sql, /series_mode/);
+  assert.match(sql, /series_game_number/);
+  assert.match(sql, /fearless_used_champions/);
 });
 
 test("buildGuildSchemaStatements gives player aggregate fields JSON defaults", () => {
@@ -97,6 +100,9 @@ test("buildGuildColumnMigrations covers upgrading active sessions with result in
     "result_payload",
     "result_attempts",
     "result_error",
+    "series_mode",
+    "series_game_number",
+    "fearless_used_champions",
   ];
 
   expectedColumns.forEach((columnName) => {

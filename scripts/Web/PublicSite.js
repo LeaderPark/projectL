@@ -14,6 +14,9 @@ const { renderMatchDetailPage: renderMatchDetailView } = require("./views/MatchD
 const { renderMatchesPage } = require("./views/MatchesPage");
 const { renderPlayerPage } = require("./views/PlayerPage");
 const { renderRankingPage: renderRankingPageView } = require("./views/RankingPage");
+const {
+  createPlayerRiotIdentityRefreshService,
+} = require("./PlayerRiotIdentityRefresh");
 
 function buildEmptyHomeModel() {
   return {
@@ -68,6 +71,18 @@ function parseStoredMatchJson(value, fallback) {
   }
 }
 
+function buildPlayerRefreshLocation(guildId, discordId, refreshStatus) {
+  const encodedGuildId = encodeURIComponent(guildId);
+  const encodedDiscordId = encodeURIComponent(discordId);
+  const basePath = `/${encodedGuildId}/players/${encodedDiscordId}`;
+
+  if (!refreshStatus) {
+    return basePath;
+  }
+
+  return `${basePath}?refresh=${encodeURIComponent(refreshStatus)}`;
+}
+
 function createPublicSiteHandlers({
   preferredGuildId,
   getPublicSiteSummary: getPublicSiteSummaryImpl,
@@ -78,6 +93,7 @@ function createPublicSiteHandlers({
   getLatestMatched: getLatestMatchedImpl,
   getChampionNameMap: getChampionNameMapImpl,
   getRiotAssetManifest: getRiotAssetManifestImpl,
+  refreshPlayerRiotIdentity: refreshPlayerRiotIdentityImpl,
   resolveUsersByPuuids: resolveUsersByPuuidsImpl,
   searchPublicPlayers: searchPublicPlayersImpl,
 } = {}) {
@@ -131,6 +147,16 @@ function createPublicSiteHandlers({
   const resolvedGetRiotAssetManifest =
     getRiotAssetManifestImpl ??
     riotAssetService.getAssetManifest.bind(riotAssetService);
+  let refreshService = null;
+  const resolvedRefreshPlayerRiotIdentity =
+    refreshPlayerRiotIdentityImpl ??
+    ((guildId, discordId) => {
+      if (!refreshService) {
+        refreshService = createPlayerRiotIdentityRefreshService();
+      }
+
+      return refreshService.refreshPlayerRiotIdentity(guildId, discordId);
+    });
 
   async function getGuildId(routeGuildId) {
     return resolvePublicGuildId(routeGuildId, preferredGuildId);
@@ -326,7 +352,7 @@ function createPublicSiteHandlers({
       });
     },
 
-    async renderPlayerPage(routeGuildId, discordId) {
+    async renderPlayerPage(routeGuildId, discordId, refreshStatus) {
       const guildId = await getGuildId(routeGuildId);
       if (!guildId) {
         return null;
@@ -345,11 +371,33 @@ function createPublicSiteHandlers({
 
       return renderPlayerPage({
         guildId,
+        refreshStatus,
         profile: formatPlayerProfileSummary(profileResult.data, formatterOptions),
         recentMatches: recentMatchRows.map((matchRow) =>
           formatMatchCard(matchRow, formatterOptions)
         ),
       });
+    },
+
+    async handlePlayerRiotIdentityRefresh(routeGuildId, discordId) {
+      const guildId = await getGuildId(routeGuildId);
+      if (!guildId) {
+        return {
+          statusCode: 303,
+          location: buildPlayerRefreshLocation(routeGuildId, discordId, "failed"),
+        };
+      }
+
+      const result = await resolvedRefreshPlayerRiotIdentity(guildId, discordId);
+
+      return {
+        statusCode: 303,
+        location: buildPlayerRefreshLocation(
+          guildId,
+          discordId,
+          result?.status ?? "failed"
+        ),
+      };
     },
 
     async searchPlayers(routeGuildId, query) {

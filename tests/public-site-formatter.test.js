@@ -196,10 +196,13 @@ test("formatMatchCard preserves player perspective result overrides", () => {
     played_at_kst: "2026-04-10 19:20:00",
     player_result_text: "패배",
     player_result_tone: "red",
+    perspective_player_puuid: "puuid-alpha",
+    perspective_player_name: "Alpha",
     blue_team: JSON.stringify({
       result: 0,
       players: [
         {
+          puuid: "puuid-alpha",
           playerName: "Alpha",
           championName: "Ahri",
           lane: "MIDDLE",
@@ -223,6 +226,8 @@ test("formatMatchCard preserves player perspective result overrides", () => {
   assert.equal(card.resultText, "패배");
   assert.equal(card.resultTone, "red");
   assert.equal(card.winningSide, "purple");
+  assert.equal(card.perspectivePlayerPuuid, "puuid-alpha");
+  assert.equal(card.perspectivePlayerName, "Alpha");
 });
 
 test("formatMatchCard builds OP.GG-style row metadata and image assets when asset lookups are provided", () => {

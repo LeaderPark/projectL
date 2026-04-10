@@ -248,6 +248,8 @@ test("getLatestMatched annotates each recent match with the player's perspective
   assert.equal(result.success, true);
   assert.equal(result.data[0].player_result_text, "패배");
   assert.equal(result.data[0].player_result_tone, "red");
+  assert.equal(result.data[0].perspective_player_puuid, "puuid-blue");
+  assert.equal(result.data[0].perspective_player_name, "Blue#KR1");
   assert.match(statements[0], /SELECT DISTINCT matches\.\*/i);
   assert.match(statements[1], /name AS player_name/i);
   assert.deepEqual(paramsSeen[0], ["discord-1"]);
@@ -289,6 +291,8 @@ test("getLatestMatched falls back to the stored player name when match JSON lack
   assert.equal(result.success, true);
   assert.equal(result.data[0].player_result_text, "패배");
   assert.equal(result.data[0].player_result_tone, "red");
+  assert.equal(result.data[0].perspective_player_puuid, undefined);
+  assert.equal(result.data[0].perspective_player_name, "테스트 찰리");
 });
 
 test("getPublicMatchById returns the requested match row", async () => {
@@ -343,4 +347,115 @@ test("searchPublicPlayers wraps the search term for public name matching", async
   assert.equal(result.success, true);
   assert.equal(result.data[0].name, "eggcat");
   assert.deepEqual(paramsSeen[0], ["%egg%"]);
+});
+
+test("listRefreshableRiotAccounts returns linked riot accounts for manual refresh", async () => {
+  const seenStatements = [];
+  const seenParams = [];
+  const { listRefreshableRiotAccounts } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        seenStatements.push(statement);
+        seenParams.push(params);
+        return [[
+          {
+            id: 11,
+            discord_id: "discord-1",
+            puuid: "puuid-main",
+            riot_game_name: "Main",
+            riot_tag_line: "KR1",
+            is_primary: 1,
+          },
+          {
+            id: 12,
+            discord_id: "discord-1",
+            puuid: "puuid-smurf",
+            riot_game_name: "Smurf",
+            riot_tag_line: "JP1",
+            is_primary: 0,
+          },
+        ]];
+      },
+    }),
+  });
+
+  const result = await listRefreshableRiotAccounts("guild-1", "discord-1");
+
+  assert.equal(result.success, true);
+  assert.deepEqual(result.data, [
+    {
+      id: 11,
+      discordId: "discord-1",
+      puuid: "puuid-main",
+      riotGameName: "Main",
+      riotTagLine: "KR1",
+      isPrimary: true,
+    },
+    {
+      id: 12,
+      discordId: "discord-1",
+      puuid: "puuid-smurf",
+      riotGameName: "Smurf",
+      riotTagLine: "JP1",
+      isPrimary: false,
+    },
+  ]);
+  assert.match(seenStatements[0], /FROM riot_accounts/i);
+  assert.match(seenStatements[0], /WHERE discord_id = \?/i);
+  assert.deepEqual(seenParams[0], ["discord-1"]);
+});
+
+test("updateRiotAccountDisplayName updates the selected riot account row", async () => {
+  const seenStatements = [];
+  const seenParams = [];
+  const { updateRiotAccountDisplayName } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        seenStatements.push(statement);
+        seenParams.push(params);
+        return [{ affectedRows: 1 }];
+      },
+    }),
+  });
+
+  const result = await updateRiotAccountDisplayName("guild-1", 12, "discord-1", {
+    riotGameName: "SmurfRenamed",
+    riotTagLine: "KR2",
+  });
+
+  assert.equal(result.success, true);
+  assert.match(seenStatements[0], /UPDATE riot_accounts SET riot_game_name = \?, riot_tag_line = \?/i);
+  assert.match(seenStatements[0], /WHERE id = \? AND discord_id = \?/i);
+  assert.deepEqual(seenParams[0], ["SmurfRenamed", "KR2", 12, "discord-1"]);
+});
+
+test("syncRepresentativeRiotName keeps user.name aligned to the primary riot account", async () => {
+  const seenStatements = [];
+  const seenParams = [];
+  const { syncRepresentativeRiotName } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        seenStatements.push(statement);
+        seenParams.push(params);
+
+        if (/SELECT riot_game_name, riot_tag_line/i.test(statement)) {
+          return [[{ riot_game_name: "Main", riot_tag_line: "KR1" }]];
+        }
+
+        if (/UPDATE user SET name = \?/i.test(statement)) {
+          return [{ affectedRows: 1 }];
+        }
+
+        throw new Error(`Unexpected statement: ${statement}`);
+      },
+    }),
+  });
+
+  const result = await syncRepresentativeRiotName("guild-1", "discord-1");
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.primaryAccountDisplayName, "Main#KR1");
+  assert.match(seenStatements[0], /FROM riot_accounts/i);
+  assert.match(seenStatements[1], /UPDATE user SET name = \?/i);
+  assert.deepEqual(seenParams[1], ["Main#KR1", "discord-1"]);
 });

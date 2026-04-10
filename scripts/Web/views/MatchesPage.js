@@ -2,7 +2,17 @@ const { renderLayout } = require("./Layout");
 const { buildGuildPath, renderMatchCard } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
+function renderEmptyTimelineState() {
+  return `
+    <div class="panel-empty-state">
+      <strong>아직 집계된 경기가 없어요.</strong>
+      <p>첫 경기 결과가 등록되면 이 타임라인에서 바로 확인할 수 있습니다.</p>
+    </div>
+  `;
+}
+
 function renderMatchesPage(model) {
+  const hasCards = model.cards.length > 0;
   const body = `
     <main class="page page--matches">
       ${model.notice ? `
@@ -23,15 +33,17 @@ function renderMatchesPage(model) {
           <h2>전체 전적 타임라인</h2>
           <span>최신순</span>
         </div>
-        <div class="match-feed">
-          ${model.cards
-            .map((card) =>
-              renderMatchCard({
-                ...card,
-                href: buildGuildPath(model.guildId, `/matches/${card.id}`),
-              }, { showResult: false, showSummaryHighlight: false })
-            )
-            .join("")}
+        <div class="match-feed${hasCards ? "" : " match-feed--empty"}">
+          ${hasCards
+            ? model.cards
+              .map((card) =>
+                renderMatchCard({
+                  ...card,
+                  href: buildGuildPath(model.guildId, `/matches/${card.id}`),
+                }, { showResult: false, showSummaryHighlight: false })
+              )
+              .join("")
+            : renderEmptyTimelineState()}
         </div>
       </section>
     </main>

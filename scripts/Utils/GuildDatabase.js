@@ -1,6 +1,7 @@
 const MAX_DATABASE_NAME_LENGTH = 64;
 const GUILD_NOT_CONFIGURED = "GUILD_NOT_CONFIGURED";
 const EMPTY_JSON_OBJECT = "{}";
+const EMPTY_JSON_ARRAY = "[]";
 
 function sanitizeDatabaseSegment(value) {
   return String(value ?? "")
@@ -120,6 +121,9 @@ function buildGuildSchemaStatements() {
       \`result_payload\` longtext DEFAULT NULL,
       \`result_attempts\` int(10) UNSIGNED NOT NULL DEFAULT 0,
       \`result_error\` longtext DEFAULT NULL,
+      \`series_mode\` varchar(30) NOT NULL DEFAULT 'STANDARD',
+      \`series_game_number\` int(10) UNSIGNED NOT NULL DEFAULT 1,
+      \`fearless_used_champions\` longtext NOT NULL DEFAULT '${EMPTY_JSON_ARRAY}',
       \`created_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       \`updated_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (\`id\`),
@@ -181,6 +185,24 @@ function buildGuildColumnMigrations() {
       columnName: "result_error",
       statement:
         "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_error` longtext DEFAULT NULL AFTER `result_attempts`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "series_mode",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `series_mode` varchar(30) NOT NULL DEFAULT 'STANDARD' AFTER `result_error`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "series_game_number",
+      statement:
+        "ALTER TABLE `active_tournament_sessions` ADD COLUMN `series_game_number` int(10) UNSIGNED NOT NULL DEFAULT 1 AFTER `series_mode`",
+    },
+    {
+      tableName: "active_tournament_sessions",
+      columnName: "fearless_used_champions",
+      statement:
+        `ALTER TABLE \`active_tournament_sessions\` ADD COLUMN \`fearless_used_champions\` longtext NOT NULL DEFAULT '${EMPTY_JSON_ARRAY}' AFTER \`series_game_number\``,
     },
     {
       tableName: "riot_accounts",

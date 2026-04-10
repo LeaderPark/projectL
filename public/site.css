@@ -269,6 +269,33 @@ input {
   gap: 16px;
 }
 
+.match-feed--empty {
+  min-height: 220px;
+}
+
+.panel-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 220px;
+  padding: 28px;
+  border: 1px dashed rgba(154, 169, 202, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+
+.panel-empty-state strong {
+  font-size: 1.02rem;
+}
+
+.panel-empty-state p {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
 .match-card {
   padding: 20px;
   border-radius: var(--radius-md);
@@ -480,11 +507,6 @@ body {
 .site-shell {
   width: min(1360px, calc(100% - 28px));
   padding-top: 20px;
-}
-
-.site-shell--ranking-wide {
-  width: calc(100% - 28px);
-  max-width: none;
 }
 
 .site-header {
@@ -1080,10 +1102,6 @@ body {
     width: min(100% - 18px, 1360px);
   }
 
-  .site-shell--ranking-wide {
-    width: calc(100% - 18px);
-  }
-
   .page--landing {
     min-height: calc(100vh - 18px);
   }
@@ -1147,6 +1165,11 @@ body {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.match-row__summary--player-card {
+  grid-template-columns: 116px minmax(0, 1fr);
+  min-height: 104px;
+}
+
 .match-row__result {
   display: grid;
   align-content: center;
@@ -1168,9 +1191,32 @@ body {
   color: #ffc1ce;
 }
 
+.match-row__result--player {
+  align-content: center;
+  justify-items: start;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.match-row__result-mode,
+.match-row__result-time,
+.match-row__result-duration {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.match-row__result-mode,
+.match-row__result-time {
+  color: rgba(238, 244, 255, 0.76);
+}
+
+.match-row__result-duration {
+  color: rgba(238, 244, 255, 0.88);
+}
+
 .match-row__summary-button {
   display: grid;
-  grid-template-columns: minmax(420px, 0.95fr) minmax(280px, 1.05fr) 24px;
+  grid-template-columns: minmax(420px, 0.95fr) minmax(280px, 1.05fr) 52px;
   grid-template-areas:
     "meta meta caret"
     "teams builds caret";
@@ -1187,10 +1233,19 @@ body {
 }
 
 .match-row__summary-button--public {
-  grid-template-columns: minmax(0, 1fr) 24px;
+  grid-template-columns: minmax(0, 1fr) 52px;
   grid-template-areas:
     "meta meta"
     "teams caret";
+}
+
+.match-row__summary-button--player {
+  grid-template-columns: minmax(240px, 1.15fr) 120px minmax(220px, 0.95fr) 32px;
+  grid-template-areas: "main stats rosters caret";
+  column-gap: 16px;
+  align-items: center;
+  min-height: 104px;
+  padding: 10px 14px 10px 16px;
 }
 
 .match-row__summary-button:hover {
@@ -1332,6 +1387,12 @@ body {
   border-left: 1px solid rgba(154, 169, 202, 0.08);
 }
 
+.match-row__summary-button--player .match-row__summary-builds {
+  padding: 18px 0 18px 0;
+  border-left: 0;
+  border-top: 1px solid rgba(154, 169, 202, 0.08);
+}
+
 .match-row__summary-highlight {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(110px, auto) minmax(140px, 190px);
@@ -1350,10 +1411,26 @@ body {
   min-width: 0;
 }
 
+.match-row__summary-button--player .match-row__summary-highlight {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+  grid-template-areas:
+    "identity stats"
+    "copy stats"
+    "builds builds";
+}
+
 .match-row__summary-highlight-identity,
 .match-row__summary-highlight-copy {
   display: grid;
   gap: 6px;
+}
+
+.match-row__summary-button--player .match-row__summary-highlight-identity {
+  grid-area: identity;
+}
+
+.match-row__summary-button--player .match-row__summary-highlight-copy {
+  grid-area: copy;
 }
 
 .match-row__summary-highlight-stats {
@@ -1362,9 +1439,17 @@ body {
   justify-items: end;
 }
 
+.match-row__summary-button--player .match-row__summary-highlight-stats {
+  grid-area: stats;
+}
+
 .match-row__summary-highlight-stats span {
   color: var(--color-text-muted);
   font-size: 0.8rem;
+}
+
+.match-row__summary-button--player .match-row__summary-highlight-builds {
+  grid-area: builds;
 }
 
 .match-row__player {
@@ -1377,6 +1462,35 @@ body {
 
 .match-row__player + .match-row__player {
   border-top: 1px solid rgba(154, 169, 202, 0.08);
+}
+
+.match-row__player--empty {
+  grid-template-columns: 1fr;
+  padding: 0;
+}
+
+.match-row__player--summary {
+  grid-template-columns: 106px minmax(0, 1fr) max-content minmax(168px, 184px);
+  column-gap: 18px;
+  padding: 0;
+}
+
+.match-row__player--summary > .match-row__champion-block {
+  width: 106px;
+}
+
+.match-row__player--summary > .match-row__player-main {
+  align-self: center;
+}
+
+.match-row__player--summary > .match-row__player-kda {
+  min-width: 92px;
+  text-align: right;
+}
+
+.match-row__player--summary > .match-row__items {
+  justify-content: flex-end;
+  align-content: center;
 }
 
 .match-row__champion-block {
@@ -1497,12 +1611,138 @@ body {
   align-items: center;
   justify-content: center;
   grid-area: caret;
-  justify-self: end;
+  justify-self: center;
   align-self: center;
   width: 24px;
   height: 24px;
-  margin-right: 18px;
+  margin-right: 0;
   color: rgba(238, 244, 255, 0.92);
+}
+
+.match-row__summary-button--player .match-row__caret {
+  margin: 0;
+}
+
+.match-row__player-maincard {
+  grid-area: main;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.match-row__player-maincard-top {
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.match-row__player-maincard-kda {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  min-width: 0;
+}
+
+.match-row__player-maincard-kda-value {
+  font-size: 1.08rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.match-row__player-maincard-kda-rating {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.match-row__player-maincard-items {
+  min-width: 0;
+}
+
+.match-row__player-maincard-items .match-row__items {
+  gap: 3px;
+}
+
+.match-row__player-card-stats,
+.match-row__player-rosters {
+  border-left: 1px solid rgba(154, 169, 202, 0.08);
+  padding-left: 16px;
+}
+
+.match-row__player-card-stats {
+  grid-area: stats;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+  min-width: 0;
+}
+
+.match-row__player-card-stats span {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.match-row__player-rosters {
+  grid-area: rosters;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  align-items: start;
+}
+
+.match-row__player-roster-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.match-row__player-roster-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  padding: 1px 4px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.match-row__player-roster-item.is-active {
+  background: rgba(83, 131, 255, 0.16);
+  color: var(--color-text);
+}
+
+.match-row__player-roster-image {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.match-row__player-roster-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-row__player-empty {
+  display: grid;
+  place-items: center start;
+  min-height: 92px;
+  color: var(--color-text-muted);
 }
 
 .match-row__caret-icon {
@@ -1611,6 +1851,16 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.match-row__player-list--summary {
+  grid-area: player;
+  min-width: 0;
+  padding: 18px 0 18px 0;
+}
+
+.match-row__items--summary {
+  min-width: 0;
 }
 
 .match-scoreboard {
@@ -1730,29 +1980,65 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .match-row__summary-button:not(.match-row__summary-button--public) {
-    grid-template-columns: minmax(0, 1fr) 24px;
+  .match-row__summary-button:not(.match-row__summary-button--public):not(.match-row__summary-button--player) {
+    grid-template-columns: minmax(0, 1fr) 52px;
     grid-template-areas:
       "meta caret"
       "teams caret"
       "builds caret";
   }
 
-  .match-row__summary-button:not(.match-row__summary-button--public) .match-row__summary-teams {
+  .match-row__summary-button:not(.match-row__summary-button--public):not(.match-row__summary-button--player) .match-row__summary-teams {
     border-right: 0;
     padding-right: 18px;
   }
 
-  .match-row__summary-button:not(.match-row__summary-button--public) .match-row__summary-builds {
+  .match-row__summary-button:not(.match-row__summary-button--public):not(.match-row__summary-button--player) .match-row__summary-builds {
     padding: 18px;
     border-left: 0;
+    border-top: 1px solid rgba(154, 169, 202, 0.08);
+  }
+
+  .match-row__summary--player-card {
+    grid-template-columns: 1fr;
+  }
+
+  .match-row__result--player {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    gap: 4px 12px;
+  }
+
+  .match-row__summary-button--player {
+    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-areas:
+      "main caret"
+      "stats stats"
+      "rosters rosters";
+    row-gap: 12px;
+  }
+
+  .match-row__player-card-stats,
+  .match-row__player-rosters {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .match-row__player-card-stats {
+    padding-top: 12px;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .match-row__player-rosters {
+    padding-top: 12px;
     border-top: 1px solid rgba(154, 169, 202, 0.08);
   }
 }
 
 @media (max-width: 720px) {
   .match-row__summary-button--public {
-    grid-template-columns: minmax(0, 1fr) 24px;
+    grid-template-columns: minmax(0, 1fr) 52px;
     grid-template-areas:
       "meta meta"
       "teams caret";
@@ -1760,6 +2046,20 @@ body {
 
   .match-row__summary-teams {
     grid-template-columns: 1fr;
+  }
+
+  .match-row__player-maincard-top,
+  .match-row__player-rosters {
+    grid-template-columns: 1fr;
+  }
+
+  .match-row__summary-button--player {
+    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-areas:
+      "main caret"
+      "stats stats"
+      "rosters rosters";
+    padding: 12px 14px;
   }
 }
 

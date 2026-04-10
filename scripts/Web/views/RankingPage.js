@@ -91,7 +91,6 @@ function renderRankingPage(model) {
     description: `${PROJECT_DISPLAY_NAME} 전체 플레이어 랭킹`,
     body,
     guildId: model.guildId,
-    shellClassName: "site-shell site-shell--ranking-wide",
   });
 }
 

@@ -242,9 +242,21 @@ function buildItemBuildRows(player) {
   };
 }
 
-function renderCompactPlayer(player) {
+function renderCompactPlayer(player, options = {}) {
+  const variant = options.variant === "summary" ? "summary" : "default";
+  const rowClasses = ["match-row__player"];
+  let itemsHtml = renderIconGroup(player.itemAssets ?? [], "match-row__items");
+
+  if (variant === "summary") {
+    rowClasses.push("match-row__player--summary");
+    itemsHtml = itemsHtml.replace(
+      'class="match-row__items"',
+      'class="match-row__items match-row__items--summary"'
+    );
+  }
+
   return `
-    <li class="match-row__player">
+    <li class="${rowClasses.join(" ")}">
       <div class="match-row__champion-block">
         ${renderAssetImage(
           { imageUrl: player.championImageUrl, name: player.championName },
@@ -264,9 +276,13 @@ function renderCompactPlayer(player) {
         <strong>${escapeHtml(player.kdaText)}</strong>
         <span>딜량 ${escapeHtml(player.damageText)}</span>
       </div>
-      ${renderIconGroup(player.itemAssets ?? [], "match-row__items")}
+      ${itemsHtml}
     </li>
   `;
+}
+
+function normalizeIdentityValue(value) {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 function getFeaturedPlayer(card) {
@@ -282,6 +298,35 @@ function getFeaturedPlayer(card) {
 
     return String(left.name ?? "").localeCompare(String(right.name ?? ""), "ko");
   })[0];
+}
+
+function getPerspectivePlayer(card) {
+  const players = [...(card?.teams?.blue?.players ?? []), ...(card?.teams?.purple?.players ?? [])];
+  if (!players.length) {
+    return null;
+  }
+
+  const perspectivePuuid = normalizeIdentityValue(card?.perspectivePlayerPuuid);
+  if (perspectivePuuid) {
+    const matchedByPuuid = players.find(
+      (player) => normalizeIdentityValue(player?.puuid) === perspectivePuuid
+    );
+    if (matchedByPuuid) {
+      return matchedByPuuid;
+    }
+  }
+
+  const perspectiveName = normalizeIdentityValue(card?.perspectivePlayerName);
+  if (perspectiveName) {
+    const matchedByName = players.find(
+      (player) => normalizeIdentityValue(player?.name) === perspectiveName
+    );
+    if (matchedByName) {
+      return matchedByName;
+    }
+  }
+
+  return null;
 }
 
 function renderSummaryHighlight(card) {
@@ -316,6 +361,178 @@ function renderSummaryHighlight(card) {
       <div class="match-row__summary-highlight-builds">
         ${renderIconGroup(featuredPlayer.itemAssets ?? [], "match-row__items")}
       </div>
+    </div>
+  `;
+}
+
+function renderPlayerPerspectiveSummary(card) {
+  const perspectivePlayer = getPerspectivePlayer(card) ?? getFeaturedPlayer(card);
+  if (!perspectivePlayer) {
+    return `
+      <ul class="match-row__player-list match-row__player-list--summary">
+        <li class="match-row__player match-row__player--empty">
+          <span>표시할 플레이어 데이터가 없습니다.</span>
+        </li>
+      </ul>
+    `;
+  }
+
+  return `
+    <ul class="match-row__player-list match-row__player-list--summary">
+      ${renderCompactPlayer(perspectivePlayer, { variant: "summary" })}
+    </ul>
+  `;
+}
+
+function getMatchDisplayName(card) {
+  return card?.matchName || card?.gameId || `Match #${card?.id ?? "-"}`;
+}
+
+function getPerspectiveTeamKey(card, perspectivePlayer) {
+  if (!perspectivePlayer) {
+    return card?.winningSide === "blue" ? "blue" : "purple";
+  }
+
+  if ((card?.teams?.blue?.players ?? []).includes(perspectivePlayer)) {
+    return "blue";
+  }
+
+  return "purple";
+}
+
+function getPerspectiveSideLabel(card, perspectivePlayer) {
+  return getPerspectiveTeamKey(card, perspectivePlayer) === "blue" ? "blue" : "red";
+}
+
+function getPlayerResultText(card, perspectiveTeamKey) {
+  if (perspectiveTeamKey === "blue" || perspectiveTeamKey === "purple") {
+    return card?.teams?.[perspectiveTeamKey]?.resultText ?? "";
+  }
+
+  return card?.resultText ?? "";
+}
+
+function renderPlayerRosterItem(player, perspectivePlayer) {
+  const itemClasses = ["match-row__player-roster-item"];
+
+  if (player === perspectivePlayer) {
+    itemClasses.push("is-active");
+  }
+
+  return `
+    <li class="${itemClasses.join(" ")}">
+      ${renderAssetImage(
+        { imageUrl: player.championImageUrl, name: player.championName },
+        "match-row__player-roster-image",
+        player.championName?.slice(0, 1)
+      )}
+      <span class="match-row__player-roster-name">${escapeHtml(player.name)}</span>
+    </li>
+  `;
+}
+
+function renderPlayerRoster(players, sideLabel, perspectivePlayer) {
+  return `
+    <ul class="match-row__player-roster-list match-row__player-roster-list--${escapeHtml(sideLabel)}">
+      ${(players ?? [])
+        .map((player) => renderPlayerRosterItem(player, perspectivePlayer))
+        .join("")}
+    </ul>
+  `;
+}
+
+function renderPlayerLayoutSummary(card, context) {
+  const perspectivePlayer = getPerspectivePlayer(card) ?? getFeaturedPlayer(card);
+  const perspectiveTeamKey = getPerspectiveTeamKey(card, perspectivePlayer);
+  const perspectiveSideLabel = getPerspectiveSideLabel(card, perspectivePlayer);
+  const teamMetrics = context.teams[perspectiveSideLabel];
+  const { killParticipation, kdaRatioText } = buildPlayerStatSnapshot(
+    perspectivePlayer,
+    teamMetrics
+  );
+  const resultText = getPlayerResultText(card, perspectiveTeamKey) || card?.resultText || "-";
+
+  if (!perspectivePlayer) {
+    return `
+      <div class="match-row__summary match-row__summary--player-card">
+        <div class="match-row__result match-row__result--player">
+          <span class="match-row__result-mode">${escapeHtml(getMatchDisplayName(card))}</span>
+          <span class="match-row__result-time">${escapeHtml(card.playedAtText || "기록 없음")}</span>
+          <strong>${escapeHtml(resultText)}</strong>
+          <span class="match-row__result-duration">${escapeHtml(card.durationText || "-")}</span>
+        </div>
+        <button
+          type="button"
+          class="match-row__summary-button match-row__summary-button--player"
+          data-match-toggle="${escapeHtml(card.toggleId)}"
+          aria-expanded="false"
+          aria-controls="${escapeHtml(card.detailId)}"
+        >
+          <div class="match-row__player-empty">표시할 플레이어 데이터가 없습니다.</div>
+          <span class="match-row__caret" aria-hidden="true">
+            <span class="match-row__caret-icon"></span>
+          </span>
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="match-row__summary match-row__summary--player-card">
+      <div class="match-row__result match-row__result--player">
+        <span class="match-row__result-mode">${escapeHtml(getMatchDisplayName(card))}</span>
+        <span class="match-row__result-time">${escapeHtml(card.playedAtText || "기록 없음")}</span>
+        <strong>${escapeHtml(resultText)}</strong>
+        <span class="match-row__result-duration">${escapeHtml(card.durationText || "-")}</span>
+      </div>
+      <button
+        type="button"
+        class="match-row__summary-button match-row__summary-button--player"
+        data-match-toggle="${escapeHtml(card.toggleId)}"
+        aria-expanded="false"
+        aria-controls="${escapeHtml(card.detailId)}"
+      >
+        <div class="match-row__player-maincard">
+          <div class="match-row__player-maincard-top">
+            <div class="match-row__champion-block">
+              ${renderAssetImage(
+                { imageUrl: perspectivePlayer.championImageUrl, name: perspectivePlayer.championName },
+                "match-row__champion-image",
+                perspectivePlayer.championName?.slice(0, 1)
+              )}
+              <div class="match-row__spells-runes">
+                ${renderIconGroup(perspectivePlayer.spellAssets ?? [], "match-row__spells")}
+                ${renderPlayerRunes(perspectivePlayer, "match-row__runes")}
+              </div>
+            </div>
+            <div class="match-row__player-maincard-kda">
+              <strong class="match-row__player-maincard-kda-value">${escapeHtml(
+                perspectivePlayer.kdaText
+              )}</strong>
+              <span class="match-row__player-maincard-kda-rating">${escapeHtml(
+                `${kdaRatioText} 평점`
+              )}</span>
+            </div>
+          </div>
+          <div class="match-row__player-maincard-items">
+            ${renderIconGroup(perspectivePlayer.itemAssets ?? [], "match-row__items")}
+          </div>
+        </div>
+        <div class="match-row__player-card-stats">
+          <span>킬관여 ${escapeHtml(killParticipation)}%</span>
+          <span>CS ${escapeHtml(perspectivePlayer.minionScoreText)} (${escapeHtml(
+            perspectivePlayer.csPerMinuteText
+          )})</span>
+          <span>딜량 ${escapeHtml(perspectivePlayer.damageText)}</span>
+        </div>
+        <div class="match-row__player-rosters">
+          ${renderPlayerRoster(card?.teams?.blue?.players ?? [], "blue", perspectivePlayer)}
+          ${renderPlayerRoster(card?.teams?.purple?.players ?? [], "red", perspectivePlayer)}
+        </div>
+        <span class="match-row__caret" aria-hidden="true">
+          <span class="match-row__caret-icon"></span>
+        </span>
+      </button>
     </div>
   `;
 }
@@ -754,18 +971,65 @@ function renderMatchDetailShell(card, options = {}) {
 }
 
 function renderMatchCard(card, options = {}) {
-  const { showResult = true, showSummaryHighlight = true } = options;
+  const {
+    showResult = true,
+    showSummaryHighlight = true,
+    layout = "default",
+  } = options;
   const context = buildScoreboardContext(card);
   const resultTone = card?.resultTone ?? card?.winningSide;
   const resultText =
     card?.resultText ?? card?.teams?.[card?.winningSide]?.resultText ?? "";
+  const isPlayerLayout = layout === "player";
+  const articleClasses = [
+    "match-row",
+    `match-row--${escapeHtml(resultTone)}`,
+  ];
+  const summaryClasses = ["match-row__summary"];
+  const buttonClasses = ["match-row__summary-button"];
+
+  if (isPlayerLayout) {
+    articleClasses.push("match-row--player");
+    buttonClasses.push("match-row__summary-button--player");
+  }
+
+  if (!showResult) {
+    summaryClasses.push("match-row__summary--public");
+  }
+
+  if (!showSummaryHighlight) {
+    buttonClasses.push("match-row__summary-button--public");
+  }
+
+  if (isPlayerLayout) {
+    return `
+      <article class="${articleClasses.join(" ")}" data-match-row="${escapeHtml(card.id)}">
+        ${renderPlayerLayoutSummary(card, context)}
+        ${renderMatchDetailSection(card, { mode: "compact" })}
+      </article>
+    `;
+  }
+
+  const summaryBody = isPlayerLayout
+    ? renderPlayerPerspectiveSummary(card)
+    : `
+          <div class="match-row__summary-teams${showSummaryHighlight ? "" : " match-row__summary-teams--public"}">
+            ${renderSummaryTeamCard(context.teamLeaders.blue, "blue", context)}
+            ${renderSummaryTeamCard(context.teamLeaders.red, "red", context)}
+          </div>
+          ${showSummaryHighlight ? `
+            <div class="match-row__summary-builds">
+              ${renderSummaryHighlight(card)}
+            </div>
+          ` : ""}
+        `;
 
   return `
-    <article class="match-row match-row--${escapeHtml(resultTone)}" data-match-row="${escapeHtml(card.id)}">
+    <article class="${articleClasses.join(" ")}" data-match-row="${escapeHtml(card.id)}">
       <div class="match-row__actions">
         <a class="match-row__detail-link" href="${escapeHtml(card.href ?? `/matches/${card.id}`)}">상세 보기</a>
       </div>
-      <div class="match-row__summary${showResult ? "" : " match-row__summary--public"}">
+      <div class="${summaryClasses.join(" ")}">
         ${showResult ? `
           <div class="match-row__result">
             <strong>${escapeHtml(resultText)}</strong>
@@ -774,7 +1038,7 @@ function renderMatchCard(card, options = {}) {
         ` : ""}
         <button
           type="button"
-          class="match-row__summary-button${showSummaryHighlight ? "" : " match-row__summary-button--public"}"
+          class="${buttonClasses.join(" ")}"
           data-match-toggle="${escapeHtml(card.toggleId)}"
           aria-expanded="false"
           aria-controls="${escapeHtml(card.detailId)}"
@@ -785,15 +1049,7 @@ function renderMatchCard(card, options = {}) {
             <span>${escapeHtml(card.gameId || "Custom Match")}</span>
             ${card.playedAtText ? `<span class="match-row__played-at">${escapeHtml(card.playedAtText)}</span>` : ""}
           </div>
-          <div class="match-row__summary-teams${showSummaryHighlight ? "" : " match-row__summary-teams--public"}">
-            ${renderSummaryTeamCard(context.teamLeaders.blue, "blue", context)}
-            ${renderSummaryTeamCard(context.teamLeaders.red, "red", context)}
-          </div>
-          ${showSummaryHighlight ? `
-            <div class="match-row__summary-builds">
-              ${renderSummaryHighlight(card)}
-            </div>
-          ` : ""}
+          ${summaryBody}
           <span class="match-row__caret" aria-hidden="true">
             <span class="match-row__caret-icon"></span>
           </span>

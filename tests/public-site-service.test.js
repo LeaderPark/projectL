@@ -690,3 +690,52 @@ test("public site handlers render a match detail page and return null for unknow
   assert.match(matchHtml, /승리/);
   assert.match(matchHtml, /패배/);
 });
+
+test("public site handlers return a player refresh redirect result with the refresh status", async () => {
+  const refreshCalls = [];
+  const site = createPublicSiteHandlers({
+    preferredGuildId: "guild-1",
+    async getChampionNameMap() {
+      return {};
+    },
+    async getRiotAssetManifest() {
+      return buildAssetManifest();
+    },
+    async refreshPlayerRiotIdentity(guildId, discordId) {
+      refreshCalls.push({ guildId, discordId });
+      return {
+        success: true,
+        status: "updated",
+      };
+    },
+    async getPublicSiteSummary() {
+      throw new Error("not used");
+    },
+    async getPublicLeaderboard() {
+      throw new Error("not used");
+    },
+    async getPublicMatchHistory() {
+      throw new Error("not used");
+    },
+    async getPublicMatchById() {
+      throw new Error("not used");
+    },
+    async getPublicPlayerProfile() {
+      throw new Error("not used");
+    },
+    async getLatestMatched() {
+      throw new Error("not used");
+    },
+    async searchPublicPlayers() {
+      throw new Error("not used");
+    },
+  });
+
+  const result = await site.handlePlayerRiotIdentityRefresh("guild-1", "discord-1");
+
+  assert.deepEqual(refreshCalls, [{ guildId: "guild-1", discordId: "discord-1" }]);
+  assert.deepEqual(result, {
+    statusCode: 303,
+    location: "/guild-1/players/discord-1?refresh=updated",
+  });
+});

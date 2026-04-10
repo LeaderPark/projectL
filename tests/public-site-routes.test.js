@@ -6,7 +6,7 @@ const path = require("node:path");
 const { createCallbackServer } = require("../scripts/Web/CallbackServer");
 const { createPublicSiteRouter } = require("../scripts/Web/PublicSiteRouter");
 
-function requestServer(server, requestPath) {
+function requestServer(server, requestPath, options = {}) {
   return new Promise((resolve, reject) => {
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
@@ -15,7 +15,7 @@ function requestServer(server, requestPath) {
           host: "127.0.0.1",
           port: address.port,
           path: requestPath,
-          method: "GET",
+          method: options.method ?? "GET",
         },
         (res) => {
           let body = "";
@@ -65,12 +65,12 @@ function createTestServer() {
 
       return `<main>경기 상세 ${serverId} ${matchId}</main>`;
     },
-    async renderPlayerPage(serverId, discordId) {
+    async renderPlayerPage(serverId, discordId, refreshStatus) {
       if (discordId === "missing") {
         return null;
       }
 
-      return `<main>${serverId} Alpha</main>`;
+      return `<main>${serverId} Alpha ${refreshStatus ?? ""}</main>`;
     },
     async searchPlayers(serverId, query) {
       return [{ discordId: "1", name: `${serverId}:Alpha:${query}` }];
@@ -252,4 +252,69 @@ test("router serves the guild-scoped ranking page", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.match(response.body, /전체 랭킹 123456789/);
+});
+
+test("router passes the refresh status query parameter into the player page renderer", async () => {
+  const response = await requestServer(
+    createTestServer(),
+    "/123456789/players/1?refresh=updated"
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.match(response.body, /updated/);
+});
+
+test("router redirects player riot-name refresh POST requests back to the player page", async () => {
+  const publicSiteRouter = createPublicSiteRouter({
+    assetsDir: path.join(process.cwd(), "public"),
+    async renderLandingPage() {
+      throw new Error("not used");
+    },
+    async renderHomePage() {
+      throw new Error("not used");
+    },
+    async renderMatchesPage() {
+      throw new Error("not used");
+    },
+    async renderRankingPage() {
+      throw new Error("not used");
+    },
+    async renderMatchDetailPage() {
+      throw new Error("not used");
+    },
+    async renderPlayerPage() {
+      throw new Error("not used");
+    },
+    async handlePlayerRiotIdentityRefresh() {
+      return {
+        statusCode: 303,
+        location: "/123456789/players/1?refresh=updated",
+      };
+    },
+    async searchPlayers() {
+      throw new Error("not used");
+    },
+    renderNotFoundPage({ title, description }) {
+      return `<main>${title} - ${description}</main>`;
+    },
+  });
+
+  const server = createCallbackServer({
+    callbackPath: "/riot/callback",
+    sessionStore: {
+      async markCompletedPendingGather() {
+        return { success: true };
+      },
+    },
+    publicSiteRouter,
+  });
+
+  const response = await requestServer(
+    server,
+    "/123456789/players/1/refresh-riot-accounts",
+    { method: "POST" }
+  );
+
+  assert.equal(response.statusCode, 303);
+  assert.equal(response.headers.location, "/123456789/players/1?refresh=updated");
 });

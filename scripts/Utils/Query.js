@@ -21,6 +21,7 @@ function buildErrorResult(error, fallbackMessage) {
 }
 
 const EMPTY_JSON_OBJECT = "{}";
+const EMPTY_JSON_ARRAY = "[]";
 
 function buildInClausePlaceholders(length) {
   return Array.from({ length }, () => "?").join(",");
@@ -135,6 +136,52 @@ async function listLinkedRiotAccountsWithExecutor(executor, discordId) {
   return rows;
 }
 
+const listRefreshableRiotAccounts = async (guildId, discordId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const rows = await listLinkedRiotAccountsWithExecutor(promisePool, discordId);
+
+    return {
+      success: true,
+      data: rows.map((row) => ({
+        id: Number(row.id),
+        discordId: String(row.discord_id ?? ""),
+        puuid: String(row.puuid ?? ""),
+        riotGameName: String(row.riot_game_name ?? ""),
+        riotTagLine: String(row.riot_tag_line ?? ""),
+        isPrimary: Number(row.is_primary) === 1,
+      })),
+    };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "새로고침 가능한 롤 계정을 불러오는 중 오류가 발생했습니다."
+    );
+  }
+};
+
+const updateRiotAccountDisplayName = async (
+  guildId,
+  accountId,
+  discordId,
+  { riotGameName, riotTagLine }
+) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    await promisePool.query(
+      `UPDATE riot_accounts SET riot_game_name = ?, riot_tag_line = ? WHERE id = ? AND discord_id = ?`,
+      [riotGameName, riotTagLine, accountId, discordId]
+    );
+
+    return { success: true };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "롤 계정 표시 이름을 갱신하는 중 오류가 발생했습니다."
+    );
+  }
+};
+
 async function syncPrimaryRiotAccountNameWithExecutor(executor, discordId) {
   const [rows] = await executor.query(
     `SELECT riot_game_name, riot_tag_line
@@ -167,6 +214,18 @@ async function syncPrimaryRiotAccountNameWithExecutor(executor, discordId) {
     },
   };
 }
+
+const syncRepresentativeRiotName = async (guildId, discordId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    return await syncPrimaryRiotAccountNameWithExecutor(promisePool, discordId);
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "대표 롤 아이디 이름을 동기화하는 중 오류가 발생했습니다."
+    );
+  }
+};
 
 function buildGetUsersDataSql(ids) {
   return `SELECT discord_id, name, mmr FROM user WHERE discord_id IN (${buildInClausePlaceholders(
@@ -270,6 +329,9 @@ async function getLinkedMatchIdentitiesForUser(executor, discordId) {
         .map((row) => normalizeIdentityValue(row?.player_name))
         .filter((value) => value.length > 0)
     ),
+    rawNames: rows
+      .map((row) => String(row?.player_name ?? "").trim())
+      .filter((value) => value.length > 0),
   };
 }
 
@@ -303,21 +365,27 @@ function buildPerspectiveResultMetadata(matchRow, linkedIdentities) {
     players: [],
     result: 0,
   });
-
-  const playerIsOnBlue = Array.isArray(blueTeam.players)
-    ? blueTeam.players.some((player) => matchesLinkedIdentity(player, linkedIdentities))
-    : false;
-  const playerIsOnPurple =
-    !playerIsOnBlue && Array.isArray(purpleTeam.players)
-      ? purpleTeam.players.some((player) =>
+  const matchedBluePlayer = Array.isArray(blueTeam.players)
+    ? blueTeam.players.find((player) => matchesLinkedIdentity(player, linkedIdentities))
+    : null;
+  const matchedPurplePlayer =
+    !matchedBluePlayer && Array.isArray(purpleTeam.players)
+      ? purpleTeam.players.find((player) =>
           matchesLinkedIdentity(player, linkedIdentities)
         )
-      : false;
+      : null;
+
+  const playerIsOnBlue = Boolean(matchedBluePlayer);
+  const playerIsOnPurple = Boolean(matchedPurplePlayer);
 
   if (!playerIsOnBlue && !playerIsOnPurple) {
     return {};
   }
 
+  const matchedPlayer = matchedBluePlayer ?? matchedPurplePlayer;
+  const preferredLinkedName = Array.isArray(linkedIdentities?.rawNames)
+    ? linkedIdentities.rawNames.find((value) => value.length > 0)
+    : "";
   const playerWon = playerIsOnBlue
     ? Number(blueTeam.result) === 1
     : Number(purpleTeam.result) === 1;
@@ -325,6 +393,9 @@ function buildPerspectiveResultMetadata(matchRow, linkedIdentities) {
   return {
     player_result_text: playerWon ? "승리" : "패배",
     player_result_tone: playerWon ? "blue" : "red",
+    perspective_player_puuid: String(matchedPlayer?.puuid ?? "").trim() || undefined,
+    perspective_player_name:
+      String(matchedPlayer?.playerName ?? "").trim() || preferredLinkedName || undefined,
   };
 }
 
@@ -1091,6 +1162,77 @@ function parseDiscordIdList(raw) {
   }
 }
 
+function parseFearlessChampionList(raw) {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed
+          .map((value) => String(value ?? "").trim())
+          .filter((value) => value.length > 0)
+      : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function mapTournamentSessionRow(guildId, row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    guildId,
+    tournamentCode: row.tournament_code,
+    providerId: row.provider_id,
+    tournamentId: row.tournament_id,
+    sourceChannelId: row.source_channel_id,
+    team1ChannelId: row.team1_channel_id,
+    team2ChannelId: row.team2_channel_id,
+    unityVoiceChannelId: row.unity_voice_channel_id,
+    team1DiscordIds: parseDiscordIdList(row.team1_discord_ids),
+    team2DiscordIds: parseDiscordIdList(row.team2_discord_ids),
+    status: row.status,
+    lastEventAt: row.last_event_at,
+    resultStatus: row.result_status,
+    resultGameId: row.result_game_id,
+    resultPayload: row.result_payload,
+    resultAttempts: row.result_attempts,
+    resultError: row.result_error,
+    seriesMode: row.series_mode ?? "STANDARD",
+    seriesGameNumber: Number(row.series_game_number ?? 1),
+    fearlessUsedChampions: parseFearlessChampionList(
+      row.fearless_used_champions
+    ),
+  };
+}
+
+const getLatestTournamentSession = async (guildId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    const [rows] = await promisePool.query(
+      `SELECT *
+       FROM active_tournament_sessions
+       ORDER BY id DESC
+       LIMIT 1`
+    );
+
+    return {
+      success: true,
+      data: rows.length ? mapTournamentSessionRow(guildId, rows[0]) : null,
+    };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "가장 최근 토너먼트 세션을 불러오는 중 오류가 발생했습니다."
+    );
+  }
+};
+
 const replaceActiveTournamentSession = async (guildId, session) => {
   try {
     const validationError = validateTournamentSession(session);
@@ -1108,8 +1250,8 @@ const replaceActiveTournamentSession = async (guildId, session) => {
 
     const [result] = await promisePool.query(
       `INSERT INTO active_tournament_sessions
-       (tournament_code, provider_id, tournament_id, source_channel_id, team1_channel_id, team2_channel_id, unity_voice_channel_id, team1_discord_ids, team2_discord_ids, status, last_event_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (tournament_code, provider_id, tournament_id, source_channel_id, team1_channel_id, team2_channel_id, unity_voice_channel_id, team1_discord_ids, team2_discord_ids, status, last_event_at, series_mode, series_game_number, fearless_used_champions)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         session.tournamentCode,
         session.providerId ?? null,
@@ -1122,6 +1264,9 @@ const replaceActiveTournamentSession = async (guildId, session) => {
         JSON.stringify(session.team2DiscordIds ?? []),
         session.status ?? "LOBBY",
         session.lastEventAt ?? null,
+        session.seriesMode ?? "STANDARD",
+        Number(session.seriesGameNumber ?? 1),
+        JSON.stringify(session.fearlessUsedChampions ?? []),
       ]
     );
 
@@ -1144,26 +1289,7 @@ const listPendingTournamentSessions = async (guildId) => {
 
     return {
       success: true,
-      data: rows.map((row) => ({
-        id: row.id,
-        guildId,
-        tournamentCode: row.tournament_code,
-        providerId: row.provider_id,
-        tournamentId: row.tournament_id,
-        sourceChannelId: row.source_channel_id,
-        team1ChannelId: row.team1_channel_id,
-        team2ChannelId: row.team2_channel_id,
-        unityVoiceChannelId: row.unity_voice_channel_id,
-        team1DiscordIds: parseDiscordIdList(row.team1_discord_ids),
-        team2DiscordIds: parseDiscordIdList(row.team2_discord_ids),
-        status: row.status,
-        lastEventAt: row.last_event_at,
-        resultStatus: row.result_status,
-        resultGameId: row.result_game_id,
-        resultPayload: row.result_payload,
-        resultAttempts: row.result_attempts,
-        resultError: row.result_error,
-      })),
+      data: rows.map((row) => mapTournamentSessionRow(guildId, row)),
     };
   } catch (error) {
     return buildErrorResult(error, "활성 토너먼트 세션을 불러오는 중 오류가 발생했습니다.");
@@ -1318,6 +1444,32 @@ const updateTournamentSessionResult = async (guildId, sessionId, updates) => {
   }
 };
 
+const updateTournamentSessionFearlessState = async (
+  guildId,
+  sessionId,
+  updates
+) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    await promisePool.query(
+      `UPDATE active_tournament_sessions
+       SET fearless_used_champions = ?
+       WHERE id = ?`,
+      [
+        JSON.stringify(updates.fearlessUsedChampions ?? JSON.parse(EMPTY_JSON_ARRAY)),
+        sessionId,
+      ]
+    );
+
+    return { success: true };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "하드 피어리스 챔피언 상태를 갱신하는 중 오류가 발생했습니다."
+    );
+  }
+};
+
 module.exports = {
   buildPublicLeaderboardSql,
   buildPublicMatchByIdSql,
@@ -1331,6 +1483,7 @@ module.exports = {
   getPublicPlayerProfile,
   getPublicSiteSummary,
   getLatestMatched,
+  getLatestTournamentSession,
   getRankData,
   getUserData,
   getUsersData,
@@ -1342,11 +1495,15 @@ module.exports = {
   registraion,
   searchPublicPlayers,
   setPrimaryRiotAccount,
+  listRefreshableRiotAccounts,
   markTournamentSessionCompletedPendingGather,
   markTournamentSessionResultPending,
   replaceActiveTournamentSession,
   resolveUsersByPuuids,
+  syncRepresentativeRiotName,
   updateTournamentSessionStatus,
   updateTournamentSessionResult,
+  updateTournamentSessionFearlessState,
+  updateRiotAccountDisplayName,
   updateUserData,
 };

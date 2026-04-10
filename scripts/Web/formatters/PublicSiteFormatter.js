@@ -166,6 +166,7 @@ function normalizePlayer(player, options = {}) {
   const itemIds = buildItemIds(player?.inventory);
 
   return {
+    puuid: player?.puuid ?? "",
     name: player?.playerName ?? "알 수 없음",
     championName: translateChampionName(player?.championName),
     championImageUrl: championAsset?.imageUrl ?? "",
@@ -256,6 +257,7 @@ function formatMatchCard(matchRow, options = {}) {
     href: `/matches/${matchId}`,
     toggleId: `match-${matchId}-toggle`,
     detailId: `match-${matchId}-detail`,
+    matchName: matchRow?.game_name ?? matchRow?.game_id ?? "",
     gameId: matchRow?.game_id ?? "",
     durationText: formatDuration(matchRow?.game_length),
     playedAtText: formatPlayedAtText(matchRow?.played_at_kst),
@@ -267,6 +269,8 @@ function formatMatchCard(matchRow, options = {}) {
         ? rawResultTone
         : winningSide,
     winningSide,
+    perspectivePlayerPuuid: String(matchRow?.perspective_player_puuid ?? "").trim(),
+    perspectivePlayerName: String(matchRow?.perspective_player_name ?? "").trim(),
     tabs: MATCH_DETAIL_TABS,
     teams: {
       blue: buildTeamSummary(

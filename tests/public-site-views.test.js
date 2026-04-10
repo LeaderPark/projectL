@@ -461,6 +461,32 @@ test("renderMatchesPage renders OP.GG-style team sections with public result lab
   assert.match(html, /전체 전적 타임라인/);
 });
 
+test("renderMatchesPage renders a dedicated empty state when there are no matches", () => {
+  const html = renderMatchesPage({
+    guildId: "123456789",
+    cards: [],
+  });
+
+  assert.match(html, /전체 경기/);
+  assert.match(html, /전체 전적 타임라인/);
+  assert.match(html, /class="match-feed match-feed--empty"/);
+  assert.match(html, /class="panel-empty-state"/);
+  assert.match(html, /아직 집계된 경기가 없어요\./);
+});
+
+test("match timeline empty-state styles reserve space for the panel body", () => {
+  const css = fs.readFileSync("public/site.css", "utf8");
+
+  assert.match(
+    css,
+    /\.match-feed--empty\s*\{[\s\S]*min-height:\s*220px;/
+  );
+  assert.match(
+    css,
+    /\.panel-empty-state\s*\{[\s\S]*display:\s*grid;[\s\S]*place-items:\s*center;[\s\S]*text-align:\s*center;/
+  );
+});
+
 test("renderRankingPage renders the full public ranking table", () => {
   const html = renderRankingPage({
     guildId: "123456789",
@@ -502,7 +528,8 @@ test("renderRankingPage renders the full public ranking table", () => {
   assert.match(html, /\/123456789\/players\/1/);
   assert.match(html, /\/123456789\/players\/2/);
   assert.match(html, /\/123456789\/ranking/);
-  assert.match(html, /class="site-shell site-shell--ranking-wide"/);
+  assert.match(html, /class="site-shell"/);
+  assert.doesNotMatch(html, /site-shell--ranking-wide/);
   assert.match(
     html,
     /class="ranking-table__row ranking-table__row--top-1"[\s\S]*class="ranking-table__rank-badge ranking-table__rank-badge--top-1"[\s\S]*1/
@@ -520,17 +547,18 @@ test("renderRankingPage renders the full public ranking table", () => {
   assert.match(html, /class="ranking-table__rank-cell">#4<\/td>/);
 });
 
-test("ranking page styles widen the shell on desktop while keeping mobile gutters", () => {
+test("ranking page styles reuse the shared shell gutters", () => {
   const css = fs.readFileSync("public/site.css", "utf8");
 
   assert.match(
     css,
-    /\.site-shell--ranking-wide\s*\{[\s\S]*width:\s*calc\(100%\s*-\s*28px\);[\s\S]*max-width:\s*none;/
+    /\.site-shell\s*\{[\s\S]*width:\s*min\(1360px,\s*calc\(100%\s*-\s*28px\)\);/
   );
   assert.match(
     css,
-    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.site-shell--ranking-wide\s*\{[\s\S]*width:\s*calc\(100%\s*-\s*18px\);/
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.site-shell\s*\{[\s\S]*width:\s*min\(100%\s*-\s*18px,\s*1360px\);/
   );
+  assert.doesNotMatch(css, /\.site-shell--ranking-wide\s*\{/);
   assert.match(
     css,
     /\.ranking-table__row--top-1\s*\{[\s\S]*linear-gradient/
@@ -644,9 +672,77 @@ test("renderMatchCard uses the player perspective result when one is provided", 
   );
 });
 
+test("renderMatchCard exposes an op.gg-style player-page layout variant", () => {
+  const html = renderMatchCard({
+    ...sampleCard,
+    perspectivePlayerPuuid: "puuid-charlie",
+    perspectivePlayerName: "테스트 찰리",
+    teams: {
+      ...sampleCard.teams,
+      blue: {
+        ...sampleCard.teams.blue,
+        players: sampleCard.teams.blue.players.map((player) =>
+          player.name === "테스트 찰리"
+            ? { ...player, puuid: "puuid-charlie" }
+            : { ...player, puuid: `puuid-${player.name}` }
+        ),
+      },
+      purple: {
+        ...sampleCard.teams.purple,
+        players: sampleCard.teams.purple.players.map((player) => ({
+          ...player,
+          puuid: `puuid-${player.name}`,
+        })),
+      },
+    },
+  }, {
+    layout: "player",
+  });
+  const summaryHtml =
+    html.match(/<div class="match-row__summary match-row__summary--player-card">[\s\S]*?<\/div>\s*<section/)?.[0] ??
+    "";
+
+  assert.match(html, /class="match-row match-row--blue match-row--player"/);
+  assert.match(html, /class="match-row__summary match-row__summary--player-card"/);
+  assert.match(html, /class="match-row__result match-row__result--player"/);
+  assert.match(html, /class="match-row__result-mode">DEMO-KR-001<\/span>/);
+  assert.match(html, /class="match-row__result-time">2026\.04\.07 20:10<\/span>/);
+  assert.match(html, /<strong>승리<\/strong>/);
+  assert.match(html, /class="match-row__result-duration">30:50<\/span>/);
+  assert.match(
+    html,
+    /class="match-row__summary-button match-row__summary-button--player"/
+  );
+  assert.match(summaryHtml, /class="match-row__player-maincard"/);
+  assert.match(summaryHtml, /class="match-row__player-card-stats"/);
+  assert.match(summaryHtml, /class="match-row__player-maincard-kda"/);
+  assert.match(summaryHtml, /class="match-row__player-maincard-kda-value">9\/2\/7<\/strong>/);
+  assert.match(summaryHtml, /class="match-row__player-maincard-kda-rating">8\.00:1 평점<\/span>/);
+  assert.match(summaryHtml, /class="match-row__player-rosters"/);
+  assert.match(summaryHtml, /class="match-row__player-roster-list match-row__player-roster-list--blue"/);
+  assert.match(summaryHtml, /class="match-row__player-roster-list match-row__player-roster-list--red"/);
+  assert.match(summaryHtml, /class="match-row__player-roster-item is-active"[\s\S]*테스트 찰리/);
+  assert.match(summaryHtml, /테스트 인디아/);
+  assert.match(summaryHtml, /킬관여 57%/);
+  assert.match(summaryHtml, /CS 236 \(7\.65\)/);
+  assert.match(summaryHtml, /딜량 36,200/);
+  assert.doesNotMatch(summaryHtml, /class="match-row__player-name">테스트 찰리<\/strong>/);
+  assert.doesNotMatch(summaryHtml, /Ahri · 미드 · Lv\.18/);
+  assert.doesNotMatch(summaryHtml, /<div class="match-row__player-card-stats">[\s\S]*8\.00:1 평점/);
+  assert.doesNotMatch(summaryHtml, /MVP/);
+  assert.doesNotMatch(summaryHtml, /ACE/);
+  assert.doesNotMatch(summaryHtml, /match-row__summary-team/);
+  assert.doesNotMatch(summaryHtml, /match-row__summary-highlight/);
+  assert.doesNotMatch(summaryHtml, /class="match-row__meta"/);
+  assert.doesNotMatch(summaryHtml, /상세 보기/);
+  assert.doesNotMatch(summaryHtml, />내전</);
+  assert.doesNotMatch(summaryHtml, /match-row__player-roster-label/);
+});
+
 test("renderPlayerPage renders profile stats, champion rows, and recent matches", () => {
   const html = renderPlayerPage({
     guildId: "123456789",
+    refreshStatus: "updated",
     profile: {
       discordId: "1",
       name: "Alpha",
@@ -662,8 +758,33 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
       preferredLanes: [{ name: "MIDDLE", recordText: "5승 2패" }],
       friends: [{ name: "Bravo", recordText: "4승 1패" }],
     },
-    recentMatches: [sampleCard],
+    recentMatches: [{
+      ...sampleCard,
+      perspectivePlayerPuuid: "puuid-charlie",
+      perspectivePlayerName: "테스트 찰리",
+      teams: {
+        ...sampleCard.teams,
+        blue: {
+          ...sampleCard.teams.blue,
+          players: sampleCard.teams.blue.players.map((player) =>
+            player.name === "테스트 찰리"
+              ? { ...player, puuid: "puuid-charlie" }
+              : { ...player, puuid: `puuid-${player.name}` }
+          ),
+        },
+        purple: {
+          ...sampleCard.teams.purple,
+          players: sampleCard.teams.purple.players.map((player) => ({
+            ...player,
+            puuid: `puuid-${player.name}`,
+          })),
+        },
+      },
+    }],
   });
+  const summaryHtml =
+    html.match(/<div class="match-row__summary match-row__summary--player-card">[\s\S]*?<\/div>\s*<section/)?.[0] ??
+    "";
 
   assert.match(html, /Alpha/);
   assert.match(html, /<title>마법공학 분류모자<\/title>/);
@@ -672,6 +793,10 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   assert.match(html, /주 챔피언/);
   assert.match(html, /최근 경기/);
   assert.match(html, /등록된 롤 닉네임/);
+  assert.match(html, /닉네임 새로고침/);
+  assert.match(html, /method="POST"/);
+  assert.match(html, /action="\/123456789\/players\/1\/refresh-riot-accounts"/);
+  assert.match(html, /라이엇 닉네임을 최신 상태로 업데이트했어요\./);
   assert.match(html, /Alpha#KR1/);
   assert.match(html, /Bravo#JP1/);
   assert.match(html, /2026\.04\.07 20:10/);
@@ -679,17 +804,51 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   assert.match(html, /Bravo/);
   assert.match(html, /승리/);
   assert.match(html, /패배/);
-  assert.match(html, /\/123456789\/matches\/1/);
   assert.match(html, /player-summary-hero/);
   assert.match(html, /player-summary-hero__stats/);
+  assert.match(html, /match-row--player/);
+  assert.match(html, /match-row__summary-button--player/);
+  assert.match(html, /data-match-toggle="match-1-toggle"/);
+  assert.match(summaryHtml, /class="match-row__result-mode">DEMO-KR-001<\/span>/);
+  assert.match(summaryHtml, /class="match-row__result-time">2026\.04\.07 20:10<\/span>/);
+  assert.match(summaryHtml, /class="match-row__player-maincard"/);
+  assert.match(summaryHtml, /class="match-row__player-card-stats"/);
+  assert.match(summaryHtml, /class="match-row__player-maincard-kda"/);
+  assert.match(summaryHtml, /class="match-row__player-rosters"/);
   assert.match(
     html,
     /player-page__shell[\s\S]*player-page__main[\s\S]*최근 경기[\s\S]*player-page__sidebar[\s\S]*주 챔피언[\s\S]*함께 잘 맞는 팀원[\s\S]*선호 라인/
   );
-  assert.match(html, /match-row__summary-highlight/);
+  assert.doesNotMatch(summaryHtml, /MVP/);
+  assert.doesNotMatch(summaryHtml, /ACE/);
+  assert.doesNotMatch(summaryHtml, /match-row__summary-highlight/);
+  assert.doesNotMatch(summaryHtml, /상세 보기/);
+  assert.doesNotMatch(summaryHtml, />내전</);
   assert.doesNotMatch(html, /MMR/);
   assert.doesNotMatch(html, /ProjectL/);
   assert.doesNotMatch(html, /1,650/);
+});
+
+test("renderPlayerPage renders the throttled refresh banner", () => {
+  const html = renderPlayerPage({
+    guildId: "123456789",
+    refreshStatus: "throttled",
+    profile: {
+      discordId: "1",
+      name: "Alpha",
+      recordText: "6승 4패",
+      winRateText: "60%",
+      averageKdaText: "6.00",
+      averageKillRateText: "64%",
+      linkedRiotAccounts: [],
+      favoriteChampions: [],
+      preferredLanes: [],
+      friends: [],
+    },
+    recentMatches: [],
+  });
+
+  assert.match(html, /5분 후에 다시 시도해 주세요\./);
 });
 
 test("player page styles keep the stat cards in a dedicated two-column grid", () => {
@@ -710,6 +869,66 @@ test("player page styles keep the stat cards in a dedicated two-column grid", ()
   assert.match(
     css,
     /\.player-page__sidebar-sections\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*18px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary--player-card\s*\{[\s\S]*grid-template-columns:\s*116px\s+minmax\(0,\s*1fr\);[\s\S]*min-height:\s*104px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__result--player\s*\{[\s\S]*padding:\s*10px\s+12px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary-button--player\s*\{[\s\S]*grid-template-columns:\s*minmax\(240px,\s*1\.15fr\)\s+120px\s+minmax\(220px,\s*0\.95fr\)\s+32px;[\s\S]*min-height:\s*104px;[\s\S]*padding:\s*10px\s+14px\s+10px\s+16px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-maincard\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*8px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-maincard-kda\s*\{[\s\S]*display:\s*grid;[\s\S]*align-content:\s*center;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-maincard-kda-value\s*\{[\s\S]*font-size:\s*1\.08rem;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-maincard-kda-rating\s*\{[\s\S]*font-size:\s*0\.76rem;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-card-stats\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*2px;[\s\S]*justify-items:\s*end;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-rosters\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-roster-list\s*\{[\s\S]*gap:\s*2px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-roster-item\s*\{[\s\S]*padding:\s*1px\s+4px;[\s\S]*font-size:\s*0\.74rem;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-maincard-top\s*\{[\s\S]*grid-template-columns:\s*106px\s+minmax\(0,\s*1fr\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary-button--player\s+\.match-row__caret\s*\{[\s\S]*margin:\s*0;/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-roster-item\.is-active\s*\{[\s\S]*background:\s*rgba\(83,\s*131,\s*255,\s*0\.16\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__player-card-stats,\s*\.match-row__player-rosters\s*\{[\s\S]*border-left:\s*1px solid rgba\(154,\s*169,\s*202,\s*0\.08\);/
   );
 });
 
@@ -833,19 +1052,19 @@ test("public match summary styles drop the left result strip and distribute team
   );
   assert.match(
     css,
-    /\.match-row__summary-button\s*\{[\s\S]*grid-template-columns:\s*minmax\(420px,\s*0\.95fr\)\s+minmax\(280px,\s*1\.05fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta caret"\s*"teams builds caret";/
+    /\.match-row__summary-button\s*\{[\s\S]*grid-template-columns:\s*minmax\(420px,\s*0\.95fr\)\s+minmax\(280px,\s*1\.05fr\)\s+52px;[\s\S]*grid-template-areas:\s*"meta meta caret"[\s\S]*"teams builds caret";/
   );
   assert.match(
     css,
-    /\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta"\s*"teams caret";/
+    /\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+52px;[\s\S]*grid-template-areas:\s*"meta meta"[\s\S]*"teams caret";/
   );
   assert.match(
     css,
-    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta"\s*"teams caret";/
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+52px;[\s\S]*grid-template-areas:\s*"meta meta"[\s\S]*"teams caret";/
   );
   assert.match(
     css,
-    /\.match-row__caret\s*\{[\s\S]*width:\s*24px;[\s\S]*height:\s*24px;/
+    /\.match-row__caret\s*\{[\s\S]*justify-self:\s*center;[\s\S]*align-self:\s*center;[\s\S]*width:\s*24px;[\s\S]*height:\s*24px;[\s\S]*margin-right:\s*0;/
   );
   assert.match(
     css,

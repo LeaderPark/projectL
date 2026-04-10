@@ -23,10 +23,32 @@ function renderLinkedRiotAccountRows(accounts = []) {
     .join("");
 }
 
+function buildRefreshMessage(refreshStatus) {
+  const messages = {
+    updated: "라이엇 닉네임을 최신 상태로 업데이트했어요.",
+    unchanged: "변경된 라이엇 닉네임이 없어요.",
+    partial: "일부 계정만 최신 닉네임으로 업데이트했어요.",
+    failed: "라이엇 닉네임을 갱신하지 못했어요.",
+    throttled: "5분 후에 다시 시도해 주세요.",
+  };
+
+  return messages[String(refreshStatus ?? "").trim()] ?? "";
+}
+
 function renderPlayerPage(model) {
   const { profile } = model;
+  const refreshMessage = buildRefreshMessage(model.refreshStatus);
   const body = `
     <main class="page page--player">
+      ${
+        refreshMessage
+          ? `
+      <section class="panel player-page__refresh-banner">
+        <p>${escapeHtml(refreshMessage)}</p>
+      </section>
+      `
+          : ""
+      }
       <section class="player-summary-hero player-hero">
         <div class="player-summary-hero__identity">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Player</p>
@@ -50,7 +72,7 @@ function renderPlayerPage(model) {
                 renderMatchCard({
                   ...card,
                   href: buildGuildPath(model.guildId, `/matches/${card.id}`),
-                }, { showResult: true })
+                }, { showResult: true, layout: "player" })
               )
               .join("")}
           </div>
@@ -63,6 +85,16 @@ function renderPlayerPage(model) {
           <div class="player-page__sidebar-sections">
             <section class="player-page__sidebar-section">
               <h3>등록된 롤 닉네임</h3>
+              <form
+                class="player-page__refresh-form"
+                method="POST"
+                action="${buildGuildPath(
+                  model.guildId,
+                  `/players/${profile.discordId}/refresh-riot-accounts`
+                )}"
+              >
+                <button type="submit">닉네임 새로고침</button>
+              </form>
               <ul class="simple-list">
                 ${renderLinkedRiotAccountRows(profile.linkedRiotAccounts)}
               </ul>

@@ -15,8 +15,23 @@ test("team command still exposes the balance mode option", () => {
 
   assert.equal(json.name, "내전");
   assert.equal(json.options[0].name, "옵션");
+  assert.equal(json.options[1].name, "픽방식");
+  assert.equal(json.options[2].name, "특수규칙");
+  assert.equal(json.options[3].name, "시리즈동작");
   assert.deepEqual(
     json.options[0].choices.map((choice) => choice.value),
     ["MMR", "RANDOM"]
+  );
+  assert.deepEqual(
+    json.options[1].choices.map((choice) => choice.value),
+    ["BLIND_PICK", "DRAFT_MODE", "ALL_RANDOM", "TOURNAMENT_DRAFT"]
+  );
+  assert.deepEqual(
+    json.options[2].choices.map((choice) => choice.value),
+    ["STANDARD", "HARD_FEARLESS"]
+  );
+  assert.deepEqual(
+    json.options[3].choices.map((choice) => choice.value),
+    ["AUTO", "NEW", "CONTINUE"]
   );
 });

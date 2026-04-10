@@ -116,6 +116,109 @@ test("updateTournamentSessionResult updates status, attempts, and error details"
   assert.deepEqual(calls[0].params, ["FAILED", 3, "rate limited", 77]);
 });
 
+test("replaceActiveTournamentSession stores hard fearless series state", async () => {
+  const calls = [];
+  const { replaceActiveTournamentSession } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        calls.push({ statement, params });
+        if (/UPDATE active_tournament_sessions/i.test(statement)) {
+          return [{ affectedRows: 0 }];
+        }
+
+        return [{ insertId: 91 }];
+      },
+    }),
+  });
+
+  const result = await replaceActiveTournamentSession("guild-1", {
+    tournamentCode: "KR-CODE-91",
+    providerId: "provider-1",
+    tournamentId: "tournament-1",
+    sourceChannelId: "voice-1",
+    team1ChannelId: "blue-1",
+    team2ChannelId: "purple-1",
+    unityVoiceChannelId: "unity-1",
+    team1DiscordIds: ["1", "3", "5", "7", "9"],
+    team2DiscordIds: ["2", "4", "6", "8", "10"],
+    status: "LOBBY",
+    seriesMode: "HARD_FEARLESS",
+    seriesGameNumber: 2,
+    fearlessUsedChampions: ["Ahri", "Lee Sin"],
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(calls.length, 2);
+  assert.match(calls[1].statement, /series_mode/);
+  assert.match(calls[1].statement, /series_game_number/);
+  assert.match(calls[1].statement, /fearless_used_champions/);
+  assert.deepEqual(calls[1].params.slice(-3), [
+    "HARD_FEARLESS",
+    2,
+    JSON.stringify(["Ahri", "Lee Sin"]),
+  ]);
+});
+
+test("getLatestTournamentSession exposes hard fearless series fields", async () => {
+  const { getLatestTournamentSession } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query() {
+        return [[
+          {
+            id: 33,
+            tournament_code: "KR-CODE-33",
+            provider_id: "provider-1",
+            tournament_id: "tournament-1",
+            source_channel_id: "voice-1",
+            team1_channel_id: "blue-1",
+            team2_channel_id: "purple-1",
+            unity_voice_channel_id: "unity-1",
+            team1_discord_ids: "[\"1\",\"3\",\"5\",\"7\",\"9\"]",
+            team2_discord_ids: "[\"2\",\"4\",\"6\",\"8\",\"10\"]",
+            status: "COMPLETED",
+            last_event_at: "456",
+            result_status: "INGESTED",
+            result_game_id: "KR_777",
+            result_payload: "{\"gameId\":777}",
+            result_attempts: 1,
+            result_error: null,
+            series_mode: "HARD_FEARLESS",
+            series_game_number: 2,
+            fearless_used_champions: "[\"Ahri\",\"Lee Sin\"]",
+          },
+        ]];
+      },
+    }),
+  });
+
+  const result = await getLatestTournamentSession("guild-1");
+
+  assert.equal(result.success, true);
+  assert.deepEqual(result.data, {
+    id: 33,
+    guildId: "guild-1",
+    tournamentCode: "KR-CODE-33",
+    providerId: "provider-1",
+    tournamentId: "tournament-1",
+    sourceChannelId: "voice-1",
+    team1ChannelId: "blue-1",
+    team2ChannelId: "purple-1",
+    unityVoiceChannelId: "unity-1",
+    team1DiscordIds: ["1", "3", "5", "7", "9"],
+    team2DiscordIds: ["2", "4", "6", "8", "10"],
+    status: "COMPLETED",
+    lastEventAt: "456",
+    resultStatus: "INGESTED",
+    resultGameId: "KR_777",
+    resultPayload: "{\"gameId\":777}",
+    resultAttempts: 1,
+    resultError: null,
+    seriesMode: "HARD_FEARLESS",
+    seriesGameNumber: 2,
+    fearlessUsedChampions: ["Ahri", "Lee Sin"],
+  });
+});
+
 test("listPendingTournamentSessions exposes result ingestion fields for the poller", async () => {
   const { listPendingTournamentSessions } = loadQueryModule({
     getGuildPromisePool: async () => ({
@@ -139,6 +242,9 @@ test("listPendingTournamentSessions exposes result ingestion fields for the poll
             result_payload: "{\"gameId\":555}",
             result_attempts: 2,
             result_error: "rate limited",
+            series_mode: "HARD_FEARLESS",
+            series_game_number: 3,
+            fearless_used_champions: "[\"Ahri\",\"Lee Sin\",\"Leona\"]",
           },
         ]];
       },
@@ -167,6 +273,9 @@ test("listPendingTournamentSessions exposes result ingestion fields for the poll
     resultPayload: "{\"gameId\":555}",
     resultAttempts: 2,
     resultError: "rate limited",
+    seriesMode: "HARD_FEARLESS",
+    seriesGameNumber: 3,
+    fearlessUsedChampions: ["Ahri", "Lee Sin", "Leona"],
   });
 });
 

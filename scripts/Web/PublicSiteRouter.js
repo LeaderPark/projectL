@@ -46,26 +46,26 @@ function createPublicSiteRouter({
   renderRankingPage,
   renderMatchDetailPage,
   renderPlayerPage,
+  handlePlayerRiotIdentityRefresh,
   searchPlayers,
   renderNotFoundPage,
 }) {
   return async function handlePublicSiteRequest(req, res) {
-    if (req.method !== "GET") {
-      return false;
-    }
-
     const requestUrl = new URL(req.url, "http://127.0.0.1");
     const pathname = requestUrl.pathname;
 
-    if (pathname === "/") {
+    if (req.method === "GET" && pathname === "/") {
       sendHtml(res, 200, await renderLandingPage());
       return true;
     }
 
     if (
-      pathname === "/public/site.css" ||
-      pathname === "/public/site.js" ||
-      pathname === "/public/favicon.webp"
+      req.method === "GET" &&
+      (
+        pathname === "/public/site.css" ||
+        pathname === "/public/site.js" ||
+        pathname === "/public/favicon.webp"
+      )
     ) {
       serveAssetFile(res, path.join(assetsDir, path.basename(pathname)));
       return true;
@@ -79,6 +79,28 @@ function createPublicSiteRouter({
     }
 
     const scopedPath = `/${scopedSegments.join("/")}`.replace(/\/$/, "") || "/";
+
+    if (
+      req.method === "POST" &&
+      scopedPath.startsWith("/players/") &&
+      scopedPath.endsWith("/refresh-riot-accounts") &&
+      typeof handlePlayerRiotIdentityRefresh === "function"
+    ) {
+      const discordId = scopedPath
+        .slice("/players/".length, -"/refresh-riot-accounts".length)
+        .replace(/\/$/, "");
+      const redirect = await handlePlayerRiotIdentityRefresh(serverId, discordId);
+      res.writeHead(redirect?.statusCode ?? 303, {
+        Location:
+          redirect?.location ?? `/${encodeURIComponent(serverId)}/players/${encodeURIComponent(discordId)}`,
+      });
+      res.end();
+      return true;
+    }
+
+    if (req.method !== "GET") {
+      return false;
+    }
 
     if (scopedPath === "/") {
       sendHtml(res, 200, await renderHomePage(serverId));
@@ -151,7 +173,8 @@ function createPublicSiteRouter({
 
     if (scopedPath.startsWith("/players/")) {
       const discordId = scopedPath.slice("/players/".length);
-      const html = await renderPlayerPage(serverId, discordId);
+      const refreshStatus = requestUrl.searchParams.get("refresh") ?? undefined;
+      const html = await renderPlayerPage(serverId, discordId, refreshStatus);
 
       if (html) {
         sendHtml(res, 200, html);

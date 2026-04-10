@@ -143,6 +143,14 @@ test("router serves the public script with match expansion hooks", async () => {
   assert.match(response.body, /data-match-tab/);
 });
 
+test("router serves the public favicon as a webp image", async () => {
+  const response = await requestServer(createTestServer(), "/public/favicon.webp");
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "image/webp");
+  assert.equal(response.headers["cache-control"], "no-store");
+});
+
 test("router serves the dedicated match detail page", async () => {
   const response = await requestServer(createTestServer(), "/123456789/matches/9");
 
@@ -175,9 +183,36 @@ test("public stylesheet keeps recent-match player rows readable in narrow cards"
   assert.match(response.body, /\.match-card__link\s*\{/);
   assert.match(response.body, /\.match-detail-player__items\s*\{/);
   assert.match(response.body, /\.match-row__summary-button\s*\{/);
-  assert.match(response.body, /\.match-scoreboard__columns\s*\{/);
-  assert.match(response.body, /\.match-scoreboard__totals\s*\{/);
+  assert.match(
+    response.body,
+    /\.match-scoreboard__columns\s*\{[\s\S]*grid-template-columns:\s*minmax\(252px,\s*1\.22fr\)\s+minmax\(84px,\s*0\.44fr\)\s+minmax\(148px,\s*0\.78fr\)\s+minmax\(148px,\s*0\.78fr\)\s+minmax\(84px,\s*0\.42fr\)\s+minmax\(96px,\s*0\.46fr\)\s+minmax\(224px,\s*1\.02fr\);/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.72fr\)\s+minmax\(104px,\s*0\.52fr\)\s+minmax\(0,\s*1fr\);/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.72fr\)\s+minmax\(104px,\s*0\.52fr\)\s+minmax\(0,\s*1fr\);/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s+span:nth-child\(2\)\s*\{[\s\S]*justify-self:\s*end;[\s\S]*text-align:\s*right;/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__score\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-self:\s*end;[\s\S]*justify-content:\s*flex-end;[\s\S]*gap:\s*8px;/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__kda\s*\{[\s\S]*justify-self:\s*end;[\s\S]*justify-items:\s*start;[\s\S]*text-align:\s*left;[\s\S]*padding-right:\s*12px;/
+  );
+  assert.match(
+    response.body,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s+span:nth-child\(3\)\s*\{[\s\S]*justify-self:\s*end;[\s\S]*text-align:\s*left;[\s\S]*padding-right:\s*12px;/
+  );
   assert.match(response.body, /\.match-detail-shell\s*\{/);
+  assert.match(response.body, /\.match-scoreboard__totals\s*\{/);
   assert.match(response.body, /\.match-scoreboard__build-items\s*\{/);
 });
 

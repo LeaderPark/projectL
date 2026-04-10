@@ -51,6 +51,23 @@ async function resolvePublicGuildId(routeGuildId, preferredGuildId) {
   return routeGuildId || preferredGuildId || null;
 }
 
+function getPlayerDiscordId(player) {
+  const discordId = player?.discord_id ?? player?.discordId;
+  return String(discordId ?? "").trim();
+}
+
+function parseStoredMatchJson(value, fallback) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+
 function createPublicSiteHandlers({
   preferredGuildId,
   getPublicSiteSummary: getPublicSiteSummaryImpl,
@@ -61,6 +78,7 @@ function createPublicSiteHandlers({
   getLatestMatched: getLatestMatchedImpl,
   getChampionNameMap: getChampionNameMapImpl,
   getRiotAssetManifest: getRiotAssetManifestImpl,
+  resolveUsersByPuuids: resolveUsersByPuuidsImpl,
   searchPublicPlayers: searchPublicPlayersImpl,
 } = {}) {
   const {
@@ -70,6 +88,7 @@ function createPublicSiteHandlers({
     getPublicMatchHistory: defaultGetPublicMatchHistory,
     getPublicPlayerProfile: defaultGetPublicPlayerProfile,
     getPublicSiteSummary: defaultGetPublicSiteSummary,
+    resolveUsersByPuuids: defaultResolveUsersByPuuids,
     searchPublicPlayers: defaultSearchPublicPlayers,
   } =
     getPublicSiteSummaryImpl === undefined ||
@@ -87,6 +106,7 @@ function createPublicSiteHandlers({
           getPublicMatchById: undefined,
           getPublicPlayerProfile: undefined,
           getPublicSiteSummary: undefined,
+          resolveUsersByPuuids: async () => ({ success: true, data: [] }),
           searchPublicPlayers: undefined,
         };
 
@@ -103,6 +123,8 @@ function createPublicSiteHandlers({
   const resolvedGetLatestMatched = getLatestMatchedImpl ?? defaultGetLatestMatched;
   const resolvedSearchPublicPlayers =
     searchPublicPlayersImpl ?? defaultSearchPublicPlayers;
+  const resolvedResolveUsersByPuuids =
+    resolveUsersByPuuidsImpl ?? defaultResolveUsersByPuuids;
   const resolvedGetChampionNameMap =
     getChampionNameMapImpl ??
     championNameService.getChampionNameMap.bind(championNameService);
@@ -129,6 +151,77 @@ function createPublicSiteHandlers({
     }
   }
 
+  async function applyRepresentativeRiotNamesToMatches(guildId, matchRows) {
+    if (!Array.isArray(matchRows) || !matchRows.length) {
+      return [];
+    }
+
+    const puuids = [
+      ...new Set(
+        matchRows.flatMap((matchRow) => {
+          const blueTeam = parseStoredMatchJson(matchRow?.blue_team, { players: [] });
+          const purpleTeam = parseStoredMatchJson(matchRow?.purple_team, { players: [] });
+          return [...(blueTeam.players ?? []), ...(purpleTeam.players ?? [])]
+            .map((player) => String(player?.puuid ?? "").trim())
+            .filter(Boolean);
+        })
+      ),
+    ];
+
+    if (!puuids.length) {
+      return matchRows;
+    }
+
+    let linkedUsers = [];
+    try {
+      const result = await resolvedResolveUsersByPuuids(guildId, puuids);
+      linkedUsers = result?.success ? result.data ?? [] : [];
+    } catch (error) {
+      linkedUsers = [];
+    }
+
+    if (!linkedUsers.length) {
+      return matchRows;
+    }
+
+    const nameByPuuid = new Map(
+      linkedUsers
+        .map((user) => [
+          String(user?.linked_puuid ?? "").trim(),
+          String(user?.name ?? "").trim(),
+        ])
+        .filter(([linkedPuuid, name]) => linkedPuuid && name)
+    );
+
+    return matchRows.map((matchRow) => {
+      const blueTeam = parseStoredMatchJson(matchRow?.blue_team, { players: [] });
+      const purpleTeam = parseStoredMatchJson(matchRow?.purple_team, { players: [] });
+
+      const rewritePlayers = (players = []) =>
+        players.map((player) => {
+          const liveName = nameByPuuid.get(String(player?.puuid ?? "").trim());
+          return liveName
+            ? {
+                ...player,
+                playerName: liveName,
+              }
+            : player;
+        });
+
+      return {
+        ...matchRow,
+        blue_team: JSON.stringify({
+          ...blueTeam,
+          players: rewritePlayers(blueTeam.players),
+        }),
+        purple_team: JSON.stringify({
+          ...purpleTeam,
+          players: rewritePlayers(purpleTeam.players),
+        }),
+      };
+    });
+  }
+
   return {
     async renderLandingPage() {
       return renderLandingPageView();
@@ -150,20 +243,22 @@ function createPublicSiteHandlers({
         resolvedGetPublicLeaderboard(guildId, 20),
         resolvedGetPublicMatchHistory(guildId, 6),
       ]);
+      const rankingRows = leaderboardResult.success
+        ? leaderboardResult.data
+        : [];
+      const recentMatchRows = matchesResult.success
+        ? await applyRepresentativeRiotNamesToMatches(guildId, matchesResult.data)
+        : [];
 
       return renderHomePage({
         guildId,
         summary: summaryResult.success
           ? formatHomeSummary(summaryResult.data)
           : buildEmptyHomeModel().summary,
-        ranking: leaderboardResult.success
-          ? leaderboardResult.data.map(formatLeaderboardEntry)
-          : [],
-        recentMatches: matchesResult.success
-          ? matchesResult.data.map((matchRow) =>
-              formatMatchCard(matchRow, formatterOptions)
-            )
-          : [],
+        ranking: rankingRows.map(formatLeaderboardEntry),
+        recentMatches: recentMatchRows.map((matchRow) =>
+          formatMatchCard(matchRow, formatterOptions)
+        ),
       });
     },
 
@@ -179,13 +274,14 @@ function createPublicSiteHandlers({
 
       const formatterOptions = await getFormatterOptions();
       const matchesResult = await resolvedGetPublicMatchHistory(guildId);
+      const matchRows = matchesResult.success
+        ? await applyRepresentativeRiotNamesToMatches(guildId, matchesResult.data)
+        : [];
       return renderMatchesPage({
         guildId,
-        cards: matchesResult.success
-          ? matchesResult.data.map((matchRow) =>
-              formatMatchCard(matchRow, formatterOptions)
-            )
-          : [],
+        cards: matchRows.map((matchRow) =>
+          formatMatchCard(matchRow, formatterOptions)
+        ),
       });
     },
 
@@ -200,11 +296,12 @@ function createPublicSiteHandlers({
       }
 
       const leaderboardResult = await resolvedGetPublicLeaderboard(guildId);
+      const rankingRows = leaderboardResult.success
+        ? leaderboardResult.data
+        : [];
       return renderRankingPageView({
         guildId,
-        ranking: leaderboardResult.success
-          ? leaderboardResult.data.map(formatLeaderboardEntry)
-          : [],
+        ranking: rankingRows.map(formatLeaderboardEntry),
       });
     },
 
@@ -219,10 +316,13 @@ function createPublicSiteHandlers({
       if (!matchResult.success) {
         return null;
       }
+      const [matchRow] = await applyRepresentativeRiotNamesToMatches(guildId, [
+        matchResult.data,
+      ]);
 
       return renderMatchDetailView({
         guildId,
-        match: formatMatchDetail(matchResult.data, formatterOptions),
+        match: formatMatchDetail(matchRow, formatterOptions),
       });
     },
 
@@ -239,15 +339,16 @@ function createPublicSiteHandlers({
 
       const formatterOptions = await getFormatterOptions();
       const recentMatchesResult = await resolvedGetLatestMatched(guildId, discordId);
+      const recentMatchRows = recentMatchesResult.success
+        ? await applyRepresentativeRiotNamesToMatches(guildId, recentMatchesResult.data)
+        : [];
 
       return renderPlayerPage({
         guildId,
         profile: formatPlayerProfileSummary(profileResult.data, formatterOptions),
-        recentMatches: recentMatchesResult.success
-          ? recentMatchesResult.data.map((matchRow) =>
-              formatMatchCard(matchRow, formatterOptions)
-            )
-          : [],
+        recentMatches: recentMatchRows.map((matchRow) =>
+          formatMatchCard(matchRow, formatterOptions)
+        ),
       });
     },
 

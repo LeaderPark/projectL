@@ -2,6 +2,20 @@ const { renderLayout } = require("./Layout");
 const { buildGuildPath, escapeHtml } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
+function buildRankCell(index) {
+  const rank = index + 1;
+
+  if (rank > 3) {
+    return `#${rank}`;
+  }
+
+  return `
+    <span class="ranking-table__rank-badge ranking-table__rank-badge--top-${rank}">
+      <strong>${rank}</strong>
+    </span>
+  `;
+}
+
 function renderRankingRows(rows, guildId) {
   if (!rows.length) {
     return `
@@ -13,14 +27,21 @@ function renderRankingRows(rows, guildId) {
 
   return rows
     .map(
-      (row, index) => `
-        <tr>
-          <td>#${index + 1}</td>
+      (row, index) => {
+        const rank = index + 1;
+        const rowClassName = rank <= 3
+          ? `ranking-table__row ranking-table__row--top-${rank}`
+          : "ranking-table__row";
+
+        return `
+        <tr class="${rowClassName}">
+          <td class="ranking-table__rank-cell">${buildRankCell(index)}</td>
           <td><a href="${escapeHtml(buildGuildPath(guildId, `/players/${encodeURIComponent(row.discordId)}`))}">${escapeHtml(row.name)}</a></td>
           <td>${escapeHtml(row.recordText)}</td>
           <td>${escapeHtml(row.winRateText)}</td>
         </tr>
-      `
+      `;
+      }
     )
     .join("");
 }
@@ -70,6 +91,7 @@ function renderRankingPage(model) {
     description: `${PROJECT_DISPLAY_NAME} 전체 플레이어 랭킹`,
     body,
     guildId: model.guildId,
+    shellClassName: "site-shell site-shell--ranking-wide",
   });
 }
 

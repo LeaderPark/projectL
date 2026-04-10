@@ -147,3 +147,82 @@ test("registration command falls back to puuid when Riot summoner id is missing"
   ]);
   assert.deepEqual(replies, ["searching...", "등록을 완료했습니다."]);
 });
+
+test("registration command guides multi-account users to set a representative riot account", async () => {
+  const command = loadRegistrationCommand({
+    dataReceiver: {
+      async getSummonerData() {
+        return {
+          account: {
+            gameName: "smurf",
+            tagLine: "JP1",
+            puuid: "puuid-2",
+          },
+          summoner: {
+            id: "summoner-2",
+          },
+        };
+      },
+    },
+    query: {
+      async registerRiotAccount() {
+        return {
+          success: true,
+          data: {
+            registeredAccountDisplayName: "smurf#JP1",
+            primaryAccountDisplayName: "main#KR1",
+            accountCount: 2,
+            requiresPrimarySelection: true,
+            insertedAccountIsPrimary: false,
+          },
+        };
+      },
+    },
+  });
+
+  const replies = [];
+  await command.execute({
+    guildId: "guild-1",
+    user: {
+      id: "requester-1",
+    },
+    guild: {
+      members: {
+        async fetch() {
+          return {
+            id: "discord-1",
+            bot: false,
+          };
+        },
+      },
+    },
+    options: {
+      getUser() {
+        return null;
+      },
+      getString(name) {
+        if (name === "소환사이름") {
+          return "smurf";
+        }
+
+        if (name === "소환사태그") {
+          return "JP1";
+        }
+
+        throw new Error(`Unexpected option: ${name}`);
+      },
+    },
+    async deferReply(message) {
+      replies.push(message);
+    },
+    async editReply(message) {
+      replies.push(message);
+    },
+  });
+
+  assert.equal(replies[0], "searching...");
+  assert.match(replies[1], /등록을 완료했습니다/);
+  assert.match(replies[1], /main#KR1/);
+  assert.match(replies[1], /처음 등록한 아이디/);
+  assert.match(replies[1], /\/대표아이디설정/);
+});

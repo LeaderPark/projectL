@@ -48,12 +48,14 @@ function renderHeader(guildId) {
 }
 
 function renderLayout({
-  title,
+  title: _title,
   body,
   description = `${PROJECT_DISPLAY_NAME} 공개 내전 전적`,
   guildId = "",
   showHeader = true,
+  shellClassName = "site-shell",
 }) {
+  const faviconHref = getAssetHref("favicon.webp");
   const stylesheetHref = getAssetHref("site.css");
   const scriptHref = getAssetHref("site.js");
 
@@ -62,12 +64,13 @@ function renderLayout({
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${escapeHtml(title)}</title>
+      <title>${escapeHtml(PROJECT_DISPLAY_NAME)}</title>
       <meta name="description" content="${escapeHtml(description)}" />
+      <link rel="icon" type="image/webp" href="${escapeHtml(faviconHref)}" />
       <link rel="stylesheet" href="${escapeHtml(stylesheetHref)}" />
     </head>
     <body>
-      <div class="site-shell">
+      <div class="${escapeHtml(shellClassName)}">
         ${showHeader ? renderHeader(guildId) : ""}
         ${body}
       </div>

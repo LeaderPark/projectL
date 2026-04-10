@@ -244,6 +244,10 @@ function formatMatchCard(matchRow, options = {}) {
   const blueTeam = parseJson(matchRow?.blue_team, { players: [], result: 0 });
   const purpleTeam = parseJson(matchRow?.purple_team, { players: [], result: 0 });
   const winningSide = blueTeam.result === 1 ? "blue" : "purple";
+  const blueResultText = winningSide === "blue" ? "승리" : "패배";
+  const purpleResultText = winningSide === "purple" ? "승리" : "패배";
+  const rawResultText = String(matchRow?.player_result_text ?? "").trim();
+  const rawResultTone = String(matchRow?.player_result_tone ?? "").trim().toLowerCase();
 
   const matchId = toNumber(matchRow?.id);
 
@@ -255,18 +259,25 @@ function formatMatchCard(matchRow, options = {}) {
     gameId: matchRow?.game_id ?? "",
     durationText: formatDuration(matchRow?.game_length),
     playedAtText: formatPlayedAtText(matchRow?.played_at_kst),
+    resultText: rawResultText || (winningSide === "blue" ? blueResultText : purpleResultText),
+    resultTone:
+      rawResultTone === "blue" ||
+      rawResultTone === "red" ||
+      rawResultTone === "purple"
+        ? rawResultTone
+        : winningSide,
     winningSide,
     tabs: MATCH_DETAIL_TABS,
     teams: {
       blue: buildTeamSummary(
         blueTeam,
-        winningSide === "blue" ? "승리" : "패배",
+        blueResultText,
         matchRow,
         options
       ),
       purple: buildTeamSummary(
         purpleTeam,
-        winningSide === "purple" ? "승리" : "패배",
+        purpleResultText,
         matchRow,
         options
       ),
@@ -360,6 +371,36 @@ function formatFriendEntries(rawValue, limit = 5) {
   );
 }
 
+function formatLinkedRiotAccounts(accounts = []) {
+  if (!Array.isArray(accounts)) {
+    return [];
+  }
+
+  return accounts
+    .map((account) => {
+      const riotGameName = String(
+        account?.riotGameName ?? account?.riot_game_name ?? ""
+      ).trim();
+      const riotTagLine = String(
+        account?.riotTagLine ?? account?.riot_tag_line ?? ""
+      ).trim();
+      const displayName =
+        String(account?.displayName ?? "").trim() ||
+        [riotGameName, riotTagLine].filter(Boolean).join("#");
+
+      if (!displayName) {
+        return null;
+      }
+
+      return {
+        riotGameName,
+        riotTagLine,
+        displayName,
+      };
+    })
+    .filter(Boolean);
+}
+
 function formatPlayerProfileSummary(row, options = {}) {
   const wins = toNumber(row?.win);
   const losses = toNumber(row?.lose);
@@ -382,6 +423,7 @@ function formatPlayerProfileSummary(row, options = {}) {
     winRateText: formatPercent(wins, games),
     averageKdaText: formatFixed(averageKda),
     averageKillRateText: `${averageKillRate}%`,
+    linkedRiotAccounts: formatLinkedRiotAccounts(row?.riotAccounts),
     favoriteChampions: formatChampionEntries(row?.champions, 5, options),
     preferredLanes: formatLaneEntries(row?.lanes, 5, options),
     friends: formatFriendEntries(row?.friends),

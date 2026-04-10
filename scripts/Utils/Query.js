@@ -110,6 +110,64 @@ function buildRiotDisplayName(gameName, tagLine) {
   return `${gameName}#${tagLine}`;
 }
 
+function buildRiotAccountDisplayName(account) {
+  const riotGameName = String(
+    account?.riot_game_name ?? account?.riotGameName ?? ""
+  ).trim();
+  const riotTagLine = String(
+    account?.riot_tag_line ?? account?.riotTagLine ?? ""
+  ).trim();
+
+  return [riotGameName, riotTagLine].filter(Boolean).join("#");
+}
+
+async function listLinkedRiotAccountsWithExecutor(executor, discordId) {
+  const [rows] = await executor.query(
+    `
+      SELECT id, riot_game_name, riot_tag_line, is_primary, created_at, discord_id, puuid, summoner_id
+      FROM riot_accounts
+      WHERE discord_id = ?
+      ORDER BY is_primary DESC, created_at ASC, id ASC
+    `,
+    [discordId]
+  );
+
+  return rows;
+}
+
+async function syncPrimaryRiotAccountNameWithExecutor(executor, discordId) {
+  const [rows] = await executor.query(
+    `SELECT riot_game_name, riot_tag_line
+     FROM riot_accounts
+     WHERE discord_id = ?
+     ORDER BY is_primary DESC, created_at ASC, id ASC
+     LIMIT 1`,
+    [discordId]
+  );
+  const primaryAccount = rows[0];
+
+  if (!primaryAccount) {
+    return {
+      success: false,
+      code: "ACCOUNT_NOT_FOUND",
+      msg: "등록된 롤 계정을 찾을 수 없습니다.",
+    };
+  }
+
+  const primaryAccountDisplayName = buildRiotAccountDisplayName(primaryAccount);
+  await executor.query(`UPDATE user SET name = ? WHERE discord_id = ?`, [
+    primaryAccountDisplayName,
+    discordId,
+  ]);
+
+  return {
+    success: true,
+    data: {
+      primaryAccountDisplayName,
+    },
+  };
+}
+
 function buildGetUsersDataSql(ids) {
   return `SELECT discord_id, name, mmr FROM user WHERE discord_id IN (${buildInClausePlaceholders(
     ids.length
@@ -169,6 +227,105 @@ function buildPublicMatchByIdSql() {
     WHERE id = ?
     LIMIT 1
   `.trim();
+}
+
+function parseStoredJson(value, fallback) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function normalizeIdentityValue(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+async function getLinkedMatchIdentitiesForUser(executor, discordId) {
+  const [rows] = await executor.query(
+    `
+      SELECT puuid, name AS player_name
+      FROM user
+      WHERE discord_id = ?
+      UNION
+      SELECT puuid, CONCAT(riot_game_name, '#', riot_tag_line) AS player_name
+      FROM riot_accounts
+      WHERE discord_id = ?
+    `,
+    [discordId, discordId]
+  );
+
+  return {
+    puuids: new Set(
+      rows
+        .map((row) => normalizeIdentityValue(row?.puuid))
+        .filter((value) => value.length > 0)
+    ),
+    names: new Set(
+      rows
+        .map((row) => normalizeIdentityValue(row?.player_name))
+        .filter((value) => value.length > 0)
+    ),
+  };
+}
+
+function matchesLinkedIdentity(player, linkedIdentities) {
+  if (!linkedIdentities) {
+    return false;
+  }
+
+  const playerPuuid = normalizeIdentityValue(player?.puuid);
+  if (playerPuuid && linkedIdentities.puuids?.has(playerPuuid)) {
+    return true;
+  }
+
+  const playerName = normalizeIdentityValue(player?.playerName);
+  return Boolean(playerName && linkedIdentities.names?.has(playerName));
+}
+
+function buildPerspectiveResultMetadata(matchRow, linkedIdentities) {
+  const hasPuuidIdentities = linkedIdentities?.puuids instanceof Set;
+  const hasNameIdentities = linkedIdentities?.names instanceof Set;
+  const hasAnyIdentity =
+    (hasPuuidIdentities && linkedIdentities.puuids.size > 0) ||
+    (hasNameIdentities && linkedIdentities.names.size > 0);
+
+  if (!hasAnyIdentity) {
+    return {};
+  }
+
+  const blueTeam = parseStoredJson(matchRow?.blue_team, { players: [], result: 0 });
+  const purpleTeam = parseStoredJson(matchRow?.purple_team, {
+    players: [],
+    result: 0,
+  });
+
+  const playerIsOnBlue = Array.isArray(blueTeam.players)
+    ? blueTeam.players.some((player) => matchesLinkedIdentity(player, linkedIdentities))
+    : false;
+  const playerIsOnPurple =
+    !playerIsOnBlue && Array.isArray(purpleTeam.players)
+      ? purpleTeam.players.some((player) =>
+          matchesLinkedIdentity(player, linkedIdentities)
+        )
+      : false;
+
+  if (!playerIsOnBlue && !playerIsOnPurple) {
+    return {};
+  }
+
+  const playerWon = playerIsOnBlue
+    ? Number(blueTeam.result) === 1
+    : Number(purpleTeam.result) === 1;
+
+  return {
+    player_result_text: playerWon ? "승리" : "패배",
+    player_result_tone: playerWon ? "blue" : "red",
+  };
 }
 
 async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
@@ -242,6 +399,11 @@ async function registerRiotAccount(guildId, discordId, account) {
       };
     }
 
+    const linkedAccounts = await listLinkedRiotAccountsWithExecutor(
+      promisePool,
+      discordId
+    );
+    const insertedAccountIsPrimary = linkedAccounts.length === 0;
     const userProfile = await ensureUserProfile(
       promisePool,
       discordId,
@@ -251,26 +413,137 @@ async function registerRiotAccount(guildId, discordId, account) {
 
     await promisePool.query(
       `INSERT INTO riot_accounts
-       (discord_id, riot_game_name, riot_tag_line, puuid, summoner_id)
-       VALUES (?, ?, ?, ?, ?)`,
+       (discord_id, riot_game_name, riot_tag_line, puuid, summoner_id, is_primary)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         discordId,
         account.riotGameName,
         account.riotTagLine,
         account.puuid,
         account.summonerId,
+        insertedAccountIsPrimary ? 1 : 0,
       ]
     );
+
+    let primaryAccountDisplayName = displayName;
+    if (insertedAccountIsPrimary) {
+      if (String(userProfile?.name ?? "").trim() !== displayName) {
+        await promisePool.query(`UPDATE user SET name = ? WHERE discord_id = ?`, [
+          displayName,
+          discordId,
+        ]);
+      }
+    } else {
+      const syncResult = await syncPrimaryRiotAccountNameWithExecutor(
+        promisePool,
+        discordId
+      );
+      if (!syncResult.success) {
+        return syncResult;
+      }
+      primaryAccountDisplayName = syncResult.data.primaryAccountDisplayName;
+    }
+
+    const accountCount = linkedAccounts.length + 1;
 
     return {
       success: true,
       data: {
         discordId,
-        displayName: userProfile.name ?? displayName,
+        registeredAccountDisplayName: displayName,
+        primaryAccountDisplayName,
+        accountCount,
+        requiresPrimarySelection: accountCount > 1,
+        insertedAccountIsPrimary,
       },
     };
   } catch (error) {
     return buildErrorResult(error, "에러가 발생하였습니다.");
+  }
+}
+
+async function setPrimaryRiotAccount(guildId, discordId, riotGameName, riotTagLine) {
+  if (!hasRequiredValue(riotGameName) || !hasRequiredValue(riotTagLine)) {
+    return buildInvalidInputResult("대표로 설정할 롤 아이디 정보가 누락되었습니다.");
+  }
+
+  let connection;
+
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
+    }
+
+    const [rows] = await executor.query(
+      `
+        SELECT id, riot_game_name, riot_tag_line
+        FROM riot_accounts
+        WHERE discord_id = ?
+          AND riot_game_name = ?
+          AND riot_tag_line = ?
+        LIMIT 1
+      `,
+      [discordId, riotGameName, riotTagLine]
+    );
+
+    if (!rows.length) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return {
+        success: false,
+        code: "ACCOUNT_NOT_FOUND",
+        msg: "등록된 롤 계정을 찾을 수 없습니다.",
+      };
+    }
+
+    await executor.query(`UPDATE riot_accounts SET is_primary = 0 WHERE discord_id = ?`, [
+      discordId,
+    ]);
+    await executor.query(`UPDATE riot_accounts SET is_primary = 1 WHERE id = ?`, [
+      rows[0].id,
+    ]);
+
+    const syncResult = await syncPrimaryRiotAccountNameWithExecutor(
+      executor,
+      discordId
+    );
+    if (!syncResult.success) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return syncResult;
+    }
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
+    return {
+      success: true,
+      data: {
+        primaryAccountDisplayName: syncResult.data.primaryAccountDisplayName,
+      },
+    };
+  } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
+    return buildErrorResult(error, "대표 롤 아이디를 설정하는 중 오류가 발생했습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
   }
 }
 
@@ -654,8 +927,13 @@ const getLatestMatched = async (guildId, id) => {
     ON matches.id = recent_matches.match_id`;
 
     const [result] = await promisePool.query(sql, [id]);
+    const linkedIdentities = await getLinkedMatchIdentitiesForUser(promisePool, id);
+    const annotatedMatches = result.map((matchRow) => ({
+      ...matchRow,
+      ...buildPerspectiveResultMetadata(matchRow, linkedIdentities),
+    }));
 
-    return { success: true, data: result };
+    return { success: true, data: annotatedMatches };
   } catch (error) {
     return buildErrorResult(error, "전적을 불러오는 중 오류가 발생했습니다.");
   }
@@ -696,9 +974,27 @@ const getPublicPlayerProfile = async (guildId, discordId) => {
       };
     }
 
+    const [riotAccountRows] = await promisePool.query(
+      `
+        SELECT riot_game_name, riot_tag_line, is_primary
+        FROM riot_accounts
+        WHERE discord_id = ?
+        ORDER BY is_primary DESC, created_at ASC, riot_game_name ASC, riot_tag_line ASC
+      `,
+      [discordId]
+    );
+
     return {
       success: true,
-      data: rows[0],
+      data: {
+        ...rows[0],
+        riotAccounts: riotAccountRows.map((row) => ({
+          riotGameName: row.riot_game_name,
+          riotTagLine: row.riot_tag_line,
+          displayName: `${row.riot_game_name}#${row.riot_tag_line}`,
+          isPrimary: Number(row.is_primary) === 1,
+        })),
+      },
     };
   } catch (error) {
     return buildErrorResult(
@@ -1045,6 +1341,7 @@ module.exports = {
   registerRiotAccount,
   registraion,
   searchPublicPlayers,
+  setPrimaryRiotAccount,
   markTournamentSessionCompletedPendingGather,
   markTournamentSessionResultPending,
   replaceActiveTournamentSession,

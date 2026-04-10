@@ -320,7 +320,17 @@ function renderSummaryHighlight(card) {
   `;
 }
 
-function renderScoreboardColumns() {
+function renderScoreboardColumns(mode = "full") {
+  if (mode === "compact") {
+    return `
+      <div class="match-scoreboard__columns">
+        <span>플레이어</span>
+        <span>OP Score</span>
+        <span>KDA</span>
+      </div>
+    `;
+  }
+
   return `
     <div class="match-scoreboard__columns">
       <span>플레이어</span>
@@ -472,7 +482,7 @@ function renderSummaryTeamCard(player, sideLabel, context) {
   `;
 }
 
-function renderScoreboardRow(player, sideLabel, teamMetrics, context) {
+function renderScoreboardRow(player, sideLabel, teamMetrics, context, mode = "full") {
   const { killParticipation, kdaRatioText } = buildPlayerStatSnapshot(
     player,
     teamMetrics
@@ -481,6 +491,22 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context) {
   const visionValue = toNumberFromText(player.visionScoreText);
   const badgeText = getPerformanceBadgeText(player, sideLabel, context);
   const badgeModifier = getPerformanceBadgeModifier(badgeText);
+
+  if (mode === "compact") {
+    return `
+      <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
+        ${renderScoreboardIdentity(player)}
+        <div class="match-scoreboard__score">
+          <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
+          <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
+        </div>
+        <div class="match-scoreboard__kda">
+          <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
+          <span>${escapeHtml(kdaRatioText)}</span>
+        </div>
+      </li>
+    `;
+  }
 
   return `
     <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
@@ -512,7 +538,7 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context) {
   `;
 }
 
-function renderScoreboardTeam(team, sideLabel, context) {
+function renderScoreboardTeam(team, sideLabel, context, mode = "full") {
   const teamMetrics = context.teams[sideLabel];
 
   return `
@@ -520,13 +546,21 @@ function renderScoreboardTeam(team, sideLabel, context) {
       <header class="match-scoreboard__team-header">
         <div class="match-scoreboard__team-heading">
           <strong>${escapeHtml(team.resultText)} (${escapeHtml(getTeamSideName(sideLabel))})</strong>
-          <span>${escapeHtml(team.totalKillsText)}킬 · 피해량 ${escapeHtml(formatMetricValue(teamMetrics.totalDamage))} · 시야 ${escapeHtml(formatMetricValue(teamMetrics.totalVision))}</span>
+          ${
+            mode === "full"
+              ? `<span>${escapeHtml(team.totalKillsText)}킬 · 피해량 ${escapeHtml(
+                  formatMetricValue(teamMetrics.totalDamage)
+                )} · 시야 ${escapeHtml(formatMetricValue(teamMetrics.totalVision))}</span>`
+              : ""
+          }
         </div>
       </header>
-      ${renderScoreboardColumns()}
+      ${renderScoreboardColumns(mode)}
       <ul class="match-scoreboard__list">
         ${(team.players ?? [])
-          .map((player) => renderScoreboardRow(player, sideLabel, teamMetrics, context))
+          .map((player) =>
+            renderScoreboardRow(player, sideLabel, teamMetrics, context, mode)
+          )
           .join("")}
       </ul>
     </section>
@@ -579,14 +613,15 @@ function renderScoreboardTotals(context) {
   `;
 }
 
-function renderDetailedScoreboard(card) {
+function renderDetailedScoreboard(card, options = {}) {
   const context = buildScoreboardContext(card);
+  const mode = options.mode === "compact" ? "compact" : "full";
 
   return `
-    <div class="match-scoreboard">
-      ${renderScoreboardTeam(card.teams.blue, "blue", context)}
-      ${renderScoreboardTotals(context)}
-      ${renderScoreboardTeam(card.teams.purple, "red", context)}
+    <div class="match-scoreboard${mode === "compact" ? " match-scoreboard--compact" : ""}">
+      ${renderScoreboardTeam(card.teams.blue, "blue", context, mode)}
+      ${mode === "full" ? renderScoreboardTotals(context) : ""}
+      ${renderScoreboardTeam(card.teams.purple, "red", context, mode)}
     </div>
   `;
 }
@@ -628,7 +663,6 @@ function renderTeamAnalysisPanel(card) {
           <span>Match #${escapeHtml(card.id)}</span>
         </article>
       </div>
-      ${renderScoreboardTotals(context)}
     </div>
   `;
 }
@@ -677,7 +711,7 @@ function renderOtherPanel(card) {
 
 function renderTabPanel(card, tabId) {
   if (tabId === "summary" || tabId === "op-score") {
-    return renderDetailedScoreboard(card);
+    return renderDetailedScoreboard(card, { mode: "full" });
   }
 
   if (tabId === "team-analysis") {
@@ -694,6 +728,7 @@ function renderTabPanel(card, tabId) {
 function renderMatchDetailSection(card, options = {}) {
   const detailId = options.detailId ?? card.detailId;
   const hiddenAttribute = options.expanded ? "" : "hidden";
+  const mode = options.mode === "compact" ? "compact" : "full";
 
   return `
     <section
@@ -702,17 +737,18 @@ function renderMatchDetailSection(card, options = {}) {
       data-match-detail="${escapeHtml(detailId)}"
       ${hiddenAttribute}
     >
-      ${renderDetailedScoreboard(card)}
+      ${renderDetailedScoreboard(card, { mode })}
     </section>
   `;
 }
 
 function renderMatchDetailShell(card, options = {}) {
   const detailId = options.detailId ?? `${card.detailId}-page`;
+  const mode = options.mode === "compact" ? "compact" : "full";
 
   return `
     <section class="panel match-detail-shell">
-      ${renderMatchDetailSection({ ...card, detailId }, { expanded: true })}
+      ${renderMatchDetailSection({ ...card, detailId }, { expanded: true, mode })}
     </section>
   `;
 }
@@ -720,13 +756,19 @@ function renderMatchDetailShell(card, options = {}) {
 function renderMatchCard(card, options = {}) {
   const { showResult = true, showSummaryHighlight = true } = options;
   const context = buildScoreboardContext(card);
+  const resultTone = card?.resultTone ?? card?.winningSide;
+  const resultText =
+    card?.resultText ?? card?.teams?.[card?.winningSide]?.resultText ?? "";
 
   return `
-    <article class="match-row match-row--${escapeHtml(card.winningSide)}" data-match-row="${escapeHtml(card.id)}">
+    <article class="match-row match-row--${escapeHtml(resultTone)}" data-match-row="${escapeHtml(card.id)}">
+      <div class="match-row__actions">
+        <a class="match-row__detail-link" href="${escapeHtml(card.href ?? `/matches/${card.id}`)}">상세 보기</a>
+      </div>
       <div class="match-row__summary${showResult ? "" : " match-row__summary--public"}">
         ${showResult ? `
           <div class="match-row__result">
-            <strong>${escapeHtml(card.teams[card.winningSide].resultText)}</strong>
+            <strong>${escapeHtml(resultText)}</strong>
             <span>내전</span>
           </div>
         ` : ""}
@@ -752,11 +794,12 @@ function renderMatchCard(card, options = {}) {
               ${renderSummaryHighlight(card)}
             </div>
           ` : ""}
-          <span class="match-row__caret" aria-hidden="true">⌄</span>
+          <span class="match-row__caret" aria-hidden="true">
+            <span class="match-row__caret-icon"></span>
+          </span>
         </button>
-        <a class="match-row__detail-link" href="${escapeHtml(card.href ?? `/matches/${card.id}`)}">링크</a>
       </div>
-      ${renderMatchDetailSection(card)}
+      ${renderMatchDetailSection(card, { mode: "compact" })}
     </article>
   `;
 }

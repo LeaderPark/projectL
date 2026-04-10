@@ -99,6 +99,51 @@ test("getPublicPlayerProfile returns a missing result when the player does not e
   assert.equal(result.code, "PLAYER_NOT_FOUND");
 });
 
+test("getPublicPlayerProfile includes linked riot accounts for the player page", async () => {
+  const seenStatements = [];
+  const { getPublicPlayerProfile } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        seenStatements.push({ statement, params });
+
+        if (/SELECT \* FROM user WHERE discord_id = \? LIMIT 1/i.test(statement)) {
+          return [[{ discord_id: "1", name: "Stored Riot", win: 6, lose: 4 }]];
+        }
+
+        if (/FROM riot_accounts/i.test(statement)) {
+          return [[
+            { riot_game_name: "Live", riot_tag_line: "KR1" },
+            { riot_game_name: "Smurf", riot_tag_line: "JP1" },
+          ]];
+        }
+
+        throw new Error(`Unexpected statement: ${statement}`);
+      },
+    }),
+  });
+
+  const result = await getPublicPlayerProfile("guild-1", "1");
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.discord_id, "1");
+  assert.deepEqual(result.data.riotAccounts, [
+    {
+      riotGameName: "Live",
+      riotTagLine: "KR1",
+      displayName: "Live#KR1",
+      isPrimary: false,
+    },
+    {
+      riotGameName: "Smurf",
+      riotTagLine: "JP1",
+      displayName: "Smurf#JP1",
+      isPrimary: false,
+    },
+  ]);
+  assert.match(seenStatements[1].statement, /FROM riot_accounts/i);
+  assert.deepEqual(seenStatements[1].params, ["1"]);
+});
+
 test("getPublicLeaderboard returns players ordered for the public ranking table", async () => {
   const statements = [];
   const paramsSeen = [];
@@ -161,6 +206,89 @@ test("getPublicMatchHistory returns the newest matches first", async () => {
   assert.equal(result.data[0].id, 44);
   assert.match(statements[0], /ORDER BY id DESC/i);
   assert.deepEqual(paramsSeen[0], [15]);
+});
+
+test("getLatestMatched annotates each recent match with the player's perspective result", async () => {
+  const statements = [];
+  const paramsSeen = [];
+  const { getLatestMatched } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        statements.push(statement);
+        paramsSeen.push(params);
+
+        if (/SELECT DISTINCT matches\.\*/i.test(statement)) {
+          return [[
+            {
+              id: 44,
+              game_id: "KR-44",
+              blue_team: JSON.stringify({
+                result: 0,
+                players: [{ puuid: "puuid-blue" }],
+              }),
+              purple_team: JSON.stringify({
+                result: 1,
+                players: [{ puuid: "puuid-purple" }],
+              }),
+            },
+          ]];
+        }
+
+        if (/name AS player_name/i.test(statement)) {
+          return [[{ puuid: "puuid-blue", player_name: "Blue#KR1" }]];
+        }
+
+        throw new Error(`Unexpected statement: ${statement}`);
+      },
+    }),
+  });
+
+  const result = await getLatestMatched("guild-1", "discord-1");
+
+  assert.equal(result.success, true);
+  assert.equal(result.data[0].player_result_text, "패배");
+  assert.equal(result.data[0].player_result_tone, "red");
+  assert.match(statements[0], /SELECT DISTINCT matches\.\*/i);
+  assert.match(statements[1], /name AS player_name/i);
+  assert.deepEqual(paramsSeen[0], ["discord-1"]);
+  assert.deepEqual(paramsSeen[1], ["discord-1", "discord-1"]);
+});
+
+test("getLatestMatched falls back to the stored player name when match JSON lacks puuid", async () => {
+  const { getLatestMatched } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement) {
+        if (/SELECT DISTINCT matches\.\*/i.test(statement)) {
+          return [[
+            {
+              id: 45,
+              game_id: "KR-45",
+              blue_team: JSON.stringify({
+                result: 1,
+                players: [{ playerName: "상대 미드" }],
+              }),
+              purple_team: JSON.stringify({
+                result: 0,
+                players: [{ playerName: "테스트 찰리" }],
+              }),
+            },
+          ]];
+        }
+
+        if (/name AS player_name/i.test(statement)) {
+          return [[{ puuid: null, player_name: "테스트 찰리" }]];
+        }
+
+        throw new Error(`Unexpected statement: ${statement}`);
+      },
+    }),
+  });
+
+  const result = await getLatestMatched("guild-1", "discord-3");
+
+  assert.equal(result.success, true);
+  assert.equal(result.data[0].player_result_text, "패배");
+  assert.equal(result.data[0].player_result_tone, "red");
 });
 
 test("getPublicMatchById returns the requested match row", async () => {

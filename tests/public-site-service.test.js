@@ -303,10 +303,13 @@ test("public site handlers return null for unknown player pages and map search r
       return [];
     },
     async getPublicSiteSummary() {
-      throw new Error("not used");
+      return {
+        success: true,
+        data: { total_matches: 1, total_players: 1, top_win_rate: 100 },
+      };
     },
     async getPublicLeaderboard() {
-      throw new Error("not used");
+      return { success: true, data: [] };
     },
     async getPublicMatchById() {
       throw new Error("not used");
@@ -402,6 +405,194 @@ test("public site handlers return null for unknown player pages and map search r
   assert.deepEqual(searchResults, [{ discordId: "1", name: "Alpha" }]);
 });
 
+test("public site handlers keep representative riot names without Discord lookups and keep Riot accounts on the player page", async () => {
+  let discordLookupCount = 0;
+  const site = createPublicSiteHandlers({
+    preferredGuildId: "guild-1",
+    async getChampionNameMap() {
+      return {
+        ahri: "아리",
+      };
+    },
+    async getRiotAssetManifest() {
+      return buildAssetManifest();
+    },
+    async resolveDiscordDisplayNames() {
+      discordLookupCount += 1;
+      return {};
+    },
+    async getPublicSiteSummary() {
+      return {
+        success: true,
+        data: { total_matches: 5, total_players: 2, top_win_rate: 70 },
+      };
+    },
+    async getPublicLeaderboard() {
+      return {
+        success: true,
+        data: [{ discord_id: "1", name: "Stored Riot", mmr: 1700, win: 7, lose: 3 }],
+      };
+    },
+    async getPublicMatchHistory() {
+      return { success: true, data: [] };
+    },
+    async getPublicMatchById() {
+      throw new Error("not used");
+    },
+    async getPublicPlayerProfile() {
+      return {
+        success: true,
+        data: {
+          discord_id: "1",
+          name: "Stored Riot",
+          win: 6,
+          lose: 4,
+          t_kill: 50,
+          t_death: 20,
+          t_assist: 40,
+          t_kill_rate: 610,
+          champions: JSON.stringify({ Ahri: { win: 4, lose: 1 } }),
+          lanes: JSON.stringify({ MIDDLE: { win: 5, lose: 2 } }),
+          friends: JSON.stringify({ Bravo: { win: 4, lose: 1 } }),
+          riotAccounts: [
+            { riotGameName: "Stored", riotTagLine: "KR1", displayName: "Stored#KR1" },
+            { riotGameName: "Smurf", riotTagLine: "JP1", displayName: "Smurf#JP1" },
+          ],
+        },
+      };
+    },
+    async getLatestMatched() {
+      return { success: true, data: [] };
+    },
+    async searchPublicPlayers() {
+      return {
+        success: true,
+        data: [{ discord_id: "1", name: "Stored Riot", mmr: 1600 }],
+      };
+    },
+  });
+
+  const rankingHtml = await site.renderRankingPage("guild-1");
+  const playerHtml = await site.renderPlayerPage("guild-1", "1");
+  const searchResults = await site.searchPlayers("guild-1", "Stored");
+
+  assert.equal(discordLookupCount, 0);
+  assert.match(rankingHtml, /Stored Riot/);
+  assert.match(playerHtml, /Stored Riot/);
+  assert.match(playerHtml, /Stored#KR1/);
+  assert.match(playerHtml, /Smurf#JP1/);
+  assert.deepEqual(searchResults, [{ discordId: "1", name: "Stored Riot" }]);
+});
+
+test("public site handlers rewrite linked match participants to the representative riot name without Discord lookups", async () => {
+  let discordLookupCount = 0;
+  const site = createPublicSiteHandlers({
+    preferredGuildId: "guild-1",
+    async getChampionNameMap() {
+      return {
+        ahri: "아리",
+      };
+    },
+    async getRiotAssetManifest() {
+      return buildAssetManifest();
+    },
+    async resolveDiscordDisplayNames() {
+      discordLookupCount += 1;
+      return {};
+    },
+    async resolveUsersByPuuids() {
+      return {
+        success: true,
+        data: [
+          {
+            linked_puuid: "puuid-alpha",
+            discord_id: "1",
+            name: "대표계정#KR1",
+          },
+        ],
+      };
+    },
+    async getPublicSiteSummary() {
+      return {
+        success: true,
+        data: { total_matches: 1, total_players: 1, top_win_rate: 100 },
+      };
+    },
+    async getPublicLeaderboard() {
+      return { success: true, data: [] };
+    },
+    async getPublicMatchHistory() {
+      return {
+        success: true,
+        data: [
+          {
+            id: 4,
+            game_id: "DEMO-KR-001",
+            game_length: String(30 * 60 * 1000),
+            played_at_kst: "2026-04-07 20:10:00",
+            blue_team: JSON.stringify({
+              result: 1,
+              totalKill: 17,
+              players: [
+                {
+                  puuid: "puuid-alpha",
+                  playerName: "Stored#KR1",
+                  championName: "Ahri",
+                  lane: "MIDDLE",
+                  level: 16,
+                  totalDamage: 22880,
+                  visionScore: 15,
+                  minionScore: 188,
+                  spell1: 4,
+                  spell2: 14,
+                  keystoneId: 8112,
+                  subStyleId: 8200,
+                  inventory: {
+                    item1: 6655,
+                    item2: 3020,
+                    item3: 3157,
+                    item4: 4645,
+                    item5: 3089,
+                    item6: 3135,
+                    trinket: 3363,
+                  },
+                  kda: { kills: 8, deaths: 2, assist: 7 },
+                },
+              ],
+            }),
+            purple_team: JSON.stringify({
+              result: 0,
+              totalKill: 9,
+              players: [],
+            }),
+          },
+        ],
+      };
+    },
+    async getPublicMatchById() {
+      throw new Error("not used");
+    },
+    async getPublicPlayerProfile() {
+      throw new Error("not used");
+    },
+    async getLatestMatched() {
+      throw new Error("not used");
+    },
+    async searchPublicPlayers() {
+      throw new Error("not used");
+    },
+  });
+
+  const matchesHtml = await site.renderMatchesPage("guild-1");
+  const homeHtml = await site.renderHomePage("guild-1");
+
+  assert.equal(discordLookupCount, 0);
+  assert.match(matchesHtml, /대표계정#KR1/);
+  assert.doesNotMatch(matchesHtml, /Stored#KR1/);
+  assert.match(homeHtml, /대표계정#KR1/);
+  assert.doesNotMatch(homeHtml, /Stored#KR1/);
+});
+
 test("public site handlers render a match detail page and return null for unknown matches", async () => {
   const site = createPublicSiteHandlers({
     preferredGuildId: "guild-1",
@@ -488,7 +679,12 @@ test("public site handlers render a match detail page and return null for unknow
 
   assert.equal(missingHtml, null);
   assert.match(matchHtml, /경기 상세/);
+  assert.match(matchHtml, />플레이어</);
+  assert.match(matchHtml, />OP Score</);
+  assert.match(matchHtml, />KDA</);
   assert.match(matchHtml, /36,200/);
+  assert.match(matchHtml, /Total Kill/);
+  assert.match(matchHtml, /match-scoreboard__build-items/);
   assert.match(matchHtml, /Electrocute\.png/);
   assert.match(matchHtml, /2026\.04\.07 20:10/);
   assert.match(matchHtml, /승리/);

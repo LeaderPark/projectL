@@ -15,7 +15,7 @@ function renderMatchesPage(model) {
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Timeline</p>
           <h1>전체 경기</h1>
-          <p>전체 전적 타임라인을 최신 경기부터 OP.GG 스타일의 압축 카드로 살펴볼 수 있습니다.</p>
+          <p>최신 경기부터 이어지는 카드형 타임라인으로 전체 전적 흐름을 한눈에 확인할 수 있습니다.</p>
         </div>
       </section>
       <section class="panel panel--timeline">

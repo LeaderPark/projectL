@@ -93,6 +93,7 @@ function buildGuildSchemaStatements() {
       \`riot_tag_line\` varchar(50) NOT NULL,
       \`puuid\` varchar(255) NOT NULL,
       \`summoner_id\` varchar(255) NOT NULL,
+      \`is_primary\` tinyint(1) NOT NULL DEFAULT 0,
       \`created_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (\`id\`),
       UNIQUE KEY \`uq_riot_accounts_puuid\` (\`puuid\`),
@@ -180,6 +181,12 @@ function buildGuildColumnMigrations() {
       columnName: "result_error",
       statement:
         "ALTER TABLE `active_tournament_sessions` ADD COLUMN `result_error` longtext DEFAULT NULL AFTER `result_attempts`",
+    },
+    {
+      tableName: "riot_accounts",
+      columnName: "is_primary",
+      statement:
+        "ALTER TABLE `riot_accounts` ADD COLUMN `is_primary` tinyint(1) NOT NULL DEFAULT 0 AFTER `summoner_id`",
     },
     buildJsonDefaultMigration("champions"),
     buildJsonDefaultMigration("lanes"),

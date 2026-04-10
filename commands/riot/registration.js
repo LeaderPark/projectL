@@ -2,6 +2,30 @@ const { SlashCommandBuilder } = require("discord.js");
 const { getSummonerData } = require("../../scripts/Riot/DataReceiver");
 const { registerRiotAccount } = require("../../scripts/Utils/Query");
 
+function buildRegistrationSuccessMessage(insertResult) {
+  const lines = ["등록을 완료했습니다."];
+  const data = insertResult?.data;
+
+  if (!data) {
+    return lines.join("\n");
+  }
+
+  if (data.registeredAccountDisplayName) {
+    lines.push(`등록한 아이디: ${data.registeredAccountDisplayName}`);
+  }
+
+  if (data.primaryAccountDisplayName) {
+    lines.push(`현재 대표 아이디: ${data.primaryAccountDisplayName}`);
+  }
+
+  if (Number(data.accountCount) > 1) {
+    lines.push("대표 아이디를 설정하지 않으면 처음 등록한 아이디가 기본값으로 유지됩니다.");
+    lines.push("/대표아이디설정 으로 대표 아이디를 변경할 수 있어요.");
+  }
+
+  return lines.join("\n");
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("등록")
@@ -59,6 +83,6 @@ module.exports = {
       );
     }
 
-    await interaction.editReply("등록을 완료했습니다.");
+    await interaction.editReply(buildRegistrationSuccessMessage(insertRes));
   },
 };

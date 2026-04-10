@@ -7,6 +7,22 @@ const {
 } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
+function renderLinkedRiotAccountRows(accounts = []) {
+  if (!accounts.length) {
+    return '<li class="simple-list__empty">등록된 롤 계정이 없어요.</li>';
+  }
+
+  return accounts
+    .map(
+      (account) => `
+        <li class="simple-list__item">
+          <span class="simple-list__name">${escapeHtml(account.displayName)}</span>
+        </li>
+      `
+    )
+    .join("");
+}
+
 function renderPlayerPage(model) {
   const { profile } = model;
   const body = `
@@ -25,29 +41,8 @@ function renderPlayerPage(model) {
         </div>
       </section>
 
-      <section class="content-grid">
-        <section class="panel">
-          <div class="panel__header"><h2>주 챔피언</h2></div>
-          <ul class="simple-list">
-            ${renderSimpleRows(profile.favoriteChampions)}
-          </ul>
-        </section>
-        <section class="panel">
-          <div class="panel__header"><h2>선호 라인</h2></div>
-          <ul class="simple-list">
-            ${renderSimpleRows(profile.preferredLanes)}
-          </ul>
-        </section>
-      </section>
-
-      <section class="content-grid">
-        <section class="panel">
-          <div class="panel__header"><h2>함께 잘 맞는 팀원</h2></div>
-          <ul class="simple-list">
-            ${renderSimpleRows(profile.friends)}
-          </ul>
-        </section>
-        <section class="panel panel--timeline">
+      <section class="player-page__shell">
+        <section class="panel panel--timeline player-page__main">
           <div class="panel__header"><h2>최근 경기</h2></div>
           <div class="match-feed">
             ${model.recentMatches
@@ -60,6 +55,38 @@ function renderPlayerPage(model) {
               .join("")}
           </div>
         </section>
+        <aside class="panel player-page__sidebar">
+          <div class="panel__header">
+            <h2>플레이 성향 요약</h2>
+            <span>서브 지표</span>
+          </div>
+          <div class="player-page__sidebar-sections">
+            <section class="player-page__sidebar-section">
+              <h3>등록된 롤 닉네임</h3>
+              <ul class="simple-list">
+                ${renderLinkedRiotAccountRows(profile.linkedRiotAccounts)}
+              </ul>
+            </section>
+            <section class="player-page__sidebar-section">
+              <h3>주 챔피언</h3>
+              <ul class="simple-list">
+                ${renderSimpleRows(profile.favoriteChampions)}
+              </ul>
+            </section>
+            <section class="player-page__sidebar-section">
+              <h3>함께 잘 맞는 팀원</h3>
+              <ul class="simple-list">
+                ${renderSimpleRows(profile.friends)}
+              </ul>
+            </section>
+            <section class="player-page__sidebar-section">
+              <h3>선호 라인</h3>
+              <ul class="simple-list">
+                ${renderSimpleRows(profile.preferredLanes)}
+              </ul>
+            </section>
+          </div>
+        </aside>
       </section>
     </main>
   `;

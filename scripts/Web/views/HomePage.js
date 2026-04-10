@@ -31,7 +31,7 @@ function renderHomePage(model) {
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Competitive Board</p>
           <h1>전체 내전 전적</h1>
-          <p>승패 흐름, 최근 전적, 플레이어 랭킹을 한 화면에서 빠르게 훑고 바로 경기 상세로 들어갈 수 있도록 구성했습니다.</p>
+          <p>승패 흐름, 최근 경기 결과, 플레이어 랭킹을 한 화면에서 확인하고 경기별 상세 기록까지 바로 이동할 수 있습니다.</p>
         </div>
         <div class="overview-hero__spotlight">
           <span>최근 전적</span>

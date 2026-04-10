@@ -27,13 +27,15 @@ function serveAssetFile(res, filePath) {
       ? "text/css; charset=utf-8"
       : extension === ".js"
         ? "application/javascript; charset=utf-8"
-        : "application/octet-stream";
+        : extension === ".webp"
+          ? "image/webp"
+          : "application/octet-stream";
 
   res.writeHead(200, {
     "Content-Type": contentType,
     "Cache-Control": "no-store",
   });
-  res.end(fs.readFileSync(filePath, "utf8"));
+  res.end(fs.readFileSync(filePath));
 }
 
 function createPublicSiteRouter({
@@ -60,7 +62,11 @@ function createPublicSiteRouter({
       return true;
     }
 
-    if (pathname === "/public/site.css" || pathname === "/public/site.js") {
+    if (
+      pathname === "/public/site.css" ||
+      pathname === "/public/site.js" ||
+      pathname === "/public/favicon.webp"
+    ) {
       serveAssetFile(res, path.join(assetsDir, path.basename(pathname)));
       return true;
     }

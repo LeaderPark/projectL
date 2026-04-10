@@ -362,16 +362,21 @@ const sampleMatchDetail = {
   },
 };
 
-test("renderLayout injects title, body, and shared assets", () => {
+test("renderLayout uses a fixed browser title and shared assets", () => {
   const html = renderLayout({
-    title: "마법공학 분류모자",
+    title: "임의 페이지 제목",
     guildId: "123456789",
     body: "<main>ok</main>",
   });
 
   assert.match(html, /<title>마법공학 분류모자<\/title>/);
+  assert.doesNotMatch(html, /<title>임의 페이지 제목<\/title>/);
   assert.match(html, /\/public\/site\.css\?v=\d+/);
   assert.match(html, /\/public\/site\.js\?v=\d+/);
+  assert.match(
+    html,
+    /<link rel="icon" type="image\/webp" href="\/public\/favicon\.webp\?v=\d+"/
+  );
   assert.match(html, /<main>ok<\/main>/);
   assert.match(html, /action="\/123456789\/players"/);
   assert.match(html, /href="\/123456789"/);
@@ -387,7 +392,7 @@ test("renderLandingPage renders only a server-id entry form", () => {
   const html = renderLandingPage();
 
   assert.match(html, /서버 아이디/);
-  assert.match(html, /마법공학 분류모자 서버 선택/);
+  assert.match(html, /<title>마법공학 분류모자<\/title>/);
   assert.match(html, /<form/);
   assert.match(html, /name="serverId"/);
   assert.doesNotMatch(html, /ProjectL/);
@@ -472,6 +477,18 @@ test("renderRankingPage renders the full public ranking table", () => {
         recordText: "6승 4패",
         winRateText: "60%",
       },
+      {
+        discordId: "3",
+        name: "Charlie",
+        recordText: "5승 5패",
+        winRateText: "50%",
+      },
+      {
+        discordId: "4",
+        name: "Delta",
+        recordText: "4승 6패",
+        winRateText: "40%",
+      },
     ],
   });
 
@@ -480,9 +497,64 @@ test("renderRankingPage renders the full public ranking table", () => {
   assert.match(html, /전체 플레이어 랭킹/);
   assert.match(html, /Alpha/);
   assert.match(html, /Bravo/);
+  assert.match(html, /Charlie/);
+  assert.match(html, /Delta/);
   assert.match(html, /\/123456789\/players\/1/);
   assert.match(html, /\/123456789\/players\/2/);
   assert.match(html, /\/123456789\/ranking/);
+  assert.match(html, /class="site-shell site-shell--ranking-wide"/);
+  assert.match(
+    html,
+    /class="ranking-table__row ranking-table__row--top-1"[\s\S]*class="ranking-table__rank-badge ranking-table__rank-badge--top-1"[\s\S]*1/
+  );
+  assert.match(
+    html,
+    /class="ranking-table__row ranking-table__row--top-2"[\s\S]*class="ranking-table__rank-badge ranking-table__rank-badge--top-2"[\s\S]*2/
+  );
+  assert.match(
+    html,
+    /class="ranking-table__row ranking-table__row--top-3"[\s\S]*class="ranking-table__rank-badge ranking-table__rank-badge--top-3"[\s\S]*3/
+  );
+  assert.doesNotMatch(html, /ranking-table__rank-badge-label/);
+  assert.doesNotMatch(html, />TOP<\/span>/);
+  assert.match(html, /class="ranking-table__rank-cell">#4<\/td>/);
+});
+
+test("ranking page styles widen the shell on desktop while keeping mobile gutters", () => {
+  const css = fs.readFileSync("public/site.css", "utf8");
+
+  assert.match(
+    css,
+    /\.site-shell--ranking-wide\s*\{[\s\S]*width:\s*calc\(100%\s*-\s*28px\);[\s\S]*max-width:\s*none;/
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.site-shell--ranking-wide\s*\{[\s\S]*width:\s*calc\(100%\s*-\s*18px\);/
+  );
+  assert.match(
+    css,
+    /\.ranking-table__row--top-1\s*\{[\s\S]*linear-gradient/
+  );
+  assert.match(
+    css,
+    /\.ranking-table__rank-badge--top-1\s*\{[\s\S]*box-shadow:/
+  );
+  assert.match(
+    css,
+    /\.ranking-table__rank-badge--top-2\s*\{/
+  );
+  assert.match(
+    css,
+    /\.ranking-table__rank-badge--top-3\s*\{/
+  );
+  assert.doesNotMatch(
+    css,
+    /\.ranking-table__rank-badge-label\s*\{/
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.ranking-table__rank-badge\s*\{[\s\S]*min-width:/
+  );
 });
 
 test("renderMatchCard groups header and team panels inside a content body", () => {
@@ -502,21 +574,36 @@ test("renderMatchCard groups header and team panels inside a content body", () =
   assert.doesNotMatch(html, />OP 스코어</);
   assert.doesNotMatch(html, />빌드</);
   assert.doesNotMatch(html, /match-row__tabs/);
+  assert.match(html, /match-scoreboard--compact/);
   assert.match(html, /match-scoreboard__columns/);
-  assert.match(html, /Total Kill/);
-  assert.match(html, /Total Damage/);
-  assert.match(html, /match-scoreboard__build-items/);
-  assert.match(html, /match-scoreboard__build-row/);
-  assert.match(html, /match-scoreboard__build-trinket/);
+  assert.match(html, />플레이어</);
+  assert.match(html, />OP Score</);
+  assert.match(html, />KDA</);
+  assert.doesNotMatch(html, /피해량/);
+  assert.doesNotMatch(html, /와드/);
+  assert.doesNotMatch(html, /CS/);
+  assert.doesNotMatch(html, /아이템/);
+  assert.doesNotMatch(html, /Total Kill/);
+  assert.doesNotMatch(html, /Total Damage/);
+  assert.doesNotMatch(html, /Total Vision/);
+  assert.doesNotMatch(html, /match-scoreboard__build-items/);
+  assert.doesNotMatch(html, /match-scoreboard__build-row/);
+  assert.doesNotMatch(html, /match-scoreboard__build-trinket/);
   assert.match(html, /match-scoreboard__summoners/);
   assert.match(html, /match-scoreboard__runes-block/);
+  assert.match(html, /class="match-row__actions"/);
   assert.match(
     html,
-    /match-scoreboard__build-row[\s\S]*6631\.png[\s\S]*3047\.png[\s\S]*3071\.png[\s\S]*3364\.png[\s\S]*match-scoreboard__build-row[\s\S]*3053\.png[\s\S]*3065\.png[\s\S]*3074\.png/
+    /class="match-row__detail-link" href="\/matches\/1">상세 보기<\/a>/
+  );
+  assert.doesNotMatch(html, />링크</);
+  assert.match(
+    html,
+    /class="match-row__caret" aria-hidden="true">\s*<span class="match-row__caret-icon"><\/span>\s*<\/span>/
   );
   assert.match(html, /<img[^>]+Renekton\.png/);
   assert.match(html, /<img[^>]+Teleport\.png/);
-  assert.match(html, /<img[^>]+6631\.png/);
+  assert.doesNotMatch(html, /<img[^>]+6631\.png/);
 });
 
 test("renderMatchCard hides the result strip and uses the compact public summary layout when requested", () => {
@@ -543,6 +630,20 @@ test("renderMatchCard hides the result strip and uses the compact public summary
   assert.match(html, /match-row__summary-team--red[\s\S]*테스트 인디아/);
 });
 
+test("renderMatchCard uses the player perspective result when one is provided", () => {
+  const html = renderMatchCard({
+    ...sampleCard,
+    resultText: "패배",
+    resultTone: "red",
+  });
+
+  assert.match(html, /class="match-row match-row--red"/);
+  assert.match(
+    html,
+    /class="match-row__result">\s*<strong>패배<\/strong>\s*<span>내전<\/span>/
+  );
+});
+
 test("renderPlayerPage renders profile stats, champion rows, and recent matches", () => {
   const html = renderPlayerPage({
     guildId: "123456789",
@@ -553,6 +654,10 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
       winRateText: "60%",
       averageKdaText: "6.00",
       averageKillRateText: "64%",
+      linkedRiotAccounts: [
+        { displayName: "Alpha#KR1" },
+        { displayName: "Bravo#JP1" },
+      ],
       favoriteChampions: [{ name: "Ahri", recordText: "4승 1패" }],
       preferredLanes: [{ name: "MIDDLE", recordText: "5승 2패" }],
       friends: [{ name: "Bravo", recordText: "4승 1패" }],
@@ -561,11 +666,14 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   });
 
   assert.match(html, /Alpha/);
-  assert.match(html, /Alpha - 마법공학 분류모자/);
+  assert.match(html, /<title>마법공학 분류모자<\/title>/);
   assert.match(html, /마법공학 분류모자 Player/);
   assert.match(html, /승률/);
   assert.match(html, /주 챔피언/);
   assert.match(html, /최근 경기/);
+  assert.match(html, /등록된 롤 닉네임/);
+  assert.match(html, /Alpha#KR1/);
+  assert.match(html, /Bravo#JP1/);
   assert.match(html, /2026\.04\.07 20:10/);
   assert.match(html, /Ahri/);
   assert.match(html, /Bravo/);
@@ -574,6 +682,10 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   assert.match(html, /\/123456789\/matches\/1/);
   assert.match(html, /player-summary-hero/);
   assert.match(html, /player-summary-hero__stats/);
+  assert.match(
+    html,
+    /player-page__shell[\s\S]*player-page__main[\s\S]*최근 경기[\s\S]*player-page__sidebar[\s\S]*주 챔피언[\s\S]*함께 잘 맞는 팀원[\s\S]*선호 라인/
+  );
   assert.match(html, /match-row__summary-highlight/);
   assert.doesNotMatch(html, /MMR/);
   assert.doesNotMatch(html, /ProjectL/);
@@ -590,6 +702,14 @@ test("player page styles keep the stat cards in a dedicated two-column grid", ()
   assert.match(
     css,
     /\.player-summary-hero__stats strong\s*\{[\s\S]*white-space:\s*nowrap;/
+  );
+  assert.match(
+    css,
+    /\.player-page__shell\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.32fr\)\s+minmax\(280px,\s*0\.68fr\);/
+  );
+  assert.match(
+    css,
+    /\.player-page__sidebar-sections\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*18px;/
   );
 });
 
@@ -612,11 +732,19 @@ test("renderMatchDetailPage renders both teams and the full stat columns", () =>
   assert.match(html, /패배/);
   assert.match(html, /overview-hero__copy/);
   assert.match(html, /match-detail-shell/);
+  assert.doesNotMatch(html, /match-scoreboard--compact/);
   assert.doesNotMatch(html, /match-row__tabs/);
   assert.doesNotMatch(html, /match-detail-shell__summary/);
   assert.match(html, /match-scoreboard__columns/);
+  assert.match(html, />플레이어</);
+  assert.match(html, />OP Score</);
+  assert.match(html, />KDA</);
+  assert.match(html, /피해량/);
+  assert.match(html, /CS/);
+  assert.match(html, /아이템/);
   assert.match(html, /Total Kill/);
   assert.match(html, /Total Damage/);
+  assert.match(html, /Total Vision/);
   assert.match(html, /match-scoreboard__build-items/);
   assert.match(html, /match-scoreboard__summoners/);
   assert.match(html, /match-scoreboard__runes-block/);
@@ -627,7 +755,7 @@ test("renderMatchDetailPage renders both teams and the full stat columns", () =>
   assert.doesNotMatch(html, /ProjectL/);
 });
 
-test("match detail styles size player rows as identity, stats, and builds columns", () => {
+test("match detail styles keep full scoreboard defaults and compact inline overrides", () => {
   const css = fs.readFileSync("public/site.css", "utf8");
 
   assert.match(
@@ -636,11 +764,31 @@ test("match detail styles size player rows as identity, stats, and builds column
   );
   assert.match(
     css,
-    /\.match-scoreboard__identity\s*\{[\s\S]*grid-template-columns:\s*52px\s+24px\s+24px\s+minmax\(0,\s*1fr\);/
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.72fr\)\s+minmax\(104px,\s*0\.52fr\)\s+minmax\(0,\s*1fr\);/
   );
   assert.match(
     css,
-    /\.match-scoreboard__totals\s*\{[\s\S]*display:\s*grid;/
+    /\.match-scoreboard--compact\s+\.match-scoreboard__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.72fr\)\s+minmax\(104px,\s*0\.52fr\)\s+minmax\(0,\s*1fr\);/
+  );
+  assert.match(
+    css,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__score\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-self:\s*end;[\s\S]*justify-content:\s*flex-end;[\s\S]*gap:\s*8px;/
+  );
+  assert.match(
+    css,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__kda\s*\{[\s\S]*justify-self:\s*end;[\s\S]*justify-items:\s*start;[\s\S]*text-align:\s*left;[\s\S]*padding-right:\s*12px;/
+  );
+  assert.match(
+    css,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s+span:nth-child\(2\)\s*\{[\s\S]*justify-self:\s*end;[\s\S]*text-align:\s*right;/
+  );
+  assert.match(
+    css,
+    /\.match-scoreboard--compact\s+\.match-scoreboard__columns\s+span:nth-child\(3\)\s*\{[\s\S]*justify-self:\s*end;[\s\S]*text-align:\s*left;[\s\S]*padding-right:\s*12px;/
+  );
+  assert.match(
+    css,
+    /\.match-scoreboard__identity\s*\{[\s\S]*grid-template-columns:\s*52px\s+24px\s+24px\s+minmax\(0,\s*1fr\);/
   );
   assert.match(
     css,
@@ -648,24 +796,12 @@ test("match detail styles size player rows as identity, stats, and builds column
   );
   assert.match(
     css,
-    /\.match-scoreboard__build-items\s*\{[\s\S]*display:\s*grid;/
-  );
-  assert.match(
-    css,
-    /\.match-scoreboard__build-row\s*\{[\s\S]*display:\s*flex;/
-  );
-  assert.match(
-    css,
-    /\.match-scoreboard__build-row\s+\.match-scoreboard__items__icon\s*\{[\s\S]*width:\s*28px;[\s\S]*height:\s*28px;/
-  );
-  assert.match(
-    css,
     /\.match-scoreboard__runes-block__icon\s*,?[\s\S]*width:\s*24px;[\s\S]*height:\s*24px;/
   );
-  assert.match(
-    css,
-    /\.match-scoreboard__totals-bar\s*\{[\s\S]*display:\s*flex;[\s\S]*gap:\s*0;/
-  );
+  assert.match(css, /\.match-scoreboard__totals\s*\{/);
+  assert.match(css, /\.match-scoreboard__build-items\s*\{/);
+  assert.match(css, /\.match-scoreboard__build-row\s*\{/);
+  assert.match(css, /\.match-scoreboard__totals-bar\s*\{/);
 });
 
 test("public match summary styles drop the left result strip and distribute team cards evenly", () => {
@@ -673,7 +809,23 @@ test("public match summary styles drop the left result strip and distribute team
 
   assert.match(
     css,
-    /\.match-row__summary--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto;/
+    /\.match-row\s*\{[\s\S]*position:\s*relative;/
+  );
+  assert.match(
+    css,
+    /\.match-row__actions\s*\{[\s\S]*position:\s*absolute;[\s\S]*top:\s*18px;[\s\S]*right:\s*18px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__detail-link\s*\{[\s\S]*border-radius:\s*12px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary\s*\{[\s\S]*grid-template-columns:\s*88px\s+minmax\(0,\s*1fr\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\);/
   );
   assert.match(
     css,
@@ -686,6 +838,22 @@ test("public match summary styles drop the left result strip and distribute team
   assert.match(
     css,
     /\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta"\s*"teams caret";/
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.match-row__summary-button--public\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+24px;[\s\S]*grid-template-areas:\s*"meta meta"\s*"teams caret";/
+  );
+  assert.match(
+    css,
+    /\.match-row__caret\s*\{[\s\S]*width:\s*24px;[\s\S]*height:\s*24px;/
+  );
+  assert.match(
+    css,
+    /\.match-row__caret-icon\s*\{[\s\S]*transform:\s*rotate\(45deg\);/
+  );
+  assert.match(
+    css,
+    /\.match-row__summary-button\[aria-expanded="true"\]\s+\.match-row__caret-icon\s*\{[\s\S]*transform:\s*rotate\(135deg\);/
   );
   assert.match(
     css,

@@ -188,6 +188,43 @@ test("formatMatchCard localizes champion names and lanes when translators are pr
   assert.equal(card.teams.purple.players[0].lane, "정글");
 });
 
+test("formatMatchCard preserves player perspective result overrides", () => {
+  const card = formatMatchCard({
+    id: 11,
+    game_id: "DEMO-KR-011",
+    game_length: String(24 * 60 * 1000),
+    played_at_kst: "2026-04-10 19:20:00",
+    player_result_text: "패배",
+    player_result_tone: "red",
+    blue_team: JSON.stringify({
+      result: 0,
+      players: [
+        {
+          playerName: "Alpha",
+          championName: "Ahri",
+          lane: "MIDDLE",
+          kda: { kills: 4, deaths: 6, assist: 5 },
+        },
+      ],
+    }),
+    purple_team: JSON.stringify({
+      result: 1,
+      players: [
+        {
+          playerName: "Bravo",
+          championName: "LeeSin",
+          lane: "JUNGLE",
+          kda: { kills: 8, deaths: 2, assist: 9 },
+        },
+      ],
+    }),
+  });
+
+  assert.equal(card.resultText, "패배");
+  assert.equal(card.resultTone, "red");
+  assert.equal(card.winningSide, "purple");
+});
+
 test("formatMatchCard builds OP.GG-style row metadata and image assets when asset lookups are provided", () => {
   const card = formatMatchCard(
     {

@@ -1,17 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder, Faces } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 const { getUserData } = require("../../scripts/Utils/Query");
-const {
-  championKorList,
-} = require("../../scripts/Utils/championNameConverter");
+const { buildPublicPlayerUrl } = require("../../scripts/Utils/PublicSiteLinks");
 
-const linesConvert = {
-  TOP: "탑",
-  JUNGLE: "정글",
-  MID: "미드",
-  BOT: "바텀",
-  SUPPORT: "바텀",
-  NON: "NO DATA",
-};
+function resolveSelectedUser(interaction, member) {
+  return interaction.options.getUser("검색할소환사") || member?.user || member;
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,10 +16,10 @@ module.exports = {
         .setDescription("검색할 소환사를 멘션해주세요")
     ),
   async execute(interaction) {
-    const interactionUser = await interaction.guild.members.fetch(
+    const interactionMember = await interaction.guild.members.fetch(
       interaction.user.id
     );
-    const user = interaction.options.getUser("검색할소환사") || interactionUser;
+    const user = resolveSelectedUser(interaction, interactionMember);
 
     if (user.bot) {
       return await interaction.reply("봇 말고 소환사를 넣으라고");
@@ -46,272 +39,13 @@ module.exports = {
       return await interaction.reply("등록된 정보가 없습니다.");
     }
 
-    const [totalPlay, winRate] = getData(userData.win, userData.lose);
-    const [totalKill, totalDeath, totalAssist, deathtoKillAssist] = getKDA(
-      userData.t_kill,
-      userData.t_death,
-      userData.t_assist,
-      totalPlay
-    );
-    const totalKillRate = (userData.t_kill_rate / totalPlay).toFixed(1);
-
-    const sortedLanes = Object.entries(JSON.parse(userData.lanes)).sort(
-      ([, a], [, b]) => {
-        const sumA = a.win + a.lose;
-        const sumB = b.win + b.lose;
-        return sumB - sumA;
-      }
-    );
-
-    let otherLane = "";
-    for (let key in sortedLanes) {
-      const lane = sortedLanes[key];
-      if (lane[0] === "SUPPORT" || lane[0] === "BOT") {
-        otherLane = lane[0] === "BOT" ? "SUPPORT" : "BOT";
-        const other = sortedLanes.find((x) => x[0] === "BOT" || x[0] === "SUPPORT");
-
-        sortedLanes[key][1].win += other[1].win || 0;
-        sortedLanes[key][1].lose += other[1].lose || 0;
-        break;
-      }
+    const playerUrl = buildPublicPlayerUrl(interaction.guildId, user.id);
+    if (!playerUrl) {
+      return await interaction.reply("공개 사이트 주소가 설정되지 않았습니다.");
     }
 
-    const [mostLine, subLine] = sortedLanes.filter((x) => x[0] !== otherLane);
-    const [mostLineTotal, mostLineRate] = getData(
-      mostLine[1].win,
-      mostLine[1].lose
+    return await interaction.reply(
+      `플레이어 정보는 아래 링크에서 확인해 주세요.\n${playerUrl}`
     );
-    let subLineTotal = 0,
-      subLineRate = 0;
-    if (subLine) {
-      [subLineTotal, subLineRate] = getData(subLine[1].win, subLine[1].lose);
-    }
-    const sortedFriends = Object.entries(JSON.parse(userData.friends)).sort(
-      ([, a], [, b]) => {
-        const sumA = (a.win / (a.win + a.lose)) * a.win;
-        const sumB = (b.win / (b.win + b.lose)) * b.win;
-        return sumB - sumA;
-      }
-    );
-    const friends = Object.fromEntries(sortedFriends);
-    const friendsKey = Object.keys(friends);
-    const [bestFriendTotal, bestFriendRate] = getData(
-      friends[friendsKey[0]].win,
-      friends[friendsKey[0]].lose
-    );
-    const [worstFriendTotal, worstFriendRate] = getData(
-      friends[friendsKey[friendsKey.length - 1]].win,
-      friends[friendsKey[friendsKey.length - 1]].lose
-    );
-
-    const sortedChampions = Object.entries(JSON.parse(userData.champions)).sort(
-      ([, a], [, b]) => {
-        const sumA = a.win + a.lose;
-        const sumB = b.win + b.lose;
-        return sumB - sumA;
-      }
-    );
-    const champions = Object.fromEntries(sortedChampions);
-    const championsKey = Object.keys(champions);
-    const champ1 = champions[championsKey[0]];
-    const champ2 = champions[championsKey[1]];
-    const champ3 = champions[championsKey[2]];
-    const [champ1Total, champ1TotalRate] = getData(champ1.win, champ1.lose);
-    const [champ1K, champ1D, champ1A, champ1KTA] = getKDA(
-      champ1.kills,
-      champ1.deaths,
-      champ1.assist,
-      champ1Total
-    );
-
-    let champ2Total = 0,
-      champ2TotalRate = 0;
-    let champ2K = 0,
-      champ2D = 0,
-      champ2A = 0,
-      champ2KTA = 0;
-    if (champ2) {
-      [champ2Total, champ2TotalRate] = getData(champ2.win, champ2.lose);
-      [champ2K, champ2D, champ2A, champ2KTA] = getKDA(
-        champ2.kills,
-        champ2.deaths,
-        champ2.assist,
-        champ2Total
-      );
-    }
-
-    let champ3Total = 0,
-      champ3TotalRate = 0;
-    let champ3K = 0,
-      champ3D = 0,
-      champ3A = 0,
-      champ3KTA = 0;
-    if (champ3) {
-      [champ3Total, champ3TotalRate] = getData(champ3.win, champ3.lose);
-      [champ3K, champ3D, champ3A, champ3KTA] = getKDA(
-        champ3.kills,
-        champ3.deaths,
-        champ3.assist,
-        champ3Total
-      );
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle(`${userData.name}님의 데이터`)
-      .setDescription(`**TOTAL - ${totalPlay} Play**`)
-      .addFields(
-        {
-          name: `승률`,
-          value: `**${winRate}%**`,
-          inline: false,
-        },
-        {
-          name: "K / D / A",
-          value: `**${totalKill}** / **${totalDeath}** / **${totalAssist}** || **${deathtoKillAssist}:1**`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: "킬관여",
-          value: `**${totalKillRate}%**`,
-          inline: true,
-        },
-        {
-          name: `주라인 - ${mostLineTotal} Play`,
-          value: `**${linesConvert[mostLine[0]]}** || **${mostLineRate}%**`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: "펜타킬",
-          value: `**${userData.penta}**`,
-          inline: true,
-        },
-        {
-          name: `부라인 - ${subLineTotal} Play`,
-          value: `**${linesConvert[subLine === undefined ? "NON" : subLine[0]]
-            }** || **${subLineRate}%**`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: "펜타킬을 뺏긴 횟수",
-          value: `**${userData.quadra}**`,
-          inline: true,
-        },
-        {
-          name: `Best Friend - ${bestFriendTotal} Play`,
-          value: `**${friendsKey[0]}** || **${bestFriendRate}%**`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: `Worst Friend - ${worstFriendTotal} Play`,
-          value: `**${friendsKey[friendsKey.length - 1]
-            }** || **${worstFriendRate}%**`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: false,
-        },
-        {
-          name: `Most Champion`,
-          value: "\u200b",
-          inline: false,
-        },
-        {
-          name: `${championKorList[championsKey[0]]} - ${champ1Total} Play`,
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: `${champ1KTA}:1 평점`,
-          value: `${champ1K} / ${champ1D} / ${champ1A}`,
-          inline: true,
-        },
-        {
-          name: `${champ1TotalRate}%`,
-          value: `${champ1Total} 게임`,
-          inline: true,
-        },
-        {
-          name: `${championKorList[championsKey[1]]} - ${champ2Total} Play`,
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: `${champ2KTA}:1 평점`,
-          value: `${champ2K} / ${champ2D} / ${champ2A}`,
-          inline: true,
-        },
-        {
-          name: `${champ2TotalRate}%`,
-          value: `${champ2Total} 게임`,
-          inline: true,
-        },
-        {
-          name: `${championKorList[championsKey[2]]} - ${champ3Total} Play`,
-          value: "\u200b",
-          inline: true,
-        },
-        {
-          name: `${champ3KTA}:1 평점`,
-          value: `${champ3K} / ${champ3D} / ${champ3A}`,
-          inline: true,
-        },
-        {
-          name: `${champ3TotalRate}%`,
-          value: `${champ3Total} 게임`,
-          inline: true,
-        },
-        {
-          name: "\u200b",
-          value: "\u200b",
-          inline: true,
-        }
-      )
-      .setTimestamp()
-      .setFooter({
-        text: "만든놈 - 환주, 진우",
-      });
-
-    await interaction.reply({ embeds: [embed] });
   },
-};
-
-const getData = (win, lose) => {
-  const total = win + lose;
-  return [total, Math.floor((win / total) * 100)];
-};
-
-const getKDA = (k, d, a, total) => {
-  const kill = k / total;
-  const death = d / total;
-  const assist = a / total;
-  const deathtoKillAssist = (kill + assist) / death;
-  return [
-    kill.toFixed(1),
-    death.toFixed(1),
-    assist.toFixed(1),
-    deathtoKillAssist.toFixed(2),
-  ];
 };

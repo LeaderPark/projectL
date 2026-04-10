@@ -31,6 +31,18 @@ test("compose file defines an optional cloudflared tunnel service", () => {
   assert.match(compose, /^\s{2}cloudflared:\s*$/m);
   assert.match(compose, /profiles:\s*\["cloudflare"\]/);
   assert.match(compose, /command:\s+tunnel --no-autoupdate run --token \$\{CF_TUNNEL_TOKEN\}/);
+  assert.match(compose, /bot:\s*\n\s*condition:\s*service_healthy/);
+});
+
+test("compose file waits for the bot web port to be healthy before serving the tunnel", () => {
+  const compose = fs.readFileSync("compose.yaml", "utf8");
+
+  assert.match(compose, /^\s{4}healthcheck:\s*$/m);
+  assert.match(compose, /wget --spider -q http:\/\/127\.0\.0\.1:8000\//);
+  assert.match(compose, /interval:\s+5s/);
+  assert.match(compose, /timeout:\s+5s/);
+  assert.match(compose, /start_period:\s+15s/);
+  assert.match(compose, /retries:\s+12/);
 });
 
 test("bootstrap and verify scripts exist", () => {

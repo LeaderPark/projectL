@@ -12,6 +12,10 @@ const { renderPlayerPage } = require("../scripts/Web/views/PlayerPage");
 const { renderNotFoundPage } = require("../scripts/Web/views/NotFoundPage");
 const { renderMatchCard } = require("../scripts/Web/views/ViewHelpers");
 
+function stripInlineStyles(html) {
+  return html.replace(/<style data-inline-site-css>[\s\S]*?<\/style>/g, "");
+}
+
 const sampleCard = {
   id: 1,
   gameId: "DEMO-KR-001",
@@ -368,35 +372,39 @@ test("renderLayout uses a fixed browser title and shared assets", () => {
     guildId: "123456789",
     body: "<main>ok</main>",
   });
+  const pageHtml = stripInlineStyles(html);
 
   assert.match(html, /<title>마법공학 분류모자<\/title>/);
   assert.doesNotMatch(html, /<title>임의 페이지 제목<\/title>/);
-  assert.match(html, /\/public\/site\.css\?v=\d+/);
-  assert.match(html, /\/public\/site\.js\?v=\d+/);
+  assert.match(html, /<style data-inline-site-css>/);
+  assert.match(html, /--color-bg:/);
+  assert.match(pageHtml, /\/public\/site\.css\?v=\d+/);
+  assert.match(pageHtml, /\/public\/site\.js\?v=\d+/);
   assert.match(
-    html,
+    pageHtml,
     /<link rel="icon" type="image\/webp" href="\/public\/favicon\.webp\?v=\d+"/
   );
-  assert.match(html, /<main>ok<\/main>/);
-  assert.match(html, /action="\/123456789\/players"/);
-  assert.match(html, /href="\/123456789"/);
-  assert.match(html, /href="\/123456789\/matches"/);
-  assert.match(html, /href="\/123456789\/ranking"/);
-  assert.match(html, /data-search-endpoint="\/123456789\/api\/search"/);
-  assert.match(html, /site-logo__text">마법공학 분류모자</);
-  assert.doesNotMatch(html, /site-logo__mark/);
-  assert.doesNotMatch(html, /마법공학 분류모자 전적/);
+  assert.match(pageHtml, /<main>ok<\/main>/);
+  assert.match(pageHtml, /action="\/123456789\/players"/);
+  assert.match(pageHtml, /href="\/123456789"/);
+  assert.match(pageHtml, /href="\/123456789\/matches"/);
+  assert.match(pageHtml, /href="\/123456789\/ranking"/);
+  assert.match(pageHtml, /data-search-endpoint="\/123456789\/api\/search"/);
+  assert.match(pageHtml, /site-logo__text">마법공학 분류모자</);
+  assert.doesNotMatch(pageHtml, /site-logo__mark/);
+  assert.doesNotMatch(pageHtml, /마법공학 분류모자 전적/);
 });
 
 test("renderLandingPage renders only a server-id entry form", () => {
   const html = renderLandingPage();
+  const pageHtml = stripInlineStyles(html);
 
-  assert.match(html, /서버 아이디/);
-  assert.match(html, /<title>마법공학 분류모자<\/title>/);
-  assert.match(html, /<form/);
-  assert.match(html, /name="serverId"/);
-  assert.doesNotMatch(html, /ProjectL/);
-  assert.doesNotMatch(html, /site-header/);
+  assert.match(pageHtml, /서버 아이디/);
+  assert.match(pageHtml, /<title>마법공학 분류모자<\/title>/);
+  assert.match(pageHtml, /<form/);
+  assert.match(pageHtml, /name="serverId"/);
+  assert.doesNotMatch(pageHtml, /ProjectL/);
+  assert.doesNotMatch(pageHtml, /site-header/);
 });
 
 test("renderHomePage renders summary cards and ranking rows", () => {
@@ -417,26 +425,27 @@ test("renderHomePage renders summary cards and ranking rows", () => {
     ],
     recentMatches: [sampleCard],
   });
+  const pageHtml = stripInlineStyles(html);
 
-  assert.match(html, /전체 내전 전적/);
-  assert.match(html, /마법공학 분류모자 Competitive Board/);
-  assert.match(html, /총 경기 수/);
-  assert.match(html, /공개 랭킹/);
-  assert.match(html, /Alpha/);
-  assert.match(html, /30:50/);
-  assert.match(html, /2026\.04\.07 20:10/);
-  assert.match(html, /match-row__summary-player/);
-  assert.match(html, /\/123456789\/matches\/1/);
-  assert.match(html, /\/123456789\/players\/1/);
-  assert.match(html, /\/123456789\/matches/);
-  assert.match(html, /최근 전적/);
-  assert.match(html, /overview-hero/);
-  assert.match(html, /승리/);
-  assert.match(html, /패배/);
-  assert.doesNotMatch(html, /match-row__summary-highlight/);
-  assert.doesNotMatch(html, /MMR/);
-  assert.doesNotMatch(html, /ProjectL/);
-  assert.doesNotMatch(html, /1,700/);
+  assert.match(pageHtml, /전체 내전 전적/);
+  assert.match(pageHtml, /마법공학 분류모자 Competitive Board/);
+  assert.match(pageHtml, /총 경기 수/);
+  assert.match(pageHtml, /공개 랭킹/);
+  assert.match(pageHtml, /Alpha/);
+  assert.match(pageHtml, /30:50/);
+  assert.match(pageHtml, /2026\.04\.07 20:10/);
+  assert.match(pageHtml, /match-row__summary-player/);
+  assert.match(pageHtml, /\/123456789\/matches\/1/);
+  assert.match(pageHtml, /\/123456789\/players\/1/);
+  assert.match(pageHtml, /\/123456789\/matches/);
+  assert.match(pageHtml, /최근 전적/);
+  assert.match(pageHtml, /overview-hero/);
+  assert.match(pageHtml, /승리/);
+  assert.match(pageHtml, /패배/);
+  assert.doesNotMatch(pageHtml, /match-row__summary-highlight/);
+  assert.doesNotMatch(pageHtml, /MMR/);
+  assert.doesNotMatch(pageHtml, /ProjectL/);
+  assert.doesNotMatch(pageHtml, /1,700/);
 });
 
 test("renderMatchesPage renders OP.GG-style team sections with public result labels", () => {
@@ -444,21 +453,22 @@ test("renderMatchesPage renders OP.GG-style team sections with public result lab
     guildId: "123456789",
     cards: [sampleCard],
   });
+  const pageHtml = stripInlineStyles(html);
 
-  assert.match(html, /전체 경기/);
-  assert.match(html, /마법공학 분류모자 Timeline/);
-  assert.match(html, /overview-hero__copy/);
-  assert.match(html, /2026\.04\.07 20:10/);
-  assert.match(html, /블루팀/);
-  assert.match(html, /레드팀/);
-  assert.match(html, /match-row__summary-team--blue[\s\S]*테스트 찰리/);
-  assert.match(html, /match-row__summary-team--red[\s\S]*테스트 인디아/);
-  assert.match(html, /승리/);
-  assert.match(html, /패배/);
-  assert.doesNotMatch(html, /match-row__summary-highlight/);
-  assert.doesNotMatch(html, /ProjectL/);
-  assert.match(html, /\/123456789\/matches\/1/);
-  assert.match(html, /전체 전적 타임라인/);
+  assert.match(pageHtml, /전체 경기/);
+  assert.match(pageHtml, /마법공학 분류모자 Timeline/);
+  assert.match(pageHtml, /overview-hero__copy/);
+  assert.match(pageHtml, /2026\.04\.07 20:10/);
+  assert.match(pageHtml, /블루팀/);
+  assert.match(pageHtml, /레드팀/);
+  assert.match(pageHtml, /match-row__summary-team--blue[\s\S]*테스트 찰리/);
+  assert.match(pageHtml, /match-row__summary-team--red[\s\S]*테스트 인디아/);
+  assert.match(pageHtml, /승리/);
+  assert.match(pageHtml, /패배/);
+  assert.doesNotMatch(pageHtml, /match-row__summary-highlight/);
+  assert.doesNotMatch(pageHtml, /ProjectL/);
+  assert.match(pageHtml, /\/123456789\/matches\/1/);
+  assert.match(pageHtml, /전체 전적 타임라인/);
 });
 
 test("renderMatchesPage renders a dedicated empty state when there are no matches", () => {
@@ -582,6 +592,23 @@ test("ranking page styles reuse the shared shell gutters", () => {
   assert.match(
     css,
     /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.ranking-table__rank-badge\s*\{[\s\S]*min-width:/
+  );
+});
+
+test("site styles define a non-white root background for mobile overscroll", () => {
+  const css = fs.readFileSync("public/site.css", "utf8");
+
+  assert.match(
+    css,
+    /html\s*\{[\s\S]*background-color:\s*var\(--color-bg-strong\);/
+  );
+  assert.match(
+    css,
+    /body\s*\{[\s\S]*position:\s*relative;[\s\S]*min-height:\s*100vh;/
+  );
+  assert.match(
+    css,
+    /body::before\s*\{[\s\S]*position:\s*fixed;[\s\S]*inset:\s*0;[\s\S]*z-index:\s*-1;[\s\S]*background:/
   );
 });
 
@@ -937,41 +964,42 @@ test("renderMatchDetailPage renders both teams and the full stat columns", () =>
     guildId: "123456789",
     match: sampleMatchDetail,
   });
+  const pageHtml = stripInlineStyles(html);
 
-  assert.match(html, /경기 상세/);
-  assert.match(html, /마법공학 분류모자 Match Detail/);
-  assert.match(html, /DEMO-KR-001/);
-  assert.match(html, /2026\.04\.07 20:10/);
-  assert.match(html, /36,200/);
-  assert.match(html, /와드/);
-  assert.match(html, /Electrocute\.png/);
-  assert.match(html, /Sorcery\.png/);
-  assert.match(html, /6655\.png/);
-  assert.match(html, /승리/);
-  assert.match(html, /패배/);
-  assert.match(html, /overview-hero__copy/);
-  assert.match(html, /match-detail-shell/);
-  assert.doesNotMatch(html, /match-scoreboard--compact/);
-  assert.doesNotMatch(html, /match-row__tabs/);
-  assert.doesNotMatch(html, /match-detail-shell__summary/);
-  assert.match(html, /match-scoreboard__columns/);
-  assert.match(html, />플레이어</);
-  assert.match(html, />OP Score</);
-  assert.match(html, />KDA</);
-  assert.match(html, /피해량/);
-  assert.match(html, /CS/);
-  assert.match(html, /아이템/);
-  assert.match(html, /Total Kill/);
-  assert.match(html, /Total Damage/);
-  assert.match(html, /Total Vision/);
-  assert.match(html, /match-scoreboard__build-items/);
-  assert.match(html, /match-scoreboard__summoners/);
-  assert.match(html, /match-scoreboard__runes-block/);
+  assert.match(pageHtml, /경기 상세/);
+  assert.match(pageHtml, /마법공학 분류모자 Match Detail/);
+  assert.match(pageHtml, /DEMO-KR-001/);
+  assert.match(pageHtml, /2026\.04\.07 20:10/);
+  assert.match(pageHtml, /36,200/);
+  assert.match(pageHtml, /와드/);
+  assert.match(pageHtml, /Electrocute\.png/);
+  assert.match(pageHtml, /Sorcery\.png/);
+  assert.match(pageHtml, /6655\.png/);
+  assert.match(pageHtml, /승리/);
+  assert.match(pageHtml, /패배/);
+  assert.match(pageHtml, /overview-hero__copy/);
+  assert.match(pageHtml, /match-detail-shell/);
+  assert.doesNotMatch(pageHtml, /match-scoreboard--compact/);
+  assert.doesNotMatch(pageHtml, /match-row__tabs/);
+  assert.doesNotMatch(pageHtml, /match-detail-shell__summary/);
+  assert.match(pageHtml, /match-scoreboard__columns/);
+  assert.match(pageHtml, />플레이어</);
+  assert.match(pageHtml, />OP Score</);
+  assert.match(pageHtml, />KDA</);
+  assert.match(pageHtml, /피해량/);
+  assert.match(pageHtml, /CS/);
+  assert.match(pageHtml, /아이템/);
+  assert.match(pageHtml, /Total Kill/);
+  assert.match(pageHtml, /Total Damage/);
+  assert.match(pageHtml, /Total Vision/);
+  assert.match(pageHtml, /match-scoreboard__build-items/);
+  assert.match(pageHtml, /match-scoreboard__summoners/);
+  assert.match(pageHtml, /match-scoreboard__runes-block/);
   assert.match(
-    html,
+    pageHtml,
     /<section class="overview-hero hero-card hero-card--compact">\s*<div class="overview-hero__copy">/
   );
-  assert.doesNotMatch(html, /ProjectL/);
+  assert.doesNotMatch(pageHtml, /ProjectL/);
 });
 
 test("match detail styles keep full scoreboard defaults and compact inline overrides", () => {

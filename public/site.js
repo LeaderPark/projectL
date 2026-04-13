@@ -155,7 +155,7 @@ function wireServerIdForm() {
     return;
   }
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     const serverId = input.value.trim();
     const isValid = /^\d+$/.test(serverId);
 
@@ -169,6 +169,30 @@ function wireServerIdForm() {
     }
 
     event.preventDefault();
+    const serverIdCheckEndpoint =
+      form.dataset.serverIdCheckEndpoint ?? "/api/server-validation";
+
+    try {
+      const response = await fetch(
+        `${serverIdCheckEndpoint}?serverId=${encodeURIComponent(serverId)}`
+      );
+
+      if (!response.ok) {
+        throw new Error("server id validation failed");
+      }
+
+      const payload = await response.json();
+      if (!payload?.registered) {
+        window.alert("등록되지 않은 서버 아이디입니다.");
+        input.focus();
+        return;
+      }
+    } catch (_error) {
+      window.alert("서버 아이디를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      input.focus();
+      return;
+    }
+
     window.location.href = `/${encodeURIComponent(serverId)}`;
   });
 

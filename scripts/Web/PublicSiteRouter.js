@@ -2,13 +2,30 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 function sendHtml(res, statusCode, body) {
-  res.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8" });
+  res.writeHead(statusCode, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0",
+  });
   res.end(body);
 }
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function redirectTo(res, location) {
+  res.writeHead(302, { Location: location });
+  res.end();
+}
+
+function normalizeRequestTarget(requestTarget) {
+  const rawTarget = String(requestTarget ?? "/");
+  if (rawTarget.startsWith("//")) {
+    return `/${rawTarget.replace(/^\/+/, "")}`;
+  }
+
+  return rawTarget.startsWith("/") ? rawTarget : `/${rawTarget}`;
 }
 
 function isGuildIdSegment(value) {
@@ -27,15 +44,21 @@ function serveAssetFile(res, filePath) {
       ? "text/css; charset=utf-8"
       : extension === ".js"
         ? "application/javascript; charset=utf-8"
+        : extension === ".txt"
+          ? "text/plain; charset=utf-8"
         : extension === ".webp"
           ? "image/webp"
           : "application/octet-stream";
+  const body =
+    extension === ".txt"
+      ? fs.readFileSync(filePath, "utf8").replace(/\r?\n$/, "")
+      : fs.readFileSync(filePath);
 
   res.writeHead(200, {
     "Content-Type": contentType,
-    "Cache-Control": "no-store",
+    "Cache-Control": "public, max-age=31536000, immutable",
   });
-  res.end(fs.readFileSync(filePath));
+  res.end(body);
 }
 
 function createPublicSiteRouter({
@@ -48,14 +71,33 @@ function createPublicSiteRouter({
   renderPlayerPage,
   handlePlayerRiotIdentityRefresh,
   searchPlayers,
+  isRegisteredServerId,
   renderNotFoundPage,
 }) {
   return async function handlePublicSiteRequest(req, res) {
-    const requestUrl = new URL(req.url, "http://127.0.0.1");
+    const requestUrl = new URL(
+      normalizeRequestTarget(req.url),
+      "http://127.0.0.1"
+    );
     const pathname = requestUrl.pathname;
 
     if (req.method === "GET" && pathname === "/") {
       sendHtml(res, 200, await renderLandingPage());
+      return true;
+    }
+
+    if (req.method === "GET" && pathname === "/api/server-validation") {
+      const serverId = requestUrl.searchParams.get("serverId") ?? "";
+      const registered =
+        isGuildIdSegment(serverId) && typeof isRegisteredServerId === "function"
+          ? await isRegisteredServerId(serverId)
+          : false;
+      sendJson(res, 200, { registered });
+      return true;
+    }
+
+    if (req.method === "GET" && pathname === "/riot.txt") {
+      serveAssetFile(res, path.join(assetsDir, "riot.txt"));
       return true;
     }
 
@@ -76,6 +118,14 @@ function createPublicSiteRouter({
 
     if (!isGuildIdSegment(serverId)) {
       return false;
+    }
+
+    if (
+      typeof isRegisteredServerId === "function" &&
+      !(await isRegisteredServerId(serverId))
+    ) {
+      redirectTo(res, "/");
+      return true;
     }
 
     const scopedPath = `/${scopedSegments.join("/")}`.replace(/\/$/, "") || "/";

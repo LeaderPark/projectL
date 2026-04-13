@@ -96,6 +96,7 @@ function createPublicSiteHandlers({
   refreshPlayerRiotIdentity: refreshPlayerRiotIdentityImpl,
   resolveUsersByPuuids: resolveUsersByPuuidsImpl,
   searchPublicPlayers: searchPublicPlayersImpl,
+  isRegisteredServerId: isRegisteredServerIdImpl,
 } = {}) {
   const {
     getLatestMatched: defaultGetLatestMatched,
@@ -156,6 +157,12 @@ function createPublicSiteHandlers({
       }
 
       return refreshService.refreshPlayerRiotIdentity(guildId, discordId);
+    });
+  const resolvedIsRegisteredServerId =
+    isRegisteredServerIdImpl ??
+    (async (serverId) => {
+      const { getGuildSettings } = require("../Utils/DB");
+      return Boolean(await getGuildSettings(serverId));
     });
 
   async function getGuildId(routeGuildId) {
@@ -251,6 +258,10 @@ function createPublicSiteHandlers({
   return {
     async renderLandingPage() {
       return renderLandingPageView();
+    },
+
+    async isRegisteredServerId(serverId) {
+      return resolvedIsRegisteredServerId(serverId);
     },
 
     async renderHomePage(routeGuildId) {

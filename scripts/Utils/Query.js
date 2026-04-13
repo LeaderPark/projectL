@@ -1233,6 +1233,26 @@ const getLatestTournamentSession = async (guildId) => {
   }
 };
 
+const clearHardFearlessSeriesState = async (guildId) => {
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    await promisePool.query(
+      `UPDATE active_tournament_sessions
+       SET series_mode = 'STANDARD',
+           series_game_number = 1,
+           fearless_used_champions = '[]'
+       WHERE series_mode = 'HARD_FEARLESS'`
+    );
+
+    return { success: true };
+  } catch (error) {
+    return buildErrorResult(
+      error,
+      "하드 피어리스 시리즈 상태를 정리하는 중 오류가 발생했습니다."
+    );
+  }
+};
+
 const replaceActiveTournamentSession = async (guildId, session) => {
   try {
     const validationError = validateTournamentSession(session);
@@ -1498,6 +1518,7 @@ module.exports = {
   listRefreshableRiotAccounts,
   markTournamentSessionCompletedPendingGather,
   markTournamentSessionResultPending,
+  clearHardFearlessSeriesState,
   replaceActiveTournamentSession,
   resolveUsersByPuuids,
   syncRepresentativeRiotName,

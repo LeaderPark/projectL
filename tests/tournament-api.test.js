@@ -143,3 +143,38 @@ test("createTournamentApi prefixes numeric match ids with the uppercased platfor
     },
   ]);
 });
+
+test("createTournamentApi translates tournament 403 errors into actionable guidance", async () => {
+  const { createTournamentApi } = loadTournamentApiModule({
+    create() {
+      return {
+        async post() {
+          const error = new Error("Request failed with status code 403");
+          error.response = {
+            status: 403,
+            data: {
+              status: {
+                message: "Forbidden",
+                status_code: 403,
+              },
+            },
+          };
+          throw error;
+        },
+      };
+    },
+  });
+
+  const api = createTournamentApi({
+    token: "riot-token",
+    platform: "kr",
+    region: "KR",
+    callbackUrl: "https://example.com/riot/callback",
+    useStub: true,
+  });
+
+  await assert.rejects(
+    () => api.createProvider(),
+    /Tournament API 호출이 403으로 거부되었습니다/
+  );
+});

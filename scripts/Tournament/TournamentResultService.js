@@ -1,6 +1,7 @@
 const { transformMatchPayload: defaultTransformMatchPayload } = require("../Riot/MatchTransformer");
 const {
   persistMatchResult: defaultPersistMatchResult,
+  clearHardFearlessSeriesState: defaultClearHardFearlessSeriesState,
   updateTournamentSessionFearlessState: defaultUpdateTournamentSessionFearlessState,
 } = require("../Utils/Query");
 
@@ -56,6 +57,7 @@ function createTournamentResultService({
   riotApi,
   transformMatchPayload = defaultTransformMatchPayload,
   persistMatchResult = defaultPersistMatchResult,
+  clearHardFearlessSeriesState = defaultClearHardFearlessSeriesState,
   updateTournamentSessionFearlessState = defaultUpdateTournamentSessionFearlessState,
 }) {
   return {
@@ -80,16 +82,19 @@ function createTournamentResultService({
       }
 
       if (session.seriesMode === "HARD_FEARLESS") {
-        const updateResult = await updateTournamentSessionFearlessState(
-          session.guildId,
-          session.id,
-          {
-            fearlessUsedChampions: mergeFearlessChampionHistory(
-              session.fearlessUsedChampions,
-              match
-            ),
-          }
-        );
+        const updateResult =
+          Number(session.seriesGameNumber ?? 1) >= 5
+            ? await clearHardFearlessSeriesState(session.guildId)
+            : await updateTournamentSessionFearlessState(
+                session.guildId,
+                session.id,
+                {
+                  fearlessUsedChampions: mergeFearlessChampionHistory(
+                    session.fearlessUsedChampions,
+                    match
+                  ),
+                }
+              );
 
         if (!updateResult.success) {
           return updateResult;

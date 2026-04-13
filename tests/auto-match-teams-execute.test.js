@@ -52,9 +52,17 @@ function loadAutoMatchTeamsCommand(overrides = {}) {
     exports: {
       createTournamentApi: () => ({
         async createProvider() {
+          if (overrides.onCreateProvider) {
+            return overrides.onCreateProvider();
+          }
+
           return "provider-1";
         },
-        async createTournament() {
+        async createTournament(providerId, name) {
+          if (overrides.onCreateTournament) {
+            return overrides.onCreateTournament(providerId, name);
+          }
+
           return "tournament-1";
         },
         async createTournamentCode(tournamentId, options) {
@@ -85,6 +93,7 @@ function loadAutoMatchTeamsCommand(overrides = {}) {
     filename: queryPath,
     loaded: true,
     exports: {
+      clearHardFearlessSeriesState: async () => ({ success: true }),
       getUsersData: async () => ({ success: true, data: [] }),
       getLatestTournamentSession: async () => ({ success: true, data: null }),
       replaceActiveTournamentSession: async () => ({ success: true }),
@@ -249,8 +258,13 @@ test("auto match command success embed includes the selected pick mode label", a
 
 test("auto match command stores a new hard fearless series with set 1 metadata", async () => {
   let storedSession = null;
+  let clearedGuildId = null;
   const command = loadAutoMatchTeamsCommand({
     query: {
+      clearHardFearlessSeriesState: async (guildId) => {
+        clearedGuildId = guildId;
+        return { success: true };
+      },
       replaceActiveTournamentSession: async (_guildId, session) => {
         storedSession = session;
         return { success: true };
@@ -322,6 +336,7 @@ test("auto match command stores a new hard fearless series with set 1 metadata",
   assert.deepEqual(storedSession.seriesMode, "HARD_FEARLESS");
   assert.equal(storedSession.seriesGameNumber, 1);
   assert.deepEqual(storedSession.fearlessUsedChampions, []);
+  assert.equal(clearedGuildId, "guild-1");
   assert.equal(replies.length, 1);
   assert.match(JSON.stringify(replies[0].embeds[0].data), /하드 피어리스/);
   assert.match(JSON.stringify(replies[0].embeds[0].data), /1세트/);
@@ -442,4 +457,169 @@ test("auto match command continues a hard fearless series with the previous team
   assert.match(JSON.stringify(replies[0].embeds[0].data), /리 신/);
   assert.doesNotMatch(JSON.stringify(replies[0].embeds[0].data), /Ahri/);
   assert.doesNotMatch(JSON.stringify(replies[0].embeds[0].data), /Lee Sin/);
+});
+
+test("auto match command clears previous hard fearless state when creating a standard session", async () => {
+  let clearedGuildId = null;
+  const command = loadAutoMatchTeamsCommand({
+    query: {
+      clearHardFearlessSeriesState: async (guildId) => {
+        clearedGuildId = guildId;
+        return { success: true };
+      },
+    },
+  });
+
+  const members = Array.from({ length: 10 }, (_, index) =>
+    createMember(`user-${index + 1}`, `Player ${index + 1}`)
+  );
+  const voiceChannel = {
+    id: "voice-room-1",
+    name: "내전 대기실",
+    members: new Map(members.map((member) => [member.user.id, member])),
+  };
+
+  await command.execute({
+    guildId: "guild-1",
+    guild: {
+      name: "ProjectL",
+      channels: {
+        cache: {
+          find(predicate) {
+            return [
+              { id: "blue-room", name: "TEAM BLUE" },
+              { id: "purple-room", name: "TEAM PURPLE" },
+            ].find(predicate);
+          },
+        },
+      },
+    },
+    member: {
+      voice: {
+        channel: voiceChannel,
+      },
+    },
+    user: {
+      id: "creator-1",
+    },
+    options: {
+      getString(name) {
+        if (name === "옵션") {
+          return "RANDOM";
+        }
+
+        if (name === "픽방식") {
+          return "TOURNAMENT_DRAFT";
+        }
+
+        if (name === "특수규칙") {
+          return "STANDARD";
+        }
+
+        if (name === "시리즈동작") {
+          return "AUTO";
+        }
+
+        throw new Error(`unexpected option lookup: ${name}`);
+      },
+    },
+    async deferReply() {},
+    async editReply(payload) {
+      return payload;
+    },
+  });
+
+  assert.equal(clearedGuildId, "guild-1");
+});
+
+test("auto match command shows a tournament-api-specific error and keeps state when Riot Tournament API returns 403", async () => {
+  let clearedGuildId = null;
+  const command = loadAutoMatchTeamsCommand({
+    onCreateProvider: async () => {
+      const error = new Error("Request failed with status code 403");
+      error.response = {
+        status: 403,
+        data: {
+          status: {
+            message: "Forbidden",
+            status_code: 403,
+          },
+        },
+      };
+
+      throw error;
+    },
+    query: {
+      clearHardFearlessSeriesState: async (guildId) => {
+        clearedGuildId = guildId;
+        return { success: true };
+      },
+    },
+  });
+
+  const members = Array.from({ length: 10 }, (_, index) =>
+    createMember(`user-${index + 1}`, `Player ${index + 1}`)
+  );
+  const voiceChannel = {
+    id: "voice-room-1",
+    name: "내전 대기실",
+    members: new Map(members.map((member) => [member.user.id, member])),
+  };
+  const replies = [];
+
+  await command.execute({
+    guildId: "guild-1",
+    guild: {
+      name: "ProjectL",
+      channels: {
+        cache: {
+          find(predicate) {
+            return [
+              { id: "blue-room", name: "TEAM BLUE" },
+              { id: "purple-room", name: "TEAM PURPLE" },
+            ].find(predicate);
+          },
+        },
+      },
+    },
+    member: {
+      voice: {
+        channel: voiceChannel,
+      },
+    },
+    user: {
+      id: "creator-1",
+    },
+    options: {
+      getString(name) {
+        if (name === "옵션") {
+          return "RANDOM";
+        }
+
+        if (name === "픽방식") {
+          return "TOURNAMENT_DRAFT";
+        }
+
+        if (name === "특수규칙") {
+          return "STANDARD";
+        }
+
+        if (name === "시리즈동작") {
+          return "AUTO";
+        }
+
+        throw new Error(`unexpected option lookup: ${name}`);
+      },
+    },
+    async deferReply() {},
+    async editReply(payload) {
+      replies.push(payload);
+      return payload;
+    },
+  });
+
+  assert.equal(clearedGuildId, null);
+  assert.equal(replies.length, 1);
+  assert.match(replies[0], /Riot Tournament API/i);
+  assert.match(replies[0], /403/);
 });

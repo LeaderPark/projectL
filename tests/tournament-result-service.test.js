@@ -71,6 +71,43 @@ test("hard fearless ingestion updates the stored champion pool after a successfu
   ]);
 });
 
+test("fifth hard fearless set clears stored series metadata instead of keeping it", async () => {
+  const updates = [];
+  const clears = [];
+  const service = createTournamentResultService({
+    riotApi: {
+      async getMatchById() {
+        return { raw: true };
+      },
+    },
+    transformMatchPayload() {
+      return buildTransformedMatch();
+    },
+    persistMatchResult: async () => ({ success: true }),
+    updateTournamentSessionFearlessState: async (guildId, sessionId, nextState) => {
+      updates.push({ guildId, sessionId, nextState });
+      return { success: true };
+    },
+    clearHardFearlessSeriesState: async (guildId) => {
+      clears.push(guildId);
+      return { success: true };
+    },
+  });
+
+  const result = await service.ingestSessionResult({
+    id: 90,
+    guildId: "guild-1",
+    resultGameId: "KR_12345",
+    seriesMode: "HARD_FEARLESS",
+    seriesGameNumber: 5,
+    fearlessUsedChampions: ["Ahri", "Garen"],
+  });
+
+  assert.equal(result.success, true);
+  assert.deepEqual(updates, []);
+  assert.deepEqual(clears, ["guild-1"]);
+});
+
 test("standard session ingestion does not update hard fearless champion history", async () => {
   let updateCount = 0;
   const service = createTournamentResultService({

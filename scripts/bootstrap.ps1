@@ -27,6 +27,11 @@ if ($LASTEXITCODE -ne 0) {
   throw "docker compose up failed with exit code $LASTEXITCODE"
 }
 
+& (Join-Path $PSScriptRoot "sync-commands.ps1")
+if ($LASTEXITCODE -ne 0) {
+  throw "slash command sync failed with exit code $LASTEXITCODE"
+}
+
 Write-Host "[bootstrap] Compose stack started."
 Write-Host "[bootstrap] DB host: localhost"
 Write-Host "[bootstrap] DB port: $(Select-String -Path $envPath -Pattern '^DB_PUBLIC_PORT=' | ForEach-Object { $_.Line.Split('=')[1] })"

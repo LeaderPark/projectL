@@ -47,19 +47,6 @@ if ($envText -match "__CHANGE_ME__") {
   throw ".env still contains __CHANGE_ME__ placeholders. Fill in real values before deploying."
 }
 
-$gitStatus = git status --porcelain
-if ($LASTEXITCODE -ne 0) {
-  throw "git status failed with exit code $LASTEXITCODE"
-}
-
-if ($gitStatus) {
-  throw "Working tree has local changes. Commit or stash them before running deploy."
-}
-
-Invoke-Step -Label "Pulling the latest changes" -Action {
-  git pull --ff-only
-}
-
 Invoke-Step -Label "Collecting deployment metadata" -Action {
   $env:BOT_DEPLOY_COMMIT = (git rev-parse --short HEAD).Trim()
   if ($LASTEXITCODE -ne 0) {
@@ -78,12 +65,8 @@ Invoke-Step -Label "Validating docker compose configuration" -Action {
   docker compose --env-file $envPath config *> $null
 }
 
-Invoke-Step -Label "Stopping the current compose stack" -Action {
-  docker compose down
-}
-
-Invoke-Step -Label "Starting the updated compose stack" -Action {
-  docker compose up -d --build
+Invoke-Step -Label "Recreating compose services in place" -Action {
+  docker compose up -d --build --remove-orphans
 }
 
 Write-Host "[deploy] Checking service status"
@@ -114,6 +97,10 @@ if ($missingServices.Count -gt 0) {
 
 if ($composeStatus -match "unhealthy|dead|exited") {
   throw "Compose stack reported an unhealthy or stopped container."
+}
+
+Invoke-Step -Label "Refreshing slash commands" -Action {
+  & (Join-Path $PSScriptRoot "sync-commands.ps1")
 }
 
 Write-Host "[deploy] Deployment completed successfully."

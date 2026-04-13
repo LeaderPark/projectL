@@ -15,7 +15,7 @@ This project runs a Discord bot backed by MariaDB. The local database no longer 
 - `.env.example`: required runtime variables template
 - `scripts/bootstrap.ps1`: creates `.env` if needed and starts the stack
 - `scripts/start-cloudflare-tunnel.ps1`: starts the optional Cloudflare Tunnel profile
-- `scripts/deploy.ps1`: pulls latest code and redeploys the Docker stack safely
+- `scripts/deploy.ps1`: rebuilds and redeploys the current local checkout safely
 - `scripts/verify.ps1`: runs tests and validates compose configuration
 - `ops/cloudflare-tunnel.md`: Cloudflare domain hosting notes
 - `deploy.bat`: double-click entrypoint for one-click redeploy on the Windows host
@@ -95,15 +95,15 @@ Use these values to log in:
 
 ## One-Click Deploy
 
-Run `deploy.bat` directly on the Windows host when you want to redeploy the bot with the latest Git changes.
+Run `deploy.bat` directly on the Windows host when you want to redeploy the bot from the current local checkout.
+The launcher now hands off to `scripts/deploy.ps1`, which recreates services in place without stopping the current stack first.
 
 The deploy flow does this in order:
 
 - checks that `.env` exists and does not contain placeholder secrets
-- stops if the repository has local uncommitted changes
-- runs `git pull --ff-only`
-- runs `docker compose down`
-- runs `docker compose up -d --build`
+- reads deployment metadata from the code that is currently checked out locally
+- runs `docker compose up -d --build --remove-orphans`
+- refreshes Discord slash commands from the running `bot` container after the stack comes back up
 - checks `docker compose ps` output before reporting success
 
 When the process finishes, the cmd window stays open and waits for your Enter input so you can read the logs before it closes.
@@ -128,3 +128,4 @@ docker compose down
 - Files in `/docker-entrypoint-initdb.d` only run on first database initialization. If you need a full reset, run `docker compose down -v` before starting again.
 - If you upgraded from an older database volume and `/서버설정 초기화` fails with `Access denied ... to database 'bot_guild_...'`, grant `CREATE` on `*.*` and `ALL PRIVILEGES` on ``${DB_NAME}_guild_%`` to `${DB_USER}`, or recreate the DB volume once.
 - `npm start` still works for a legacy local setup when matching local secret files exist.
+- `npm run deploy:commands` refreshes Discord slash commands manually without holding the public site startup path open.

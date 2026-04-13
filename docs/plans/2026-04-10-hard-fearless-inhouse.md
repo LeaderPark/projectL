@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add a usable `/내전` hard fearless mode that can start or continue a series, carry forward previously used champions, and update that champion pool after each ingested game.
+**Goal:** Add a usable `/내전` hard fearless mode that can start or continue a series, carry forward previously used champions during the active series only, and clear that state when the series lifecycle ends.
 
-**Architecture:** Keep Riot room creation on the existing tournament-code path, but add ProjectL-owned series state on `active_tournament_sessions`. `/내전` will choose between fresh balancing and previous-team reuse based on the requested hard fearless action, while result ingestion will append the latest game's champion picks back into the stored session row.
+**Architecture:** Keep Riot room creation on the existing tournament-code path, but add ProjectL-owned series state on `active_tournament_sessions`. `/내전` will choose between fresh balancing and previous-team reuse based on the requested hard fearless action, while result ingestion will append the latest game's champion picks back into the stored session row. The hard fearless metadata is temporary: new non-continued sessions clear prior state, and set 5 ingestion clears the series metadata automatically.
 
 **Tech Stack:** Node.js, discord.js, node:test, MySQL
 
@@ -124,6 +124,7 @@ Add result-service tests that assert:
 
 - a hard fearless session updates its stored champion list after successful ingestion
 - champion names are deduplicated
+- a fifth hard fearless set clears the stored series metadata instead of keeping it
 - standard sessions do not call the fearless updater
 
 **Step 2: Run test to verify it fails**
@@ -140,7 +141,43 @@ Extract the result ingestion flow into `scripts/Tournament/TournamentResultServi
 Run: `node --test tests/tournament-result-service.test.js`
 Expected: PASS
 
-### Task 5: Verify the focused regression suite
+### Task 5: Clear hard fearless state when a series is reset or completed
+
+**Files:**
+- Modify: `tests/auto-match-teams-execute.test.js`
+- Modify: `tests/tournament-result-query.test.js`
+- Modify: `tests/tournament-result-service.test.js`
+- Modify: `commands/team/autoMatchTeams.js`
+- Modify: `scripts/Utils/Query.js`
+- Modify: `scripts/Tournament/TournamentResultService.js`
+
+**Step 1: Write the failing tests**
+
+Add tests that assert:
+
+- starting a fresh hard fearless series clears prior hard fearless state
+- starting a standard `/내전` clears prior hard fearless state
+- set 5 ingestion clears stored hard fearless metadata instead of keeping it
+- the cleanup query resets `series_mode`, `series_game_number`, and `fearless_used_champions`
+
+**Step 2: Run test to verify it fails**
+
+Run: `node --test tests/auto-match-teams-execute.test.js tests/tournament-result-query.test.js tests/tournament-result-service.test.js`
+Expected: FAIL because no lifecycle cleanup helper exists yet.
+
+**Step 3: Write minimal implementation**
+
+Add a query helper that wipes hard fearless metadata and call it when:
+
+- a non-continued `/내전` starts
+- a fifth hard fearless set finishes ingesting
+
+**Step 4: Run test to verify it passes**
+
+Run: `node --test tests/auto-match-teams-execute.test.js tests/tournament-result-query.test.js tests/tournament-result-service.test.js`
+Expected: PASS
+
+### Task 6: Verify the focused regression suite
 
 **Files:**
 - Test: `tests/team-command.test.js`

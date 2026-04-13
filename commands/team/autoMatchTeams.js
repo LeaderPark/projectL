@@ -5,6 +5,7 @@ const { normalizeChampionKey } = require("../../scripts/Riot/ChampionNameService
 const { getGuildSettings } = require("../../scripts/Utils/DB");
 const { championKorList } = require("../../scripts/Utils/championNameConverter");
 const {
+  clearHardFearlessSeriesState,
   getUsersData,
   getLatestTournamentSession,
   replaceActiveTournamentSession,
@@ -180,6 +181,18 @@ function formatPickTypeLabel(pickType) {
 
 function formatSeriesModeLabel(seriesMode) {
   return formatChoiceLabel(SERIES_MODE_CHOICES, seriesMode);
+}
+
+function formatTournamentCreationError(error) {
+  if (/Riot Tournament API/i.test(String(error?.message ?? ""))) {
+    return error.message;
+  }
+
+  if (Number(error?.response?.status) === 403) {
+    return "Riot Tournament API가 403을 반환했습니다. 현재 API 키로는 Tournament API에 접근할 수 없습니다. 키가 만료되었거나 Tournament API 권한이 없는 상태일 수 있으니 Riot Developer Portal에서 토너먼트 API 접근 권한을 확인해주세요.";
+  }
+
+  return error?.message ?? "알 수 없는 오류";
 }
 
 function translateChampionName(value) {
@@ -637,6 +650,18 @@ module.exports = {
         );
       }
 
+      if (!seriesContext.continuedSeries) {
+        const clearResult = await clearHardFearlessSeriesState(
+          interaction.guildId
+        );
+        if (!clearResult.success) {
+          return await interaction.editReply(
+            clearResult.msg ||
+              "이전 하드 피어리스 시리즈 상태를 정리하는 중 오류가 발생했습니다."
+          );
+        }
+      }
+
       const embed = buildTournamentEmbed({
         addOption,
         channel,
@@ -661,9 +686,9 @@ module.exports = {
       });
     } catch (error) {
       return await interaction.editReply(
-        `토너먼트 코드를 생성하는 중 오류가 발생했습니다: ${
-          error?.message ?? "알 수 없는 오류"
-        }`
+        `토너먼트 코드를 생성하는 중 오류가 발생했습니다: ${formatTournamentCreationError(
+          error
+        )}`
       );
     }
   },

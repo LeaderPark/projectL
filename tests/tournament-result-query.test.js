@@ -116,6 +116,25 @@ test("updateTournamentSessionResult updates status, attempts, and error details"
   assert.deepEqual(calls[0].params, ["FAILED", 3, "rate limited", 77]);
 });
 
+test("clearHardFearlessSeriesState wipes persisted fearless metadata", async () => {
+  const calls = [];
+  const { clearHardFearlessSeriesState } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        calls.push({ statement, params });
+        return [{ affectedRows: 3 }];
+      },
+    }),
+  });
+
+  const result = await clearHardFearlessSeriesState("guild-1");
+
+  assert.equal(result.success, true);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].statement, /SET series_mode = 'STANDARD'/);
+  assert.match(calls[0].statement, /fearless_used_champions = '\[\]'/);
+});
+
 test("replaceActiveTournamentSession stores hard fearless series state", async () => {
   const calls = [];
   const { replaceActiveTournamentSession } = loadQueryModule({

@@ -59,6 +59,14 @@ Meaning:
 - `series_game_number`: the set number represented by the room.
 - `fearless_used_champions`: cumulative champion list for all prior and current games in this series row. Before the game is played, it matches the ban list shown to users. After ingestion, it is updated to include the just-played champions.
 
+## Retention Rule
+
+- Hard fearless data is not treated as permanent history.
+- The bot keeps it only while the latest hard fearless series is still eligible for continuation.
+- Starting a standard `/내전` clears stored hard fearless metadata.
+- Starting a fresh hard fearless series from set 1 clears stored hard fearless metadata first.
+- When set 5 finishes and result ingestion succeeds, the stored hard fearless metadata is cleared automatically.
+
 ## Continuation Model
 
 - Continuation only considers the latest stored session in the guild database.
@@ -75,6 +83,7 @@ Meaning:
 - After Riot match ingestion succeeds, the session row for a hard fearless game should be updated by unioning the current match's champion picks into `fearless_used_champions`.
 - Champion names should stay in their Riot payload form so the next `/내전` embed can surface the exact names already used.
 - Duplicate champion names must be ignored.
+- On set 5, skip preserving the final merged list and clear the series metadata instead.
 
 ## Error Handling
 
@@ -94,4 +103,5 @@ Meaning:
   - assert the new session columns and row mapping
 - Result-service tests:
   - assert successful hard fearless ingestion updates the session's champion history
+  - assert set 5 clears the stored hard fearless metadata
   - assert non-hard-fearless ingestion leaves session fearless state untouched

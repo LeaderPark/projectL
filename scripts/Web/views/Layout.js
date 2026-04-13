@@ -4,10 +4,19 @@ const path = require("node:path");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 const { buildGuildPath, escapeHtml } = require("./ViewHelpers");
 
-function getAssetHref(fileName) {
+function getAssetSnapshot(fileName, options = {}) {
   const assetPath = path.join(__dirname, "../../../public", fileName);
   const version = Math.floor(fs.statSync(assetPath).mtimeMs);
-  return `/public/${fileName}?v=${version}`;
+
+  return {
+    href: `/public/${fileName}?v=${version}`,
+    content:
+      options.readAsText === true ? fs.readFileSync(assetPath, "utf8") : undefined,
+  };
+}
+
+function escapeInlineStyle(cssText) {
+  return String(cssText ?? "").replace(/<\/style/gi, "<\\/style");
 }
 
 function renderHeader(guildId) {
@@ -55,9 +64,9 @@ function renderLayout({
   showHeader = true,
   shellClassName = "site-shell",
 }) {
-  const faviconHref = getAssetHref("favicon.webp");
-  const stylesheetHref = getAssetHref("site.css");
-  const scriptHref = getAssetHref("site.js");
+  const faviconAsset = getAssetSnapshot("favicon.webp");
+  const stylesheetAsset = getAssetSnapshot("site.css", { readAsText: true });
+  const scriptAsset = getAssetSnapshot("site.js");
 
   return `<!DOCTYPE html>
   <html lang="ko">
@@ -66,15 +75,16 @@ function renderLayout({
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>${escapeHtml(PROJECT_DISPLAY_NAME)}</title>
       <meta name="description" content="${escapeHtml(description)}" />
-      <link rel="icon" type="image/webp" href="${escapeHtml(faviconHref)}" />
-      <link rel="stylesheet" href="${escapeHtml(stylesheetHref)}" />
+      <link rel="icon" type="image/webp" href="${escapeHtml(faviconAsset.href)}" />
+      <style data-inline-site-css>${escapeInlineStyle(stylesheetAsset.content)}</style>
+      <link rel="stylesheet" href="${escapeHtml(stylesheetAsset.href)}" />
     </head>
     <body>
       <div class="${escapeHtml(shellClassName)}">
         ${showHeader ? renderHeader(guildId) : ""}
         ${body}
       </div>
-      <script src="${escapeHtml(scriptHref)}"></script>
+      <script src="${escapeHtml(scriptAsset.href)}"></script>
     </body>
   </html>`;
 }

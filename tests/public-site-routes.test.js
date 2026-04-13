@@ -43,7 +43,9 @@ function requestServer(server, requestPath, options = {}) {
   });
 }
 
-function createTestServer() {
+function createTestServer({
+  isRegisteredServerId = async (serverId) => serverId === "123456789",
+} = {}) {
   const publicSiteRouter = createPublicSiteRouter({
     assetsDir: path.join(process.cwd(), "public"),
     async renderLandingPage() {
@@ -75,6 +77,7 @@ function createTestServer() {
     async searchPlayers(serverId, query) {
       return [{ discordId: "1", name: `${serverId}:Alpha:${query}` }];
     },
+    isRegisteredServerId,
     renderNotFoundPage({ title, description }) {
       return `<main>${title} - ${description}</main>`;
     },
@@ -96,6 +99,7 @@ test("router serves the public home page", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "text/html; charset=utf-8");
+  assert.equal(response.headers["cache-control"], "no-store, max-age=0");
   assert.match(response.body, /서버 아이디/);
 });
 
@@ -110,6 +114,32 @@ test("router returns JSON from the public search endpoint", async () => {
   assert.deepEqual(JSON.parse(response.body), [
     { discordId: "1", name: "123456789:Alpha:egg" },
   ]);
+});
+
+test("router returns server registration availability for the landing-page validator", async () => {
+  const response = await requestServer(
+    createTestServer(),
+    "/api/server-validation?serverId=123456789"
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "application/json; charset=utf-8");
+  assert.deepEqual(JSON.parse(response.body), {
+    registered: true,
+  });
+});
+
+test("router reports unregistered server ids for the landing-page validator", async () => {
+  const response = await requestServer(
+    createTestServer(),
+    "/api/server-validation?serverId=999999999"
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "application/json; charset=utf-8");
+  assert.deepEqual(JSON.parse(response.body), {
+    registered: false,
+  });
 });
 
 test("player search submissions redirect to the first matching profile", async () => {
@@ -127,7 +157,10 @@ test("router serves the public stylesheet", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "text/css; charset=utf-8");
-  assert.equal(response.headers["cache-control"], "no-store");
+  assert.equal(
+    response.headers["cache-control"],
+    "public, max-age=31536000, immutable"
+  );
   assert.match(response.body, /--color-bg/);
 });
 
@@ -139,6 +172,10 @@ test("router serves the public script with match expansion hooks", async () => {
     response.headers["content-type"],
     "application/javascript; charset=utf-8"
   );
+  assert.equal(
+    response.headers["cache-control"],
+    "public, max-age=31536000, immutable"
+  );
   assert.match(response.body, /data-match-toggle/);
   assert.match(response.body, /data-match-tab/);
 });
@@ -148,7 +185,26 @@ test("router serves the public favicon as a webp image", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "image/webp");
-  assert.equal(response.headers["cache-control"], "no-store");
+  assert.equal(
+    response.headers["cache-control"],
+    "public, max-age=31536000, immutable"
+  );
+});
+
+test("router serves the riot verification file from the site root", async () => {
+  const response = await requestServer(createTestServer(), "/riot.txt");
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "text/plain; charset=utf-8");
+  assert.equal(response.body, "159d7677-a16d-4d0f-a9e1-86494c63ff8a");
+});
+
+test("router serves the riot verification file when the path starts with a double slash", async () => {
+  const response = await requestServer(createTestServer(), "//riot.txt");
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "text/plain; charset=utf-8");
+  assert.equal(response.body, "159d7677-a16d-4d0f-a9e1-86494c63ff8a");
 });
 
 test("router serves the dedicated match detail page", async () => {
@@ -245,6 +301,18 @@ test("router serves the guild-scoped home page", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.match(response.body, /전체 내전 전적 123456789/);
+});
+
+test("router redirects direct unregistered guild-scoped requests back to the landing page", async () => {
+  const response = await requestServer(
+    createTestServer({
+      isRegisteredServerId: async () => false,
+    }),
+    "/999999999"
+  );
+
+  assert.equal(response.statusCode, 302);
+  assert.equal(response.headers.location, "/");
 });
 
 test("router serves the guild-scoped ranking page", async () => {

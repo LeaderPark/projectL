@@ -8,7 +8,13 @@ function renderLandingPage() {
         <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Server Record</p>
         <h1>서버 아이디 입력</h1>
         <p>확인하려는 디스코드 서버 아이디를 입력하면 해당 서버 전적 페이지로 바로 이동합니다.</p>
-        <form class="server-id-form" action="/" method="get" data-server-id-form>
+        <form
+          class="server-id-form"
+          action="/"
+          method="get"
+          data-server-id-form
+          data-server-id-check-endpoint="/api/server-validation"
+        >
           <label class="server-id-form__label" for="server-id-input">서버 아이디</label>
           <div class="server-id-form__controls">
             <input

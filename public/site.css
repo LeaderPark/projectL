@@ -495,13 +495,28 @@ input {
   --radius-sm: 12px;
 }
 
-html,
+html {
+  background-color: var(--color-bg-strong);
+}
+
 body {
+  position: relative;
+  min-height: 100vh;
+  color: var(--color-text);
+  background: transparent;
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
     radial-gradient(circle at top left, rgba(83, 131, 255, 0.2), transparent 22rem),
     radial-gradient(circle at top right, rgba(207, 77, 103, 0.16), transparent 20rem),
     linear-gradient(180deg, #0c1425 0%, var(--color-bg) 55%, var(--color-bg-strong) 100%);
-  color: var(--color-text);
 }
 
 .site-shell {

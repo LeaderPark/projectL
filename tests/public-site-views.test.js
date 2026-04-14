@@ -823,6 +823,9 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   assert.match(html, /닉네임 새로고침/);
   assert.match(html, /method="POST"/);
   assert.match(html, /action="\/123456789\/players\/1\/refresh-riot-accounts"/);
+  assert.match(html, /player-page__section-header/);
+  assert.match(html, /player-page__section-action/);
+  assert.match(html, /player-page__refresh-button/);
   assert.match(html, /라이엇 닉네임을 최신 상태로 업데이트했어요\./);
   assert.match(html, /Alpha#KR1/);
   assert.match(html, /Bravo#JP1/);

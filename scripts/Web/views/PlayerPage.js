@@ -84,17 +84,19 @@ function renderPlayerPage(model) {
           </div>
           <div class="player-page__sidebar-sections">
             <section class="player-page__sidebar-section">
-              <h3>등록된 롤 닉네임</h3>
-              <form
-                class="player-page__refresh-form"
-                method="POST"
-                action="${buildGuildPath(
-                  model.guildId,
-                  `/players/${profile.discordId}/refresh-riot-accounts`
-                )}"
-              >
-                <button type="submit">닉네임 새로고침</button>
-              </form>
+              <div class="player-page__section-header">
+                <h3>등록된 롤 닉네임</h3>
+                <form
+                  class="player-page__refresh-form player-page__section-action"
+                  method="POST"
+                  action="${buildGuildPath(
+                    model.guildId,
+                    `/players/${profile.discordId}/refresh-riot-accounts`
+                  )}"
+                >
+                  <button class="player-page__refresh-button" type="submit">닉네임 새로고침</button>
+                </form>
+              </div>
               <ul class="simple-list">
                 ${renderLinkedRiotAccountRows(profile.linkedRiotAccounts)}
               </ul>

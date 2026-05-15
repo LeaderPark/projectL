@@ -635,7 +635,7 @@ test("renderMatchCard groups header and team panels inside a content body", () =
   assert.match(html, />OP Score</);
   assert.match(html, />KDA</);
   assert.doesNotMatch(html, /피해량/);
-  assert.doesNotMatch(html, /와드/);
+  assert.doesNotMatch(html, /시야점수/);
   assert.doesNotMatch(html, /CS/);
   assert.doesNotMatch(html, /아이템/);
   assert.doesNotMatch(html, /Total Kill/);
@@ -683,6 +683,32 @@ test("renderMatchCard hides the result strip and uses the compact public summary
     /match-row__summary-team--red[\s\S]*Heal\.png[\s\S]*Flash\.png[\s\S]*LethalTempo\.png[\s\S]*Inspiration\.png[\s\S]*5\.1[\s\S]*ACE[\s\S]*6\/5\/2 \(44%\)[\s\S]*1\.60:1/
   );
   assert.match(html, /match-row__summary-team--red[\s\S]*테스트 인디아/);
+});
+
+test("renderMatchCard allows OP Score values above ten", () => {
+  const html = renderMatchCard({
+    ...sampleCard,
+    teams: {
+      ...sampleCard.teams,
+      blue: {
+        ...sampleCard.teams.blue,
+        players: sampleCard.teams.blue.players.map((player) =>
+          player.name === "테스트 찰리"
+            ? { ...player, performanceScore: 72 }
+            : player
+        ),
+      },
+    },
+  });
+
+  assert.match(
+    html,
+    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>11\.4<\/strong>/
+  );
+  assert.doesNotMatch(
+    html,
+    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>10\.0<\/strong>/
+  );
 });
 
 test("renderMatchCard uses the player perspective result when one is provided", () => {
@@ -974,7 +1000,8 @@ test("renderMatchDetailPage renders both teams and the full stat columns", () =>
   assert.match(pageHtml, /DEMO-KR-001/);
   assert.match(pageHtml, /2026\.04\.07 20:10/);
   assert.match(pageHtml, /36,200/);
-  assert.match(pageHtml, /와드/);
+  assert.match(pageHtml, />시야점수</);
+  assert.doesNotMatch(pageHtml, />와드</);
   assert.match(pageHtml, /Electrocute\.png/);
   assert.match(pageHtml, /Sorcery\.png/);
   assert.match(pageHtml, /6655\.png/);
@@ -1003,6 +1030,45 @@ test("renderMatchDetailPage renders both teams and the full stat columns", () =>
     /<section class="overview-hero hero-card hero-card--compact">\s*<div class="overview-hero__copy">/
   );
   assert.doesNotMatch(pageHtml, /ProjectL/);
+});
+
+test("renderMatchDetailPage keeps empty item slots fixed in the scoreboard build", () => {
+  const html = renderMatchDetailPage({
+    guildId: "123456789",
+    match: {
+      ...sampleMatchDetail,
+      teams: {
+        blue: {
+          ...sampleMatchDetail.teams.blue,
+          players: [
+            {
+              ...sampleMatchDetail.teams.blue.players[0],
+              itemIds: [1056, 3020, 6655, 3071, 0, 0, 3340],
+              itemAssets: [
+                { id: 1056, imageUrl: "https://cdn.test/item/1056.png", name: "도란의 반지" },
+                { id: 3020, imageUrl: "https://cdn.test/item/3020.png", name: "마법사의 신발" },
+                { id: 6655, imageUrl: "https://cdn.test/item/6655.png", name: "루덴의 동반자" },
+                { id: 3071, imageUrl: "https://cdn.test/item/3071.png", name: "칠흑의 양날 도끼" },
+                { id: 0, imageUrl: "", name: "" },
+                { id: 0, imageUrl: "", name: "" },
+                { id: 3340, imageUrl: "https://cdn.test/item/3340.png", name: "와드 토템" },
+              ],
+            },
+          ],
+        },
+        purple: {
+          ...sampleMatchDetail.teams.purple,
+          players: [],
+        },
+      },
+    },
+  });
+
+  assert.match(
+    html,
+    /1056\.png[\s\S]*3020\.png[\s\S]*6655\.png[\s\S]*match-scoreboard__build-trinket[\s\S]*3340\.png[\s\S]*3071\.png[\s\S]*match-scoreboard__items__icon--empty[\s\S]*match-scoreboard__items__icon--empty/
+  );
+  assert.doesNotMatch(html, />0<\/span>/);
 });
 
 test("match detail styles keep full scoreboard defaults and compact inline overrides", () => {

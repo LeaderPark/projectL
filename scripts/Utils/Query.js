@@ -261,11 +261,17 @@ function buildPublicPlayerSearchSql() {
   `;
 }
 
+function buildRankingOrderBySql() {
+  return `
+    ORDER BY CASE WHEN (win + lose) = 0 THEN 1 ELSE 0 END ASC, mmr DESC, name ASC
+  `;
+}
+
 function buildPublicLeaderboardSql(limit) {
   return `
     SELECT discord_id, name, mmr, win, lose
     FROM user
-    ORDER BY mmr DESC, name ASC
+    ${buildRankingOrderBySql()}
     ${Number.isFinite(limit) ? "LIMIT ?" : ""}
   `;
 }
@@ -302,6 +308,200 @@ function parseStoredJson(value, fallback) {
 
 function normalizeIdentityValue(value) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function getMatchPlayers(match) {
+  return [...(match?.blueTeam?.players ?? []), ...(match?.purpleTeam?.players ?? [])];
+}
+
+function getMatchPlayerIdentityKey(player) {
+  const playerPuuid = normalizeIdentityValue(player?.puuid);
+  if (playerPuuid) {
+    return `puuid:${playerPuuid}`;
+  }
+
+  const playerName = normalizeIdentityValue(player?.playerName);
+  if (playerName) {
+    return `name:${playerName}`;
+  }
+
+  return "";
+}
+
+function getUnregisteredPlayerLabel(player) {
+  return (
+    String(player?.playerName ?? "").trim() ||
+    String(player?.puuid ?? "").trim() ||
+    "알 수 없는 참가자"
+  );
+}
+
+function buildNoRegisteredParticipantsResult() {
+  return {
+    success: false,
+    code: "NO_REGISTERED_PARTICIPANTS",
+    msg:
+      "등록된 참가자를 찾을 수 없어 경기 전적을 저장하지 않았습니다. 참가자가 먼저 /등록 되어 있어야 하며, 리플레이에 Riot PUUID 또는 Riot 이름 정보가 포함되어 있어야 합니다.",
+  };
+}
+
+function attachMatchIdentityToPuuidRows(players, rows) {
+  const rowsByLinkedPuuid = new Map();
+  rows.forEach((row) => {
+    const linkedPuuid = normalizeIdentityValue(row?.linked_puuid);
+    if (linkedPuuid && !rowsByLinkedPuuid.has(linkedPuuid)) {
+      rowsByLinkedPuuid.set(linkedPuuid, row);
+    }
+  });
+
+  return players
+    .map((player) => {
+      const playerPuuid = normalizeIdentityValue(player?.puuid);
+      const identityKey = getMatchPlayerIdentityKey(player);
+      const row = playerPuuid ? rowsByLinkedPuuid.get(playerPuuid) : null;
+
+      return row && identityKey
+        ? {
+            ...row,
+            linked_puuid: player?.puuid ?? row.linked_puuid,
+            match_identity: identityKey,
+          }
+        : null;
+    })
+    .filter(Boolean);
+}
+
+async function resolveUsersByNamesWithExecutor(executor, names) {
+  if (!names.length) {
+    return { success: true, data: [] };
+  }
+
+  const placeholders = buildInClausePlaceholders(names.length);
+  const [rows] = await executor.query(
+    `
+      SELECT *
+      FROM (
+        SELECT u.*, u.name AS linked_name
+        FROM user u
+        UNION
+        SELECT u.*, CONCAT(ra.riot_game_name, '#', ra.riot_tag_line) AS linked_name
+        FROM user u
+        JOIN riot_accounts ra ON ra.discord_id = u.discord_id
+      ) linked_users
+      WHERE LOWER(linked_name) IN (${placeholders})
+    `,
+    names
+  );
+
+  return { success: true, data: rows };
+}
+
+async function resolveUsersByMatchPlayersWithExecutor(executor, players) {
+  const uniquePuuids = [
+    ...new Set(
+      players
+        .map((player) => String(player?.puuid ?? "").trim())
+        .filter((value) => value.length > 0)
+    ),
+  ];
+  const puuidResult = await resolveUsersByPuuidsWithExecutor(executor, uniquePuuids);
+  if (!puuidResult.success) {
+    return puuidResult;
+  }
+
+  const linkedRows = attachMatchIdentityToPuuidRows(players, puuidResult.data);
+  const linkedIdentityKeys = new Set(linkedRows.map((row) => row.match_identity));
+  const unresolvedPlayers = players.filter((player) => {
+    const identityKey = getMatchPlayerIdentityKey(player);
+    return identityKey && !linkedIdentityKeys.has(identityKey);
+  });
+  const unresolvedNames = [
+    ...new Set(
+      unresolvedPlayers
+        .map((player) => normalizeIdentityValue(player?.playerName))
+        .filter((value) => value.length > 0)
+    ),
+  ];
+  const nameResult = await resolveUsersByNamesWithExecutor(executor, unresolvedNames);
+  if (!nameResult.success) {
+    return nameResult;
+  }
+
+  const rowsByName = new Map();
+  nameResult.data.forEach((row) => {
+    const linkedName = normalizeIdentityValue(row?.linked_name);
+    if (linkedName && !rowsByName.has(linkedName)) {
+      rowsByName.set(linkedName, row);
+    }
+  });
+
+  unresolvedPlayers.forEach((player) => {
+    const playerName = normalizeIdentityValue(player?.playerName);
+    const identityKey = getMatchPlayerIdentityKey(player);
+    const row = rowsByName.get(playerName);
+    if (row && identityKey) {
+      linkedRows.push({
+        ...row,
+        linked_puuid: player?.puuid ?? row.linked_puuid,
+        match_identity: identityKey,
+      });
+    }
+  });
+
+  return { success: true, data: linkedRows };
+}
+
+function getUniqueDiscordIds(linkedRows) {
+  return [
+    ...new Set(
+      linkedRows
+        .map((row) => row.discord_id)
+        .filter((discordId) => hasRequiredValue(discordId))
+    ),
+  ];
+}
+
+function getUnregisteredPlayerLabels(players, linkedRows) {
+  const linkedIdentityKeys = new Set(
+    linkedRows.map((row) => row.match_identity).filter(Boolean)
+  );
+
+  return [
+    ...new Set(
+      players
+        .filter((player) => {
+          const identityKey = getMatchPlayerIdentityKey(player);
+          return identityKey && !linkedIdentityKeys.has(identityKey);
+        })
+        .map(getUnregisteredPlayerLabel)
+    ),
+  ];
+}
+
+function buildMatchDataParams(match) {
+  return [
+    match.gameLength,
+    match.playedAtKst ?? null,
+    JSON.stringify(match.purpleTeam),
+    JSON.stringify(match.blueTeam),
+  ];
+}
+
+async function insertMatchUserLinksWithExecutor(executor, matchId, discordIds) {
+  if (!discordIds.length) {
+    return;
+  }
+
+  const values = discordIds.map(() => "(?, ?)").join(", ");
+  const params = discordIds.flatMap((discordId) => [matchId, discordId]);
+  const sql = `INSERT INTO match_in_users (match_id, user_id) VALUES ${values}`;
+
+  await executor.query(sql, params);
+}
+
+async function replaceMatchUserLinksWithExecutor(executor, matchId, discordIds) {
+  await executor.query(`DELETE FROM match_in_users WHERE match_id = ?`, [matchId]);
+  await insertMatchUserLinksWithExecutor(executor, matchId, discordIds);
 }
 
 async function getLinkedMatchIdentitiesForUser(executor, discordId) {
@@ -668,6 +868,38 @@ const insertMatchData = async (guildId, match, name) => {
   }
 };
 
+async function overwriteMatchDataWithExecutor(executor, match, matchId) {
+  const validationError = validateMatchInsertPayload(match, matchId);
+  if (validationError) {
+    return validationError;
+  }
+
+  const players = getMatchPlayers(match);
+  const linkedUsers = await resolveUsersByMatchPlayersWithExecutor(executor, players);
+  if (!linkedUsers.success) {
+    return linkedUsers;
+  }
+
+  if (!linkedUsers.data.length) {
+    return buildNoRegisteredParticipantsResult();
+  }
+
+  const sql = `UPDATE matches SET game_length = ?, played_at_kst = ?, purple_team = ?, blue_team = ? WHERE id = ?`;
+  await executor.query(sql, [...buildMatchDataParams(match), matchId]);
+  await replaceMatchUserLinksWithExecutor(
+    executor,
+    matchId,
+    getUniqueDiscordIds(linkedUsers.data)
+  );
+
+  return {
+    success: true,
+    matchId,
+    overwritten: true,
+    user: getUnregisteredPlayerLabels(players, linkedUsers.data),
+  };
+}
+
 async function insertMatchDataWithExecutor(executor, match, name) {
   const validationError = validateMatchInsertPayload(match, name);
   if (validationError) {
@@ -676,38 +908,36 @@ async function insertMatchDataWithExecutor(executor, match, name) {
 
   let sql = `SELECT * FROM matches WHERE game_id = ?`;
   let [result] = await executor.query(sql, [name]);
+  const existingMatch = result[0] ?? null;
 
-  if (result.length > 0) {
-    return { success: false, msg: "이미 데이터에 존재하는 경기입니다." };
+  if (existingMatch) {
+    return {
+      success: false,
+      code: "DUPLICATE_MATCH",
+      msg: "이미 데이터에 존재하는 경기입니다.",
+      matchId: existingMatch.id,
+    };
   }
 
-  sql = `INSERT INTO matches (game_id, game_length, played_at_kst, purple_team, blue_team) VALUES (?,?,?,?,?)`;
-  [result] = await executor.query(sql, [
-    name,
-    match.gameLength,
-    match.playedAtKst ?? null,
-    JSON.stringify(match.purpleTeam),
-    JSON.stringify(match.blueTeam),
-  ]);
-
-  const matchId = result.insertId;
-  const puuids = [...match.blueTeam.players, ...match.purpleTeam.players]
-    .map((player) => player.puuid)
-    .filter(Boolean);
-
-  const linkedUsers = await resolveUsersByPuuidsWithExecutor(executor, puuids);
+  const players = getMatchPlayers(match);
+  const linkedUsers = await resolveUsersByMatchPlayersWithExecutor(executor, players);
   if (!linkedUsers.success) {
     return linkedUsers;
   }
 
-  const uniqueDiscordIds = [...new Set(linkedUsers.data.map((row) => row.discord_id))];
-  if (uniqueDiscordIds.length > 0) {
-    const values = uniqueDiscordIds.map(() => "(?, ?)").join(", ");
-    const params = uniqueDiscordIds.flatMap((discordId) => [matchId, discordId]);
-    const sql3 = `INSERT INTO match_in_users (match_id, user_id) VALUES ${values}`;
-
-    await executor.query(sql3, params);
+  if (!linkedUsers.data.length) {
+    return buildNoRegisteredParticipantsResult();
   }
+
+  sql = `INSERT INTO matches (game_id, game_length, played_at_kst, purple_team, blue_team) VALUES (?,?,?,?,?)`;
+  [result] = await executor.query(sql, [name, ...buildMatchDataParams(match)]);
+  const matchId = result.insertId;
+
+  await insertMatchUserLinksWithExecutor(
+    executor,
+    matchId,
+    getUniqueDiscordIds(linkedUsers.data)
+  );
 
   return { success: true, matchId };
 }
@@ -725,36 +955,39 @@ const updateUserData = async (guildId, match) => {
 };
 
 async function updateUserDataWithExecutor(executor, match) {
-  const players = [...match.blueTeam.players, ...match.purpleTeam.players];
-  const linkedUsers = await resolveUsersByPuuidsWithExecutor(
-    executor,
-    players.map((player) => player.puuid).filter(Boolean)
-  );
+  const players = getMatchPlayers(match);
+  const linkedUsers = await resolveUsersByMatchPlayersWithExecutor(executor, players);
 
   if (!linkedUsers.success) {
     return linkedUsers;
   }
 
+  if (!linkedUsers.data.length) {
+    return buildNoRegisteredParticipantsResult();
+  }
+
   const updateSql = `UPDATE user SET mmr = ?, win = ?, lose = ?, penta = ?, quadra = ?, champions = ?, lanes = ?, friends = ?, t_kill = ?, t_death = ?, t_assist = ?, t_kill_rate = ? WHERE discord_id = ?`;
-  const linkedByPuuid = new Map();
+  const linkedByIdentity = new Map();
   linkedUsers.data.forEach((row) => {
-    linkedByPuuid.set(row.linked_puuid, row);
+    linkedByIdentity.set(row.match_identity, row);
   });
 
-  const ratingInputsByPuuid = new Map();
+  const ratingInputsByIdentity = new Map();
   match.blueTeam.players.forEach((player) => {
-    const user = linkedByPuuid.get(player.puuid);
-    ratingInputsByPuuid.set(player.puuid, {
-      playerId: player.puuid,
+    const identityKey = getMatchPlayerIdentityKey(player);
+    const user = linkedByIdentity.get(identityKey);
+    ratingInputsByIdentity.set(identityKey, {
+      playerId: identityKey,
       mmr: Number(user?.mmr ?? 1000),
       win: Number(user?.win ?? 0),
       lose: Number(user?.lose ?? 0),
     });
   });
   match.purpleTeam.players.forEach((player) => {
-    const user = linkedByPuuid.get(player.puuid);
-    ratingInputsByPuuid.set(player.puuid, {
-      playerId: player.puuid,
+    const identityKey = getMatchPlayerIdentityKey(player);
+    const user = linkedByIdentity.get(identityKey);
+    ratingInputsByIdentity.set(identityKey, {
+      playerId: identityKey,
       mmr: Number(user?.mmr ?? 1000),
       win: Number(user?.win ?? 0),
       lose: Number(user?.lose ?? 0),
@@ -765,21 +998,21 @@ async function updateUserDataWithExecutor(executor, match) {
   const ratingAdjustments = blueWon
     ? buildMatchmakingAdjustments({
         winningTeam: match.blueTeam.players.map((player) =>
-          ratingInputsByPuuid.get(player.puuid)
+          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
         ),
         losingTeam: match.purpleTeam.players.map((player) =>
-          ratingInputsByPuuid.get(player.puuid)
+          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
         ),
       })
     : buildMatchmakingAdjustments({
         winningTeam: match.purpleTeam.players.map((player) =>
-          ratingInputsByPuuid.get(player.puuid)
+          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
         ),
         losingTeam: match.blueTeam.players.map((player) =>
-          ratingInputsByPuuid.get(player.puuid)
+          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
         ),
       });
-  const deltaByPuuid = new Map(
+  const deltaByIdentity = new Map(
     [...ratingAdjustments.winners, ...ratingAdjustments.losers].map((entry) => [
       entry.playerId,
       entry.delta,
@@ -789,13 +1022,14 @@ async function updateUserDataWithExecutor(executor, match) {
   const notRegistUser = [];
 
   for await (const p of players) {
-    const user = linkedByPuuid.get(p.puuid);
+    const identityKey = getMatchPlayerIdentityKey(p);
+    const user = linkedByIdentity.get(identityKey);
     if (!user) {
-      notRegistUser.push(p.playerName);
+      notRegistUser.push(getUnregisteredPlayerLabel(p));
       continue;
     }
 
-    let mmr = Number(user.mmr) + Number(deltaByPuuid.get(p.puuid) ?? 0);
+    let mmr = Number(user.mmr) + Number(deltaByIdentity.get(identityKey) ?? 0);
     if (mmr <= 300) {
       mmr = 300;
     }
@@ -899,12 +1133,29 @@ const persistMatchResult = async (guildId, match, name) => {
       canonicalGameId
     );
     if (!insertResult.success) {
-      if (insertResult.msg === "이미 데이터에 존재하는 경기입니다.") {
+      if (insertResult.code === "DUPLICATE_MATCH") {
+        const overwriteResult = await overwriteMatchDataWithExecutor(
+          executor,
+          match,
+          insertResult.matchId
+        );
+        if (!overwriteResult.success) {
+          if (typeof executor.rollback === "function") {
+            await executor.rollback();
+          }
+
+          return overwriteResult;
+        }
+
         if (typeof executor.commit === "function") {
           await executor.commit();
         }
 
-        return { success: true, alreadyProcessed: true, user: [] };
+        return {
+          success: true,
+          overwritten: true,
+          user: overwriteResult.user ?? [],
+        };
       }
 
       if (typeof executor.rollback === "function") {
@@ -947,7 +1198,7 @@ const persistMatchResult = async (guildId, match, name) => {
 const getRankData = async (guildId) => {
   try {
     const promisePool = await getGuildPromisePool(guildId);
-    const sql = `SELECT discord_id, name FROM user ORDER BY mmr DESC, name ASC`;
+    const sql = `SELECT discord_id, name FROM user ${buildRankingOrderBySql()}`;
     const [result] = await promisePool.query(sql);
 
     return { success: true, data: result };

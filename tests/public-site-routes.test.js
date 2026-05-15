@@ -196,7 +196,8 @@ test("router serves the riot verification file from the site root", async () => 
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "text/plain; charset=utf-8");
-  assert.equal(response.body, "159d7677-a16d-4d0f-a9e1-86494c63ff8a");
+  assert.equal(response.headers["cache-control"], "no-store, max-age=0");
+  assert.equal(response.body, "0a04e9a9-81cd-4da5-943e-7ced45dbed65");
 });
 
 test("router serves the riot verification file when the path starts with a double slash", async () => {
@@ -204,7 +205,8 @@ test("router serves the riot verification file when the path starts with a doubl
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "text/plain; charset=utf-8");
-  assert.equal(response.body, "159d7677-a16d-4d0f-a9e1-86494c63ff8a");
+  assert.equal(response.headers["cache-control"], "no-store, max-age=0");
+  assert.equal(response.body, "0a04e9a9-81cd-4da5-943e-7ced45dbed65");
 });
 
 test("router serves the dedicated match detail page", async () => {

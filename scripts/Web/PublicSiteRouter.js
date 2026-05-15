@@ -32,7 +32,7 @@ function isGuildIdSegment(value) {
   return /^\d+$/.test(String(value ?? ""));
 }
 
-function serveAssetFile(res, filePath) {
+function serveAssetFile(res, filePath, options = {}) {
   if (!fs.existsSync(filePath)) {
     sendHtml(res, 404, "not found");
     return;
@@ -56,7 +56,7 @@ function serveAssetFile(res, filePath) {
 
   res.writeHead(200, {
     "Content-Type": contentType,
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Cache-Control": options.cacheControl ?? "public, max-age=31536000, immutable",
   });
   res.end(body);
 }
@@ -97,7 +97,9 @@ function createPublicSiteRouter({
     }
 
     if (req.method === "GET" && pathname === "/riot.txt") {
-      serveAssetFile(res, path.join(assetsDir, "riot.txt"));
+      serveAssetFile(res, path.join(assetsDir, "riot.txt"), {
+        cacheControl: "no-store, max-age=0",
+      });
       return true;
     }
 

@@ -62,6 +62,16 @@ test("buildPublicPlayerSearchSql limits public search results", () => {
   assert.match(sql, /LIMIT 10/i);
 });
 
+test("buildPublicLeaderboardSql keeps players with no games at the bottom", () => {
+  const { buildPublicLeaderboardSql } = loadQueryModule();
+  const sql = buildPublicLeaderboardSql(25);
+
+  assert.match(
+    sql,
+    /ORDER BY\s+CASE\s+WHEN\s+\(win\s*\+\s*lose\)\s*=\s*0\s+THEN\s+1\s+ELSE\s+0\s+END\s+ASC,\s*mmr\s+DESC,\s*name\s+ASC/i
+  );
+});
+
 test("getPublicSiteSummary returns the first summary row", async () => {
   const seenStatements = [];
   const { getPublicSiteSummary } = loadQueryModule({
@@ -161,7 +171,10 @@ test("getPublicLeaderboard returns players ordered for the public ranking table"
 
   assert.equal(result.success, true);
   assert.equal(result.data.length, 1);
-  assert.match(statements[0], /ORDER BY mmr DESC, name ASC/i);
+  assert.match(
+    statements[0],
+    /ORDER BY\s+CASE\s+WHEN\s+\(win\s*\+\s*lose\)\s*=\s*0\s+THEN\s+1\s+ELSE\s+0\s+END\s+ASC,\s*mmr\s+DESC,\s*name\s+ASC/i
+  );
   assert.deepEqual(paramsSeen[0], [25]);
 });
 
@@ -182,9 +195,32 @@ test("getPublicLeaderboard can fetch the full public ranking without a limit", a
 
   assert.equal(result.success, true);
   assert.equal(result.data.length, 1);
-  assert.match(statements[0], /ORDER BY mmr DESC, name ASC/i);
+  assert.match(
+    statements[0],
+    /ORDER BY\s+CASE\s+WHEN\s+\(win\s*\+\s*lose\)\s*=\s*0\s+THEN\s+1\s+ELSE\s+0\s+END\s+ASC,\s*mmr\s+DESC,\s*name\s+ASC/i
+  );
   assert.doesNotMatch(statements[0], /LIMIT \?/i);
   assert.deepEqual(paramsSeen[0], []);
+});
+
+test("getRankData keeps players with no games at the bottom", async () => {
+  const statements = [];
+  const { getRankData } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement) {
+        statements.push(statement);
+        return [[{ discord_id: "1", name: "Alpha" }]];
+      },
+    }),
+  });
+
+  const result = await getRankData("guild-1");
+
+  assert.equal(result.success, true);
+  assert.match(
+    statements[0],
+    /ORDER BY\s+CASE\s+WHEN\s+\(win\s*\+\s*lose\)\s*=\s*0\s+THEN\s+1\s+ELSE\s+0\s+END\s+ASC,\s*mmr\s+DESC,\s*name\s+ASC/i
+  );
 });
 
 test("getPublicMatchHistory returns the newest matches first", async () => {

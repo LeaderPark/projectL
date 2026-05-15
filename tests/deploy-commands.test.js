@@ -19,10 +19,10 @@ test("legacy placeholder utility commands are removed", () => {
   );
 });
 
-test("manual replay upload command is removed", () => {
+test("manual replay upload command is available", () => {
   assert.equal(
     fs.existsSync(path.join("commands", "riot", "upload.js")),
-    false
+    true
   );
 });
 

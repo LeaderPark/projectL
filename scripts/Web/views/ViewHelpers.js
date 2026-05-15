@@ -24,13 +24,25 @@ function renderAssetImage({ imageUrl, name = "" } = {}, className, fallback = ""
   return `<span class="${className} ${className}--placeholder">${escapeHtml(fallback || name || "?")}</span>`;
 }
 
+function isEmptyAssetSlot(item) {
+  return !item?.imageUrl && toNumberFromText(item?.id) <= 0;
+}
+
+function renderIconSlot(item, className) {
+  const iconClassName = `${className}__icon`;
+
+  if (isEmptyAssetSlot(item)) {
+    return `<span class="${iconClassName} ${iconClassName}--empty" aria-hidden="true"></span>`;
+  }
+
+  return renderAssetImage(item, iconClassName, String(item?.id ?? ""));
+}
+
 function renderIconGroup(items, className) {
   return `
     <div class="${className}">
       ${items
-        .map((item) =>
-          renderAssetImage(item, `${className}__icon`, String(item?.id ?? ""))
-        )
+        .map((item) => renderIconSlot(item, className))
         .join("")}
     </div>
   `;
@@ -75,7 +87,7 @@ function clampNumber(value, minimum, maximum) {
 }
 
 function formatOpScore(value) {
-  return (clampNumber(4.2 + toNumberFromText(value) / 10, 0, 10)).toFixed(1);
+  return Math.max(4.2 + toNumberFromText(value) / 10, 0).toFixed(1);
 }
 
 function getTeamSideName(sideLabel) {
@@ -186,10 +198,6 @@ function isRenderableAsset(asset) {
   return Boolean(asset?.imageUrl) || toNumberFromText(asset?.id) > 0;
 }
 
-function getRenderableAssets(assets = []) {
-  return assets.filter((asset) => isRenderableAsset(asset));
-}
-
 function buildPlayerRuneAssets(player) {
   const primaryRune = {
     id: player?.keystoneId,
@@ -234,11 +242,12 @@ function buildPlayerStatSnapshot(player, teamMetrics) {
 
 function buildItemBuildRows(player) {
   const items = Array.isArray(player?.itemAssets) ? player.itemAssets : [];
+  const slots = Array.from({ length: 7 }, (_, index) => items[index] ?? { id: 0 });
 
   return {
-    topRow: getRenderableAssets(items.slice(0, 3)),
-    bottomRow: getRenderableAssets(items.slice(3, 6)),
-    trinket: isRenderableAsset(items[6]) ? items[6] : null,
+    topRow: slots.slice(0, 3),
+    bottomRow: slots.slice(3, 6),
+    trinket: slots[6],
   };
 }
 
@@ -554,7 +563,7 @@ function renderScoreboardColumns(mode = "full") {
       <span>OP Score</span>
       <span>KDA</span>
       <span>피해량</span>
-      <span>와드</span>
+      <span>시야점수</span>
       <span>CS</span>
       <span>아이템</span>
     </div>
@@ -569,15 +578,7 @@ function renderScoreboardItemBuild(player) {
       <div class="match-scoreboard__build-row">
         ${renderIconGroup(topRow, "match-scoreboard__items")}
         <div class="match-scoreboard__build-trinket">
-          ${
-            trinket
-              ? renderAssetImage(
-                  trinket,
-                  "match-scoreboard__items__icon",
-                  String(trinket?.id ?? "")
-                )
-              : ""
-          }
+          ${renderIconSlot(trinket, "match-scoreboard__items")}
         </div>
       </div>
       <div class="match-scoreboard__build-row">

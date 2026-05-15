@@ -1660,6 +1660,14 @@ body::before {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.match-row__items__icon--empty,
+.match-scoreboard__items__icon--empty,
+.match-build-grid__items__icon--empty,
+.match-detail-player__items__icon--empty {
+  border: 1px solid rgba(154, 169, 202, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .match-row__player-main,
 .match-scoreboard__identity,
 .match-detail-player__identity {

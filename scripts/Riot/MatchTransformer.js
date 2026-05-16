@@ -5,6 +5,8 @@ const Player = require("../VO/player");
 const Team = require("../VO/team");
 const Side = require("../enum/Side");
 
+const MATCH_RESULT_SCORE_MODIFIER = 3;
+
 function mapLane(position) {
   const mapped = {
     TOP: "TOP",
@@ -53,11 +55,12 @@ function calculatePerformanceScore(player, gameLengthMs) {
     22.5 *
     deathPenalty;
 
-  if (player.win === "Win") {
-    return Math.round(mmr);
-  }
+  const resultModifier =
+    player.win === "Win"
+      ? MATCH_RESULT_SCORE_MODIFIER
+      : -MATCH_RESULT_SCORE_MODIFIER;
 
-  return -Math.round((100 - mmr) / 3);
+  return Math.round(mmr + resultModifier);
 }
 
 function buildInventory(participant) {

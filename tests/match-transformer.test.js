@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { transformMatchPayload } = require("../scripts/Riot/MatchTransformer");
+const {
+  calculatePerformanceScore,
+  transformMatchPayload,
+} = require("../scripts/Riot/MatchTransformer");
 
 test("transformMatchPayload maps Riot participants into the internal match model", () => {
   const match = transformMatchPayload({
@@ -118,4 +121,33 @@ test("transformMatchPayload maps Riot participants into the internal match model
   assert.equal(typeof match.purpleTeam.players[0].performanceScore, "number");
   assert.equal("mmr" in match.blueTeam.players[0], false);
   assert.equal("mmr" in match.purpleTeam.players[0], false);
+});
+
+test("calculatePerformanceScore lets a strong losing player outscore a weak winning player", () => {
+  const gameLengthMs = 30 * 60 * 1000;
+  const strongLosingPlayer = {
+    win: "Fail",
+    visionScore: 60,
+    totalDamage: 35000,
+    kda: {
+      kills: 15,
+      deaths: 2,
+      assist: 10,
+    },
+  };
+  const weakWinningPlayer = {
+    win: "Win",
+    visionScore: 2,
+    totalDamage: 1000,
+    kda: {
+      kills: 0,
+      deaths: 12,
+      assist: 0,
+    },
+  };
+
+  assert.ok(
+    calculatePerformanceScore(strongLosingPlayer, gameLengthMs) >
+      calculatePerformanceScore(weakWinningPlayer, gameLengthMs)
+  );
 });

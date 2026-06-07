@@ -80,7 +80,6 @@ function renderPlayerPage(model) {
         <aside class="panel player-page__sidebar">
           <div class="panel__header">
             <h2>플레이 성향 요약</h2>
-            <span>서브 지표</span>
           </div>
           <div class="player-page__sidebar-sections">
             <section class="player-page__sidebar-section">

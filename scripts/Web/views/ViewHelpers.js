@@ -114,6 +114,31 @@ function buildTeamMetrics(team) {
   };
 }
 
+function pickTeamLeaderEntry(entries) {
+  // Returns the entry the descending (opScore, then damage) sort would place
+  // first, preserving stable-sort tie behaviour (first occurrence wins on ties).
+  return entries.reduce((best, entry) => {
+    if (!best) {
+      return entry;
+    }
+
+    const opDelta =
+      toNumberFromText(formatOpScore(entry.player?.performanceScore)) -
+      toNumberFromText(formatOpScore(best.player?.performanceScore));
+    if (opDelta > 0) {
+      return entry;
+    }
+    if (opDelta < 0) {
+      return best;
+    }
+
+    const damageDelta =
+      toNumberFromText(entry.player?.damageText) -
+      toNumberFromText(best.player?.damageText);
+    return damageDelta > 0 ? entry : best;
+  }, null);
+}
+
 function buildScoreboardContext(card) {
   const blueEntries = (card?.teams?.blue?.players ?? []).map((player) => ({
     player,
@@ -151,23 +176,6 @@ function buildScoreboardContext(card) {
     ranks.set(entry.player, index + 1);
   });
 
-  const sortedBluePlayers = [...blueEntries].sort((left, right) => {
-    return (
-      toNumberFromText(formatOpScore(right.player?.performanceScore)) -
-        toNumberFromText(formatOpScore(left.player?.performanceScore)) ||
-      toNumberFromText(right.player?.damageText) -
-        toNumberFromText(left.player?.damageText)
-    );
-  });
-  const sortedRedPlayers = [...redEntries].sort((left, right) => {
-    return (
-      toNumberFromText(formatOpScore(right.player?.performanceScore)) -
-        toNumberFromText(formatOpScore(left.player?.performanceScore)) ||
-      toNumberFromText(right.player?.damageText) -
-        toNumberFromText(left.player?.damageText)
-    );
-  });
-
   return {
     teams: {
       blue: buildTeamMetrics(card?.teams?.blue),
@@ -176,8 +184,8 @@ function buildScoreboardContext(card) {
     winningSide: card?.winningSide === "blue" ? "blue" : "red",
     ranks,
     teamLeaders: {
-      blue: sortedBluePlayers[0]?.player ?? null,
-      red: sortedRedPlayers[0]?.player ?? null,
+      blue: pickTeamLeaderEntry(blueEntries)?.player ?? null,
+      red: pickTeamLeaderEntry(redEntries)?.player ?? null,
     },
     maxDamage: Math.max(
       1,

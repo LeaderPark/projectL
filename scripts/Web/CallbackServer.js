@@ -77,8 +77,9 @@ function createCallbackServer({
         res.writeHead(result.status, { "Content-Type": "text/plain; charset=utf-8" });
         res.end(result.body);
       } catch (error) {
+        console.error("Tournament callback handling failed:", error);
         res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-        res.end(error?.message ?? "callback error");
+        res.end("internal error");
       }
       return;
     }
@@ -90,8 +91,9 @@ function createCallbackServer({
           return;
         }
       } catch (error) {
+        console.error("Public site request failed:", error);
         res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-        res.end(error?.message ?? "public site error");
+        res.end("internal error");
         return;
       }
     }

@@ -1060,8 +1060,17 @@ async function updateUserDataWithExecutor(executor, match) {
   });
 
   const ratingInputsByIdentity = new Map();
+  const identityKeyCache = new Map();
+  const identityKeyOf = (player) => {
+    let key = identityKeyCache.get(player);
+    if (key === undefined) {
+      key = getMatchPlayerIdentityKey(player);
+      identityKeyCache.set(player, key);
+    }
+    return key;
+  };
   match.blueTeam.players.forEach((player) => {
-    const identityKey = getMatchPlayerIdentityKey(player);
+    const identityKey = identityKeyOf(player);
     const user = linkedByIdentity.get(identityKey);
     ratingInputsByIdentity.set(identityKey, {
       playerId: identityKey,
@@ -1071,7 +1080,7 @@ async function updateUserDataWithExecutor(executor, match) {
     });
   });
   match.purpleTeam.players.forEach((player) => {
-    const identityKey = getMatchPlayerIdentityKey(player);
+    const identityKey = identityKeyOf(player);
     const user = linkedByIdentity.get(identityKey);
     ratingInputsByIdentity.set(identityKey, {
       playerId: identityKey,
@@ -1085,18 +1094,18 @@ async function updateUserDataWithExecutor(executor, match) {
   const ratingAdjustments = blueWon
     ? buildMatchmakingAdjustments({
         winningTeam: match.blueTeam.players.map((player) =>
-          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
+          ratingInputsByIdentity.get(identityKeyOf(player))
         ),
         losingTeam: match.purpleTeam.players.map((player) =>
-          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
+          ratingInputsByIdentity.get(identityKeyOf(player))
         ),
       })
     : buildMatchmakingAdjustments({
         winningTeam: match.purpleTeam.players.map((player) =>
-          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
+          ratingInputsByIdentity.get(identityKeyOf(player))
         ),
         losingTeam: match.blueTeam.players.map((player) =>
-          ratingInputsByIdentity.get(getMatchPlayerIdentityKey(player))
+          ratingInputsByIdentity.get(identityKeyOf(player))
         ),
       });
   const deltaByIdentity = new Map(
@@ -1109,7 +1118,7 @@ async function updateUserDataWithExecutor(executor, match) {
   const notRegistUser = [];
 
   for await (const p of players) {
-    const identityKey = getMatchPlayerIdentityKey(p);
+    const identityKey = identityKeyOf(p);
     const user = linkedByIdentity.get(identityKey);
     if (!user) {
       notRegistUser.push(getUnregisteredPlayerLabel(p));

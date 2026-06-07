@@ -1410,6 +1410,22 @@ const deleteMatchById = async (guildId, matchId) => {
       await executor.commit();
     }
 
+    // Keep match numbering compact: after a delete, the next inserted match
+    // reuses the freed numbering (id 1 once the table is empty again).
+    // ALTER is DDL (auto-commits), so it runs after the transaction commits,
+    // and is best-effort — the deletion itself has already succeeded.
+    try {
+      const [maxRows] = await executor.query(
+        `SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM matches`
+      );
+      const nextAutoIncrement = Number(maxRows?.[0]?.next_id) || 1;
+      await executor.query(
+        `ALTER TABLE matches AUTO_INCREMENT = ${nextAutoIncrement}`
+      );
+    } catch (resetError) {
+      // Non-critical: the match is already deleted. Leave AUTO_INCREMENT as-is.
+    }
+
     return {
       success: true,
       data: {

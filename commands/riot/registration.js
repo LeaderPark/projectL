@@ -1,12 +1,7 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 const { getSummonerData } = require("../../scripts/Riot/DataReceiver");
 const { registerRiotAccount } = require("../../scripts/Utils/Query");
-
-function canManageGuild(interaction) {
-  return Boolean(
-    interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
-  );
-}
+const { canManageGuild } = require("../../scripts/Utils/Permissions");
 
 function buildRegistrationSuccessMessage(insertResult) {
   const lines = ["등록을 완료했습니다."];

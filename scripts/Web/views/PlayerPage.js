@@ -113,7 +113,7 @@ function renderPlayerPage(model) {
                   method="POST"
                   action="${buildGuildPath(
                     model.guildId,
-                    `/players/${profile.discordId}/refresh-riot-accounts`
+                    `/players/${encodeURIComponent(profile.discordId)}/refresh-riot-accounts`
                   )}"
                 >
                   <button class="player-page__refresh-button" type="submit">닉네임 새로고침</button>

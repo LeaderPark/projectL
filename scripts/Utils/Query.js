@@ -4,6 +4,7 @@ const {
   formatGuildConfigurationError,
   isGuildConfigurationError,
 } = require("./GuildDatabase");
+const { parseStoredJson } = require("./Json");
 
 function buildErrorResult(error, fallbackMessage) {
   if (isGuildConfigurationError(error)) {
@@ -292,18 +293,6 @@ function buildPublicMatchByIdSql() {
     WHERE id = ?
     LIMIT 1
   `.trim();
-}
-
-function parseStoredJson(value, fallback) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return fallback;
-  }
 }
 
 function normalizeIdentityValue(value) {
@@ -936,14 +925,6 @@ async function deleteRiotAccount(guildId, discordId, riotGameName, riotTagLine) 
   }
 }
 
-const registraion = async (guildId, discordId, name, puuid) =>
-  registerRiotAccount(guildId, discordId, {
-    riotGameName: name.split("#")[0] ?? name,
-    riotTagLine: name.split("#")[1] ?? "",
-    puuid,
-    summonerId: puuid,
-  });
-
 async function resolveUsersByPuuids(guildId, puuids) {
   try {
     const promisePool = await getGuildPromisePool(guildId);
@@ -1059,18 +1040,6 @@ async function insertMatchDataWithExecutor(executor, match, name) {
 
   return { success: true, matchId };
 }
-
-const updateUserData = async (guildId, match) => {
-  try {
-    const promisePool = await getGuildPromisePool(guildId);
-    return await updateUserDataWithExecutor(promisePool, match);
-  } catch (error) {
-    return buildErrorResult(
-      error,
-      "updateUserData 중 예기치 못한 오류가 발생하였습니다."
-    );
-  }
-};
 
 async function updateUserDataWithExecutor(executor, match) {
   const players = getMatchPlayers(match);
@@ -2022,7 +1991,6 @@ module.exports = {
   parseDiscordIdList,
   persistMatchResult,
   registerRiotAccount,
-  registraion,
   searchPublicPlayers,
   setPrimaryRiotAccount,
   listRefreshableRiotAccounts,
@@ -2036,5 +2004,4 @@ module.exports = {
   updateTournamentSessionResult,
   updateTournamentSessionFearlessState,
   updateRiotAccountDisplayName,
-  updateUserData,
 };

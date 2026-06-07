@@ -832,7 +832,7 @@ function renderScoreboardTotals(context) {
 }
 
 function renderDetailedScoreboard(card, options = {}) {
-  const context = buildScoreboardContext(card);
+  const context = options.context ?? buildScoreboardContext(card);
   const mode = options.mode === "compact" ? "compact" : "full";
 
   return `
@@ -955,7 +955,7 @@ function renderMatchDetailSection(card, options = {}) {
       data-match-detail="${escapeHtml(detailId)}"
       ${hiddenAttribute}
     >
-      ${renderDetailedScoreboard(card, { mode })}
+      ${renderDetailedScoreboard(card, { mode, context: options.context })}
     </section>
   `;
 }
@@ -1006,7 +1006,7 @@ function renderMatchCard(card, options = {}) {
     return `
       <article class="${articleClasses.join(" ")}" data-match-row="${escapeHtml(card.id)}">
         ${renderPlayerLayoutSummary(card, context)}
-        ${renderMatchDetailSection(card, { mode: "compact" })}
+        ${renderMatchDetailSection(card, { mode: "compact", context })}
       </article>
     `;
   }
@@ -1056,7 +1056,7 @@ function renderMatchCard(card, options = {}) {
           </span>
         </button>
       </div>
-      ${renderMatchDetailSection(card, { mode: "compact" })}
+      ${renderMatchDetailSection(card, { mode: "compact", context })}
     </article>
   `;
 }

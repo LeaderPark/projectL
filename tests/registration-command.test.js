@@ -226,3 +226,132 @@ test("registration command guides multi-account users to set a representative ri
   assert.match(replies[1], /처음 등록한 아이디/);
   assert.match(replies[1], /\/대표아이디설정/);
 });
+
+test("an admin can register on behalf of another user", async () => {
+  const registerCalls = [];
+  const command = loadRegistrationCommand({
+    dataReceiver: {
+      async getSummonerData() {
+        return {
+          account: { gameName: "eggcat", tagLine: "KR1", puuid: "puuid-1" },
+          summoner: { id: "summoner-1" },
+        };
+      },
+    },
+    query: {
+      async registerRiotAccount(guildId, discordId, account) {
+        registerCalls.push({ guildId, discordId, account });
+        return { success: true };
+      },
+    },
+  });
+
+  const replies = [];
+  await command.execute({
+    guildId: "guild-1",
+    user: { id: "admin-1" },
+    memberPermissions: { has: () => true },
+    guild: {
+      members: {
+        async fetch() {
+          throw new Error("should not fetch caller when a target user is provided");
+        },
+      },
+    },
+    options: {
+      getUser(name) {
+        assert.equal(name, "등록할소환사");
+        return { id: "target-2", bot: false };
+      },
+      getString(name) {
+        if (name === "소환사이름") return "eggcat";
+        if (name === "소환사태그") return "KR1";
+        throw new Error(`Unexpected option: ${name}`);
+      },
+    },
+    async deferReply(message) {
+      replies.push(message);
+    },
+    async editReply(message) {
+      replies.push(message);
+    },
+    async reply(message) {
+      replies.push(message);
+    },
+  });
+
+  assert.deepEqual(registerCalls, [
+    {
+      guildId: "guild-1",
+      discordId: "target-2",
+      account: {
+        riotGameName: "eggcat",
+        riotTagLine: "KR1",
+        puuid: "puuid-1",
+        summonerId: "summoner-1",
+      },
+    },
+  ]);
+  assert.deepEqual(replies, ["searching...", "등록을 완료했습니다."]);
+});
+
+test("a non-admin cannot register on behalf of another user", async () => {
+  let summonerLookups = 0;
+  let registerCalled = false;
+  const command = loadRegistrationCommand({
+    dataReceiver: {
+      async getSummonerData() {
+        summonerLookups += 1;
+        return null;
+      },
+    },
+    query: {
+      async registerRiotAccount() {
+        registerCalled = true;
+        return { success: true };
+      },
+    },
+  });
+
+  const replies = [];
+  await command.execute({
+    guildId: "guild-1",
+    user: { id: "member-1" },
+    memberPermissions: { has: () => false },
+    guild: {
+      members: {
+        async fetch() {
+          throw new Error("should not fetch when registration is rejected");
+        },
+      },
+    },
+    options: {
+      getUser() {
+        return { id: "target-2", bot: false };
+      },
+      getString(name) {
+        if (name === "소환사이름") return "eggcat";
+        if (name === "소환사태그") return "KR1";
+        throw new Error(`Unexpected option: ${name}`);
+      },
+    },
+    async deferReply(message) {
+      replies.push(message);
+    },
+    async editReply(message) {
+      replies.push(message);
+    },
+    async reply(message) {
+      replies.push(message);
+    },
+  });
+
+  assert.equal(summonerLookups, 0);
+  assert.equal(registerCalled, false);
+  assert.deepEqual(replies, [
+    {
+      content: "다른 사람을 대신 등록하는 건 서버 관리자만 할 수 있어요.",
+      ephemeral: true,
+    },
+  ]);
+});

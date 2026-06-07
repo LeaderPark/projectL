@@ -40,14 +40,20 @@ function loadDeleteCommand(overrides = {}) {
   return command;
 }
 
-function buildInteraction({ getString }) {
+function buildInteraction({
+  getString,
+  getUser = () => null,
+  isAdmin = false,
+  userId = "discord-1",
+}) {
   const replies = [];
   return {
     replies,
     interaction: {
       guildId: "guild-1",
-      user: { id: "discord-1" },
-      options: { getString },
+      user: { id: userId },
+      memberPermissions: { has: () => isAdmin },
+      options: { getString, getUser },
       async deferReply(payload) {
         replies.push(payload);
       },
@@ -64,19 +70,21 @@ function getStringFor(name) {
   throw new Error(`Unexpected option: ${name}`);
 }
 
-test("delete riot account command exposes riot name and tag options", () => {
+test("delete riot account command exposes name, tag, and optional target user", () => {
   const command = loadDeleteCommand();
   const json = command.data.toJSON();
 
   assert.equal(json.name, "아이디삭제");
   assert.deepEqual(
     json.options.map((option) => option.name),
-    ["소환사이름", "소환사태그"]
+    ["소환사이름", "소환사태그", "대상유저"]
   );
   assert.deepEqual(
-    json.options.map((option) => option.required),
-    [true, true]
+    json.options.map((option) => option.required === true),
+    [true, true, false]
   );
+  // The target option is a user option (ApplicationCommandOptionType.User = 6).
+  assert.equal(json.options[2].type, 6);
 });
 
 test("delete riot account command removes the caller's account and reports the new primary", async () => {
@@ -158,5 +166,112 @@ test("delete riot account command surfaces the failure message when deletion fai
   assert.deepEqual(replies, [
     { ephemeral: true },
     "등록된 롤 계정을 찾을 수 없습니다.",
+  ]);
+});
+
+test("an admin can delete another user's account and the reply names the target", async () => {
+  const deleteCalls = [];
+  const command = loadDeleteCommand({
+    query: {
+      async deleteRiotAccount(guildId, discordId, riotGameName, riotTagLine) {
+        deleteCalls.push({ guildId, discordId, riotGameName, riotTagLine });
+        return {
+          success: true,
+          data: {
+            deletedAccountDisplayName: "smurf#JP1",
+            remainingCount: 0,
+            primaryAccountDisplayName: null,
+          },
+        };
+      },
+    },
+  });
+
+  const { replies, interaction } = buildInteraction({
+    getString: getStringFor,
+    getUser: () => ({ id: "discord-2" }),
+    isAdmin: true,
+  });
+  await command.execute(interaction);
+
+  // Deletion targets the mentioned user, not the caller.
+  assert.deepEqual(deleteCalls, [
+    {
+      guildId: "guild-1",
+      discordId: "discord-2",
+      riotGameName: "smurf",
+      riotTagLine: "JP1",
+    },
+  ]);
+  assert.deepEqual(replies, [
+    { ephemeral: true },
+    "<@discord-2> 님의 등록을 삭제했습니다: smurf#JP1\n이제 해당 유저에게 등록된 롤 아이디가 없습니다.",
+  ]);
+});
+
+test("a non-admin cannot delete another user's account", async () => {
+  let deleteCalled = false;
+  const command = loadDeleteCommand({
+    query: {
+      async deleteRiotAccount() {
+        deleteCalled = true;
+        return { success: true, data: {} };
+      },
+    },
+  });
+
+  const { replies, interaction } = buildInteraction({
+    getString: getStringFor,
+    getUser: () => ({ id: "discord-2" }),
+    isAdmin: false,
+  });
+  await command.execute(interaction);
+
+  assert.equal(deleteCalled, false);
+  assert.deepEqual(replies, [
+    { ephemeral: true },
+    "다른 사람의 등록 아이디는 서버 관리자만 삭제할 수 있어요.",
+  ]);
+});
+
+test("targeting yourself does not require admin permission", async () => {
+  const deleteCalls = [];
+  const command = loadDeleteCommand({
+    query: {
+      async deleteRiotAccount(guildId, discordId, riotGameName, riotTagLine) {
+        deleteCalls.push({ guildId, discordId, riotGameName, riotTagLine });
+        return {
+          success: true,
+          data: {
+            deletedAccountDisplayName: "smurf#JP1",
+            remainingCount: 0,
+            primaryAccountDisplayName: null,
+          },
+        };
+      },
+    },
+  });
+
+  // Caller mentions themselves and is NOT an admin.
+  const { replies, interaction } = buildInteraction({
+    getString: getStringFor,
+    getUser: () => ({ id: "discord-1" }),
+    isAdmin: false,
+    userId: "discord-1",
+  });
+  await command.execute(interaction);
+
+  assert.deepEqual(deleteCalls, [
+    {
+      guildId: "guild-1",
+      discordId: "discord-1",
+      riotGameName: "smurf",
+      riotTagLine: "JP1",
+    },
+  ]);
+  // Treated as a self-deletion: no target mention in the reply.
+  assert.deepEqual(replies, [
+    { ephemeral: true },
+    "등록을 삭제했습니다: smurf#JP1\n이제 등록된 롤 아이디가 없습니다.",
   ]);
 });

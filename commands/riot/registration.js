@@ -1,6 +1,12 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { getSummonerData } = require("../../scripts/Riot/DataReceiver");
 const { registerRiotAccount } = require("../../scripts/Utils/Query");
+
+function canManageGuild(interaction) {
+  return Boolean(
+    interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+  );
+}
 
 function buildRegistrationSuccessMessage(insertResult) {
   const lines = ["등록을 완료했습니다."];
@@ -45,14 +51,22 @@ module.exports = {
     .addUserOption((option) =>
       option
         .setName("등록할소환사")
-        .setDescription("등록할 소환사를 멘션해주세요")
+        .setDescription("(서버 관리자 전용) 다른 사람을 대신 등록할 때 멘션해주세요")
     ),
   async execute(interaction) {
-    const interactionUser = await interaction.guild.members.fetch(
-      interaction.user.id
-    );
+    const targetUser = interaction.options.getUser("등록할소환사");
+    const isOtherUser =
+      Boolean(targetUser) && targetUser.id !== interaction.user.id;
 
-    const user = interaction.options.getUser("등록할소환사") || interactionUser;
+    if (isOtherUser && !canManageGuild(interaction)) {
+      return await interaction.reply({
+        content: "다른 사람을 대신 등록하는 건 서버 관리자만 할 수 있어요.",
+        ephemeral: true,
+      });
+    }
+
+    const user =
+      targetUser ?? (await interaction.guild.members.fetch(interaction.user.id));
     if (user.bot) return await interaction.reply(`봇 말고 소환사를 넣으라고`);
 
     const userName = interaction.options.getString("소환사이름");
@@ -85,4 +99,5 @@ module.exports = {
 
     await interaction.editReply(buildRegistrationSuccessMessage(insertRes));
   },
+  canManageGuild,
 };

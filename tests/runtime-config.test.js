@@ -161,3 +161,30 @@ test("guild id is optional in runtime config", () => {
     process.env = originalEnv;
   }
 });
+
+test("DISCORD_GLOBAL_COMMANDS toggles global command deployment", () => {
+  const originalEnv = { ...process.env };
+
+  process.env.DISCORD_TOKEN = "discord-token";
+  process.env.DISCORD_CLIENT_ID = "client-id";
+  process.env.RIOT_API_TOKEN = "riot-token";
+  process.env.DB_HOST = "db";
+  process.env.DB_USER = "bot";
+  process.env.DB_PASSWORD = "secret";
+  process.env.DB_NAME = "bot";
+
+  try {
+    const { loadRuntimeConfig } = require("../config/runtime");
+
+    process.env.DISCORD_GLOBAL_COMMANDS = "true";
+    assert.equal(loadRuntimeConfig().discord.globalCommands, true);
+
+    process.env.DISCORD_GLOBAL_COMMANDS = "false";
+    assert.equal(loadRuntimeConfig().discord.globalCommands, false);
+
+    delete process.env.DISCORD_GLOBAL_COMMANDS;
+    assert.equal(loadRuntimeConfig().discord.globalCommands, false);
+  } finally {
+    process.env = originalEnv;
+  }
+});

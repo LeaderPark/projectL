@@ -67,13 +67,18 @@ module.exports = {
 
     const user =
       targetUser ?? (await interaction.guild.members.fetch(interaction.user.id));
-    if (user.bot) return await interaction.reply(`봇 말고 소환사를 넣으라고`);
+    if (user.bot) {
+      return await interaction.reply({
+        content: "봇 말고 소환사를 넣으라고",
+        ephemeral: true,
+      });
+    }
 
     const userName = interaction.options.getString("소환사이름");
     const userTag = interaction.options.getString("소환사태그");
 
     //search
-    await interaction.deferReply("searching...");
+    await interaction.deferReply({ ephemeral: true });
 
     // const result = await getSummonerData(userName);
     const result = await getSummonerData(userName, userTag);

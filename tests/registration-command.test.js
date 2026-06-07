@@ -145,7 +145,7 @@ test("registration command falls back to puuid when Riot summoner id is missing"
       },
     },
   ]);
-  assert.deepEqual(replies, ["searching...", "등록을 완료했습니다."]);
+  assert.deepEqual(replies, [{ ephemeral: true }, "등록을 완료했습니다."]);
 });
 
 test("registration command guides multi-account users to set a representative riot account", async () => {
@@ -220,7 +220,7 @@ test("registration command guides multi-account users to set a representative ri
     },
   });
 
-  assert.equal(replies[0], "searching...");
+  assert.deepEqual(replies[0], { ephemeral: true });
   assert.match(replies[1], /등록을 완료했습니다/);
   assert.match(replies[1], /main#KR1/);
   assert.match(replies[1], /처음 등록한 아이디/);
@@ -292,7 +292,7 @@ test("an admin can register on behalf of another user", async () => {
       },
     },
   ]);
-  assert.deepEqual(replies, ["searching...", "등록을 완료했습니다."]);
+  assert.deepEqual(replies, [{ ephemeral: true }, "등록을 완료했습니다."]);
 });
 
 test("a non-admin cannot register on behalf of another user", async () => {

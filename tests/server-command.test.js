@@ -24,7 +24,10 @@ test("server command exposes setup subcommands", () => {
   const json = command.data.toJSON();
 
   assert.equal(json.name, "서버설정");
-  assert.equal(json.description, "현재 서버의 마법공학 분류모자 설정을 관리합니다.");
+  assert.equal(
+    json.description,
+    "(서버 관리자 전용) 현재 서버의 마법공학 분류모자 설정을 관리합니다."
+  );
   assert.equal(json.options.length, 3);
   assert.deepEqual(
     json.options.map((option) => option.name),

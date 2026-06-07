@@ -57,7 +57,7 @@ function formatGuildSettingsSummary(settings, unityVoiceChannel) {
 function buildServerCommandData() {
   return new SlashCommandBuilder()
     .setName("서버설정")
-    .setDescription(`현재 서버의 ${PROJECT_DISPLAY_NAME} 설정을 관리합니다.`)
+    .setDescription(`(서버 관리자 전용) 현재 서버의 ${PROJECT_DISPLAY_NAME} 설정을 관리합니다.`)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((subcommand) =>
       subcommand
@@ -67,7 +67,7 @@ function buildServerCommandData() {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("초기화")
-        .setDescription("현재 서버 전용 데이터베이스를 생성하고 연결합니다.")
+        .setDescription("(서버 관리자 전용) 현재 서버 전용 데이터베이스를 생성하고 연결합니다.")
     )
     .addSubcommand((subcommand) =>
       subcommand

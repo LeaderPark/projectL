@@ -818,6 +818,124 @@ async function setPrimaryRiotAccount(guildId, discordId, riotGameName, riotTagLi
   }
 }
 
+async function deleteRiotAccount(guildId, discordId, riotGameName, riotTagLine) {
+  if (!hasRequiredValue(riotGameName) || !hasRequiredValue(riotTagLine)) {
+    return buildInvalidInputResult("삭제할 롤 아이디 정보가 누락되었습니다.");
+  }
+
+  let connection;
+
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
+    }
+
+    const [rows] = await executor.query(
+      `
+        SELECT id, riot_game_name, riot_tag_line, is_primary
+        FROM riot_accounts
+        WHERE discord_id = ?
+          AND riot_game_name = ?
+          AND riot_tag_line = ?
+        LIMIT 1
+      `,
+      [discordId, riotGameName, riotTagLine]
+    );
+
+    if (!rows.length) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return {
+        success: false,
+        code: "ACCOUNT_NOT_FOUND",
+        msg: "등록된 롤 계정을 찾을 수 없습니다.",
+      };
+    }
+
+    const targetAccount = rows[0];
+    const deletedAccountDisplayName = buildRiotDisplayName(
+      targetAccount.riot_game_name,
+      targetAccount.riot_tag_line
+    );
+    const deletedWasPrimary = Number(targetAccount.is_primary) === 1;
+
+    await executor.query(`DELETE FROM riot_accounts WHERE id = ?`, [
+      targetAccount.id,
+    ]);
+
+    const remainingAccounts = await listLinkedRiotAccountsWithExecutor(
+      executor,
+      discordId
+    );
+    const remainingCount = remainingAccounts.length;
+
+    let primaryAccountDisplayName = null;
+    if (remainingCount > 0) {
+      const hasPrimaryRemaining = remainingAccounts.some(
+        (account) => Number(account.is_primary) === 1
+      );
+
+      if (deletedWasPrimary || !hasPrimaryRemaining) {
+        const nextPrimary = remainingAccounts[0];
+        await executor.query(
+          `UPDATE riot_accounts SET is_primary = 0 WHERE discord_id = ?`,
+          [discordId]
+        );
+        await executor.query(
+          `UPDATE riot_accounts SET is_primary = 1 WHERE id = ?`,
+          [nextPrimary.id]
+        );
+      }
+
+      const syncResult = await syncPrimaryRiotAccountNameWithExecutor(
+        executor,
+        discordId
+      );
+      if (!syncResult.success) {
+        if (typeof executor.rollback === "function") {
+          await executor.rollback();
+        }
+
+        return syncResult;
+      }
+
+      primaryAccountDisplayName = syncResult.data.primaryAccountDisplayName;
+    }
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
+    return {
+      success: true,
+      data: {
+        deletedAccountDisplayName,
+        remainingCount,
+        primaryAccountDisplayName,
+      },
+    };
+  } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
+    return buildErrorResult(error, "롤 계정을 삭제하는 중 오류가 발생했습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
+  }
+}
+
 const registraion = async (guildId, discordId, name, puuid) =>
   registerRiotAccount(guildId, discordId, {
     riotGameName: name.split("#")[0] ?? name,
@@ -1748,6 +1866,7 @@ module.exports = {
   buildPublicPlayerSearchSql,
   buildPublicSummarySql,
   buildGetUsersDataSql,
+  deleteRiotAccount,
   getPublicLeaderboard,
   getPublicMatchById,
   getPublicMatchHistory,

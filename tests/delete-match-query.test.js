@@ -51,6 +51,8 @@ const isRemainingSelect = (sql) =>
 const isPuuidResolve = (sql) => /u\.puuid AS linked_puuid/i.test(sql);
 const isNameResolve = (sql) => /linked_name/i.test(sql);
 const isPerPlayerUpdate = (sql) => /UPDATE user SET mmr = \?/i.test(sql);
+const isAutoIncrementSelect = (sql) => /COALESCE\(MAX\(id\), 0\) \+ 1/i.test(sql);
+const isAutoIncrementAlter = (sql) => /ALTER TABLE matches AUTO_INCREMENT/i.test(sql);
 
 function userRow(discordId, puuid) {
   return {
@@ -153,7 +155,7 @@ test("deleteMatchById returns MATCH_NOT_FOUND without deleting when the match is
   assert.equal(calls.some(isDelete), false);
 });
 
-test("deleteMatchById deletes the match and resets stats when no matches remain", async () => {
+test("deleteMatchById deletes the match, resets stats, and compacts match numbering", async () => {
   const calls = [];
   const { deleteMatchById } = loadQueryModule({
     getGuildPromisePool: async () => ({
@@ -163,6 +165,8 @@ test("deleteMatchById deletes the match and resets stats when no matches remain"
         if (isDelete(sql)) return [{ affectedRows: 1 }];
         if (isReset(sql)) return [{ affectedRows: 14 }];
         if (isRemainingSelect(sql)) return [[]];
+        if (isAutoIncrementSelect(sql)) return [[{ next_id: 1 }]];
+        if (isAutoIncrementAlter(sql)) return [{}];
         throw new Error(`Unexpected SQL: ${sql}`);
       },
     }),
@@ -178,6 +182,8 @@ test("deleteMatchById deletes the match and resets stats when no matches remain"
   });
   assert.deepEqual(calls.find((c) => isDelete(c.sql)).params, [5]);
   assert.equal(calls.some((c) => isReset(c.sql)), true);
+  // After the delete, AUTO_INCREMENT is reset so the next match reuses id 1.
+  assert.equal(calls.some((c) => isAutoIncrementAlter(c.sql)), true);
 });
 
 test("deleteMatchById replays remaining matches and recomputes resolvable players' stats", async () => {
@@ -199,6 +205,8 @@ test("deleteMatchById replays remaining matches and recomputes resolvable player
           perPlayerUpdates.push(params);
           return [{ affectedRows: 1 }];
         }
+        if (isAutoIncrementSelect(sql)) return [[{ next_id: 7 }]];
+        if (isAutoIncrementAlter(sql)) return [{}];
         throw new Error(`Unexpected SQL: ${sql}`);
       },
     }),
@@ -232,6 +240,8 @@ test("deleteMatchById skips replayed matches whose participants are no longer re
           perPlayerUpdates.push(params);
           return [{ affectedRows: 1 }];
         }
+        if (isAutoIncrementSelect(sql)) return [[{ next_id: 7 }]];
+        if (isAutoIncrementAlter(sql)) return [{}];
         throw new Error(`Unexpected SQL: ${sql}`);
       },
     }),

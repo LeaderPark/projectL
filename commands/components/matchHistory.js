@@ -9,7 +9,7 @@ function resolveSelectedUser(interaction, member) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("전적")
-    .setDescription("최근 3개 게임을 볼 수 있어요.")
+    .setDescription("최근 전적 공개 페이지 링크를 보여줍니다.")
     .addUserOption((option) =>
       option
         .setName("검색할소환사")

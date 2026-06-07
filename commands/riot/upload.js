@@ -25,7 +25,7 @@ module.exports = {
     .addAttachmentOption((option) =>
       option
         .setName("replay")
-        .setDescription("upload .rofl file")
+        .setDescription(".rofl 리플레이 파일을 첨부해주세요")
         .setRequired(true)
     ),
 

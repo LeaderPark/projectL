@@ -36,19 +36,19 @@ const rest = new REST().setToken(runtimeConfig.discord.token);
 // and deploy your commands!
 (async () => {
   try {
-    const isGuildScoped = Boolean(runtimeConfig.discord.guildId);
+    const { clientId, guildId, globalCommands } = runtimeConfig.discord;
+    // Global scope makes the commands available in every server the bot joins
+    // (multi-server). Guild scope (legacy single-server) registers to one guild.
+    const isGuildScoped = !globalCommands && Boolean(guildId);
     const route = isGuildScoped
-      ? Routes.applicationGuildCommands(
-          runtimeConfig.discord.clientId,
-          runtimeConfig.discord.guildId
-        )
-      : Routes.applicationCommands(runtimeConfig.discord.clientId);
+      ? Routes.applicationGuildCommands(clientId, guildId)
+      : Routes.applicationCommands(clientId);
 
     console.log(
       `Started refreshing ${commands.length} application (/) commands (${isGuildScoped ? "guild" : "global"} scope).`
     );
 
-    // The put method is used to fully refresh all commands in the guild with the current set
+    // The put method is used to fully refresh all commands with the current set
     const data = await rest.put(route, { body: commands });
 
     console.log(
@@ -57,11 +57,17 @@ const rest = new REST().setToken(runtimeConfig.discord.token);
 
     if (isGuildScoped) {
       // Clear legacy global commands so Discord does not show duplicates from both scopes.
-      await rest.put(Routes.applicationCommands(runtimeConfig.discord.clientId), {
+      await rest.put(Routes.applicationCommands(clientId), { body: [] });
+
+      console.log("Cleared legacy global application commands.");
+    } else if (guildId) {
+      // Global scope: clear any previously guild-scoped commands so they do not
+      // appear duplicated alongside the global ones in that guild.
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
         body: [],
       });
 
-      console.log("Cleared legacy global application commands.");
+      console.log("Cleared legacy guild-scoped application commands.");
     }
   } catch (error) {
     // And of course, make sure you catch and log any errors!

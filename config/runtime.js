@@ -63,6 +63,14 @@ function loadRuntimeConfig(options = {}) {
         "DISCORD_CLIENT_ID"
       ),
       guildId: firstNonEmpty(process.env.DISCORD_GUILD_ID, legacyConfig.guildId),
+      globalCommands:
+        String(
+          firstNonEmpty(
+            process.env.DISCORD_GLOBAL_COMMANDS,
+            legacyConfig.globalCommands,
+            "false"
+          )
+        ).toLowerCase() === "true",
     },
     riot: {
       token: requiredValue(

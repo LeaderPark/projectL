@@ -192,15 +192,20 @@ function createPublicSiteHandlers({
       return [];
     }
 
+    // Parse each row's team JSON once and reuse it for puuid collection + rewrite.
+    const parsedRows = matchRows.map((matchRow) => ({
+      matchRow,
+      blueTeam: parseStoredMatchJson(matchRow?.blue_team, { players: [] }),
+      purpleTeam: parseStoredMatchJson(matchRow?.purple_team, { players: [] }),
+    }));
+
     const puuids = [
       ...new Set(
-        matchRows.flatMap((matchRow) => {
-          const blueTeam = parseStoredMatchJson(matchRow?.blue_team, { players: [] });
-          const purpleTeam = parseStoredMatchJson(matchRow?.purple_team, { players: [] });
-          return [...(blueTeam.players ?? []), ...(purpleTeam.players ?? [])]
+        parsedRows.flatMap(({ blueTeam, purpleTeam }) =>
+          [...(blueTeam.players ?? []), ...(purpleTeam.players ?? [])]
             .map((player) => String(player?.puuid ?? "").trim())
-            .filter(Boolean);
-        })
+            .filter(Boolean)
+        )
       ),
     ];
 
@@ -229,33 +234,28 @@ function createPublicSiteHandlers({
         .filter(([linkedPuuid, name]) => linkedPuuid && name)
     );
 
-    return matchRows.map((matchRow) => {
-      const blueTeam = parseStoredMatchJson(matchRow?.blue_team, { players: [] });
-      const purpleTeam = parseStoredMatchJson(matchRow?.purple_team, { players: [] });
+    const rewritePlayers = (players = []) =>
+      players.map((player) => {
+        const liveName = nameByPuuid.get(String(player?.puuid ?? "").trim());
+        return liveName
+          ? {
+              ...player,
+              playerName: liveName,
+            }
+          : player;
+      });
 
-      const rewritePlayers = (players = []) =>
-        players.map((player) => {
-          const liveName = nameByPuuid.get(String(player?.puuid ?? "").trim());
-          return liveName
-            ? {
-                ...player,
-                playerName: liveName,
-              }
-            : player;
-        });
-
-      return {
-        ...matchRow,
-        blue_team: JSON.stringify({
-          ...blueTeam,
-          players: rewritePlayers(blueTeam.players),
-        }),
-        purple_team: JSON.stringify({
-          ...purpleTeam,
-          players: rewritePlayers(purpleTeam.players),
-        }),
-      };
-    });
+    return parsedRows.map(({ matchRow, blueTeam, purpleTeam }) => ({
+      ...matchRow,
+      blue_team: JSON.stringify({
+        ...blueTeam,
+        players: rewritePlayers(blueTeam.players),
+      }),
+      purple_team: JSON.stringify({
+        ...purpleTeam,
+        players: rewritePlayers(purpleTeam.players),
+      }),
+    }));
   }
 
   return {

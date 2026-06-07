@@ -97,6 +97,7 @@ function createPublicSiteHandlers({
   resolveUsersByPuuids: resolveUsersByPuuidsImpl,
   searchPublicPlayers: searchPublicPlayersImpl,
   isRegisteredServerId: isRegisteredServerIdImpl,
+  getGuildName: getGuildNameImpl,
 } = {}) {
   const {
     getLatestMatched: defaultGetLatestMatched,
@@ -163,6 +164,17 @@ function createPublicSiteHandlers({
     (async (serverId) => {
       const { getGuildSettings } = require("../Utils/DB");
       return Boolean(await getGuildSettings(serverId));
+    });
+  const resolvedGetGuildName =
+    getGuildNameImpl ??
+    (async (serverId) => {
+      try {
+        const { getGuildSettings } = require("../Utils/DB");
+        const settings = await getGuildSettings(serverId);
+        return String(settings?.guild_name ?? "").trim();
+      } catch (error) {
+        return "";
+      }
     });
 
   async function getGuildId(routeGuildId) {
@@ -275,11 +287,13 @@ function createPublicSiteHandlers({
       }
 
       const formatterOptions = await getFormatterOptions();
-      const [summaryResult, leaderboardResult, matchesResult] = await Promise.all([
-        resolvedGetPublicSiteSummary(guildId),
-        resolvedGetPublicLeaderboard(guildId, 20),
-        resolvedGetPublicMatchHistory(guildId, 6),
-      ]);
+      const [summaryResult, leaderboardResult, matchesResult, serverName] =
+        await Promise.all([
+          resolvedGetPublicSiteSummary(guildId),
+          resolvedGetPublicLeaderboard(guildId, 20),
+          resolvedGetPublicMatchHistory(guildId, 6),
+          resolvedGetGuildName(guildId),
+        ]);
       const rankingRows = leaderboardResult.success
         ? leaderboardResult.data
         : [];
@@ -289,6 +303,7 @@ function createPublicSiteHandlers({
 
       return renderHomePage({
         guildId,
+        serverName,
         summary: summaryResult.success
           ? formatHomeSummary(summaryResult.data)
           : buildEmptyHomeModel().summary,

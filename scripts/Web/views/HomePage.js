@@ -36,7 +36,13 @@ function renderHomePage(model) {
         <div class="overview-hero__spotlight">
           <span>최근 전적</span>
           <strong>${latestMatch ? escapeHtml(latestMatch.durationText) : "기록 없음"}</strong>
-          <p>${latestMatch ? escapeHtml(latestMatch.gameId || `Match #${latestMatch.id}`) : "아직 집계된 경기가 없어요."}</p>
+          <p>${
+            model.serverName
+              ? escapeHtml(model.serverName)
+              : latestMatch
+                ? escapeHtml(latestMatch.gameId || `Match #${latestMatch.id}`)
+                : "아직 집계된 경기가 없어요."
+          }</p>
         </div>
       </section>
 

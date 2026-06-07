@@ -448,6 +448,24 @@ test("renderHomePage renders summary cards and ranking rows", () => {
   assert.doesNotMatch(pageHtml, /1,700/);
 });
 
+test("renderHomePage shows the Discord server name in the spotlight instead of the game id", () => {
+  const html = renderHomePage({
+    guildId: "123456789",
+    serverName: "머글들의 피난처",
+    summary: {
+      totalMatchesText: "1",
+      totalPlayersText: "2",
+      topWinRateText: "50%",
+    },
+    ranking: [],
+    recentMatches: [sampleCard],
+  });
+  const pageHtml = stripInlineStyles(html);
+
+  // The spotlight panel surfaces the Discord server name as the recent-record label.
+  assert.match(pageHtml, /overview-hero__spotlight[\s\S]*머글들의 피난처/);
+});
+
 test("renderMatchesPage renders OP.GG-style team sections with public result labels", () => {
   const html = renderMatchesPage({
     guildId: "123456789",

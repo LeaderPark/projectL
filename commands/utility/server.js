@@ -10,10 +10,7 @@ const {
 } = require("../../scripts/Utils/DB");
 const { PROJECT_DISPLAY_NAME } = require("../../scripts/Utils/Branding");
 const { formatGuildConfigurationError } = require("../../scripts/Utils/GuildDatabase");
-
-function canManageGuild(interaction) {
-  return interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
-}
+const { canManageGuild } = require("../../scripts/Utils/Permissions");
 
 async function resolveUnityVoiceChannel(guild, settings) {
   const channelId = settings?.unity_voice_channel_id;

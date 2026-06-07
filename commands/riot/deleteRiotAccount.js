@@ -1,11 +1,6 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 const { deleteRiotAccount } = require("../../scripts/Utils/Query");
-
-function canManageGuild(interaction) {
-  return Boolean(
-    interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
-  );
-}
+const { canManageGuild } = require("../../scripts/Utils/Permissions");
 
 function buildDeletionSuccessMessage(result, options = {}) {
   const data = result?.data ?? {};

@@ -17,6 +17,7 @@ const { renderRankingPage: renderRankingPageView } = require("./views/RankingPag
 const {
   createPlayerRiotIdentityRefreshService,
 } = require("./PlayerRiotIdentityRefresh");
+const { parseStoredJson: parseStoredMatchJson } = require("../Utils/Json");
 
 const PLAYER_MATCHES_PAGE_SIZE = 20;
 
@@ -59,18 +60,6 @@ async function resolvePublicGuildId(routeGuildId, preferredGuildId) {
 function getPlayerDiscordId(player) {
   const discordId = player?.discord_id ?? player?.discordId;
   return String(discordId ?? "").trim();
-}
-
-function parseStoredMatchJson(value, fallback) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return fallback;
-  }
 }
 
 function buildPlayerRefreshLocation(guildId, discordId, refreshStatus) {

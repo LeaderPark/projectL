@@ -1,11 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { deleteMatchById } = require("../../scripts/Utils/Query");
-
-function canManageGuild(interaction) {
-  return Boolean(
-    interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
-  );
-}
+const { canManageGuild } = require("../../scripts/Utils/Permissions");
 
 function buildDeleteMatchSuccessMessage(result) {
   const data = result?.data ?? {};

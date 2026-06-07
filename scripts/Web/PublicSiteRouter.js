@@ -69,6 +69,7 @@ function createPublicSiteRouter({
   renderRankingPage,
   renderMatchDetailPage,
   renderPlayerPage,
+  renderPlayerMatchesFragment,
   handlePlayerRiotIdentityRefresh,
   searchPlayers,
   isRegisteredServerId,
@@ -220,6 +221,19 @@ function createPublicSiteRouter({
           description: "입력한 이름과 일치하는 플레이어가 없어요.",
         })
       );
+      return true;
+    }
+
+    if (scopedPath.startsWith("/players/") && scopedPath.endsWith("/matches")) {
+      const discordId = scopedPath
+        .slice("/players/".length, -"/matches".length)
+        .replace(/\/$/, "");
+      const offset = Number(requestUrl.searchParams.get("offset")) || 0;
+      const fragment =
+        typeof renderPlayerMatchesFragment === "function"
+          ? await renderPlayerMatchesFragment(serverId, discordId, offset)
+          : { html: "", hasMore: false, nextOffset: offset };
+      sendJson(res, 200, fragment);
       return true;
     }
 

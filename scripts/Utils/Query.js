@@ -1487,8 +1487,12 @@ const getUserData = async (guildId, id) => {
   }
 };
 
-const getLatestMatched = async (guildId, id) => {
+const getLatestMatched = async (guildId, id, options = {}) => {
   try {
+    const limit =
+      Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 3;
+    const offset =
+      Number.isInteger(options.offset) && options.offset > 0 ? options.offset : 0;
     const promisePool = await getGuildPromisePool(guildId);
     const sql = `SELECT DISTINCT matches.* FROM matches
     JOIN (
@@ -1496,11 +1500,12 @@ const getLatestMatched = async (guildId, id) => {
         FROM match_in_users
         WHERE user_id = ?
         ORDER BY match_id DESC
-        LIMIT 3
+        LIMIT ? OFFSET ?
     ) recent_matches
-    ON matches.id = recent_matches.match_id`;
+    ON matches.id = recent_matches.match_id
+    ORDER BY matches.id DESC`;
 
-    const [result] = await promisePool.query(sql, [id]);
+    const [result] = await promisePool.query(sql, [id, limit, offset]);
     const linkedIdentities = await getLinkedMatchIdentitiesForUser(promisePool, id);
     const annotatedMatches = result.map((matchRow) => ({
       ...matchRow,

@@ -42,6 +42,7 @@ function loadPublicSiteScript({ fetchImpl }) {
   const location = { href: "/" };
 
   const document = {
+    addEventListener() {},
     querySelector(selector) {
       switch (selector) {
         case "[data-server-id-form]":

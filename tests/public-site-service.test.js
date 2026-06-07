@@ -739,3 +739,84 @@ test("public site handlers return a player refresh redirect result with the refr
     location: "/guild-1/players/discord-1?refresh=updated",
   });
 });
+
+test("renderPlayerMatchesFragment returns paginated match-card HTML with load-more metadata", async () => {
+  const latestCalls = [];
+  const samplePlayer = {
+    playerName: "Alpha",
+    championName: "Ahri",
+    lane: "MIDDLE",
+    level: 18,
+    minionScore: 212,
+    totalDamage: 36200,
+    visionScore: 19,
+    spell1: 4,
+    spell2: 14,
+    keystoneId: 8112,
+    subStyleId: 8200,
+    inventory: {
+      item1: 6655,
+      item2: 3020,
+      item3: 3157,
+      item4: 4645,
+      item5: 3089,
+      item6: 3135,
+      trinket: 3363,
+    },
+    kda: { kills: 9, deaths: 3, assist: 11 },
+  };
+  const makeRow = (id) => ({
+    id,
+    game_id: `KR-${id}`,
+    game_length: String(30 * 60 * 1000),
+    played_at_kst: "2026-04-08 21:05:00",
+    blue_team: JSON.stringify({ result: 1, players: [samplePlayer] }),
+    purple_team: JSON.stringify({ result: 0, players: [] }),
+  });
+
+  const site = createPublicSiteHandlers({
+    preferredGuildId: "guild-1",
+    async getChampionNameMap() {
+      return { ahri: "아리" };
+    },
+    async getRiotAssetManifest() {
+      return buildAssetManifest();
+    },
+    async resolveUsersByPuuids() {
+      return { success: true, data: [] };
+    },
+    async getPublicSiteSummary() {
+      return { success: true, data: {} };
+    },
+    async getPublicLeaderboard() {
+      return { success: true, data: [] };
+    },
+    async getPublicMatchHistory() {
+      return { success: true, data: [] };
+    },
+    async getPublicMatchById() {
+      throw new Error("not used");
+    },
+    async getPublicPlayerProfile() {
+      return { success: true, data: { discord_id: "1", name: "Alpha" } };
+    },
+    async getLatestMatched(_guildId, _discordId, options) {
+      latestCalls.push(options);
+      return {
+        success: true,
+        data: Array.from({ length: 20 }, (_unused, index) => makeRow(100 + index)),
+      };
+    },
+    async searchPublicPlayers() {
+      return { success: true, data: [] };
+    },
+  });
+
+  const fragment = await site.renderPlayerMatchesFragment("guild-1", "1", 20);
+
+  assert.deepEqual(latestCalls[0], { limit: 20, offset: 20 });
+  assert.equal(fragment.hasMore, true);
+  assert.equal(fragment.nextOffset, 40);
+  assert.match(fragment.html, /match-row--player/);
+  assert.match(fragment.html, /data-match-row="100"/);
+});

@@ -1313,6 +1313,124 @@ const persistMatchResult = async (guildId, match, name) => {
   }
 };
 
+async function recomputeUserStatsFromMatchesWithExecutor(executor) {
+  await executor.query(
+    `UPDATE user
+       SET mmr = 1000,
+           win = 0,
+           lose = 0,
+           penta = 0,
+           quadra = 0,
+           champions = '{}',
+           lanes = '{}',
+           friends = '{}',
+           t_kill = 0,
+           t_death = 0,
+           t_assist = 0,
+           t_kill_rate = 0`
+  );
+
+  const [matchRows] = await executor.query(
+    `SELECT id, purple_team, blue_team FROM matches ORDER BY id ASC`
+  );
+
+  for (const row of matchRows) {
+    const purpleTeam = parseStoredJson(row.purple_team, null);
+    const blueTeam = parseStoredJson(row.blue_team, null);
+
+    if (
+      !purpleTeam ||
+      !blueTeam ||
+      !Array.isArray(purpleTeam.players) ||
+      !Array.isArray(blueTeam.players)
+    ) {
+      continue;
+    }
+
+    const updateResult = await updateUserDataWithExecutor(executor, {
+      blueTeam,
+      purpleTeam,
+    });
+
+    if (!updateResult.success && updateResult.code !== "NO_REGISTERED_PARTICIPANTS") {
+      throw new Error(
+        updateResult.msg || "전적을 다시 계산하는 중 오류가 발생했습니다."
+      );
+    }
+  }
+
+  return matchRows.length;
+}
+
+const deleteMatchById = async (guildId, matchId) => {
+  const numericMatchId = Number(matchId);
+  if (!Number.isInteger(numericMatchId) || numericMatchId <= 0) {
+    return buildInvalidInputResult("올바른 매치 ID를 입력해주세요.");
+  }
+
+  let connection;
+
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
+    }
+
+    const [rows] = await executor.query(
+      `SELECT id, game_id FROM matches WHERE id = ? LIMIT 1`,
+      [numericMatchId]
+    );
+
+    if (!rows.length) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
+      return {
+        success: false,
+        code: "MATCH_NOT_FOUND",
+        msg: "해당 매치를 찾을 수 없습니다.",
+      };
+    }
+
+    const deletedGameId = rows[0].game_id;
+
+    await executor.query(`DELETE FROM matches WHERE id = ?`, [numericMatchId]);
+
+    const remainingMatchCount =
+      await recomputeUserStatsFromMatchesWithExecutor(executor);
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
+    return {
+      success: true,
+      data: {
+        deletedMatchId: numericMatchId,
+        deletedGameId,
+        remainingMatchCount,
+      },
+    };
+  } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
+    return buildErrorResult(error, "매치를 삭제하는 중 오류가 발생했습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
+  }
+};
+
 const getRankData = async (guildId) => {
   try {
     const promisePool = await getGuildPromisePool(guildId);
@@ -1866,6 +1984,7 @@ module.exports = {
   buildPublicPlayerSearchSql,
   buildPublicSummarySql,
   buildGetUsersDataSql,
+  deleteMatchById,
   deleteRiotAccount,
   getPublicLeaderboard,
   getPublicMatchById,

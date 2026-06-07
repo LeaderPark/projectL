@@ -288,8 +288,36 @@ test("getLatestMatched annotates each recent match with the player's perspective
   assert.equal(result.data[0].perspective_player_name, "Blue#KR1");
   assert.match(statements[0], /SELECT DISTINCT matches\.\*/i);
   assert.match(statements[1], /name AS player_name/i);
-  assert.deepEqual(paramsSeen[0], ["discord-1"]);
+  // Defaults to the most recent 3 (used by the Discord /전적 command).
+  assert.deepEqual(paramsSeen[0], ["discord-1", 3, 0]);
   assert.deepEqual(paramsSeen[1], ["discord-1", "discord-1"]);
+});
+
+test("getLatestMatched paginates with the provided limit and offset", async () => {
+  const paramsSeen = [];
+  const { getLatestMatched } = loadQueryModule({
+    getGuildPromisePool: async () => ({
+      async query(statement, params) {
+        paramsSeen.push(params);
+        if (/SELECT DISTINCT matches\.\*/i.test(statement)) {
+          assert.match(statement, /LIMIT \? OFFSET \?/i);
+          return [[]];
+        }
+        if (/name AS player_name/i.test(statement)) {
+          return [[]];
+        }
+        throw new Error(`Unexpected statement: ${statement}`);
+      },
+    }),
+  });
+
+  const result = await getLatestMatched("guild-1", "discord-9", {
+    limit: 20,
+    offset: 40,
+  });
+
+  assert.equal(result.success, true);
+  assert.deepEqual(paramsSeen[0], ["discord-9", 20, 40]);
 });
 
 test("getLatestMatched falls back to the stored player name when match JSON lacks puuid", async () => {

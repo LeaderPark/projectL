@@ -903,6 +903,55 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
   assert.doesNotMatch(html, /1,650/);
 });
 
+test("renderPlayerPage shows a load-more button when there are more matches", () => {
+  const html = renderPlayerPage({
+    guildId: "123456789",
+    profile: {
+      discordId: "42",
+      name: "Alpha",
+      recordText: "6승 4패",
+      winRateText: "60%",
+      averageKdaText: "6.00",
+      averageKillRateText: "64%",
+      linkedRiotAccounts: [],
+      favoriteChampions: [],
+      preferredLanes: [],
+      friends: [],
+    },
+    recentMatches: [sampleCard],
+    recentMatchesHasMore: true,
+    recentMatchesNextOffset: 20,
+  });
+
+  assert.match(html, /data-player-match-feed/);
+  assert.match(html, /data-load-more-matches/);
+  assert.match(html, /data-discord-id="42"/);
+  assert.match(html, /data-next-offset="20"/);
+  assert.match(html, /더보기/);
+});
+
+test("renderPlayerPage hides the load-more button when there are no more matches", () => {
+  const html = renderPlayerPage({
+    guildId: "123456789",
+    profile: {
+      discordId: "42",
+      name: "Alpha",
+      recordText: "6승 4패",
+      winRateText: "60%",
+      averageKdaText: "6.00",
+      averageKillRateText: "64%",
+      linkedRiotAccounts: [],
+      favoriteChampions: [],
+      preferredLanes: [],
+      friends: [],
+    },
+    recentMatches: [sampleCard],
+    recentMatchesHasMore: false,
+  });
+
+  assert.doesNotMatch(html, /data-load-more-matches/);
+});
+
 test("renderPlayerPage renders the throttled refresh banner", () => {
   const html = renderPlayerPage({
     guildId: "123456789",

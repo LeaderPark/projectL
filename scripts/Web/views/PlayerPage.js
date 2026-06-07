@@ -35,6 +35,20 @@ function buildRefreshMessage(refreshStatus) {
   return messages[String(refreshStatus ?? "").trim()] ?? "";
 }
 
+function renderPlayerMatchCards(guildId, cards = []) {
+  return cards
+    .map((card) =>
+      renderMatchCard(
+        {
+          ...card,
+          href: buildGuildPath(guildId, `/matches/${card.id}`),
+        },
+        { showResult: true, layout: "player" }
+      )
+    )
+    .join("");
+}
+
 function renderPlayerPage(model) {
   const { profile } = model;
   const refreshMessage = buildRefreshMessage(model.refreshStatus);
@@ -66,16 +80,25 @@ function renderPlayerPage(model) {
       <section class="player-page__shell">
         <section class="panel panel--timeline player-page__main">
           <div class="panel__header"><h2>최근 경기</h2></div>
-          <div class="match-feed">
-            ${model.recentMatches
-              .map((card) =>
-                renderMatchCard({
-                  ...card,
-                  href: buildGuildPath(model.guildId, `/matches/${card.id}`),
-                }, { showResult: true, layout: "player" })
-              )
-              .join("")}
+          <div class="match-feed" data-player-match-feed>
+            ${renderPlayerMatchCards(model.guildId, model.recentMatches)}
           </div>
+          ${
+            model.recentMatchesHasMore
+              ? `
+          <div class="match-feed__more">
+            <button
+              type="button"
+              class="match-feed__more-button"
+              data-load-more-matches
+              data-guild-id="${escapeHtml(model.guildId)}"
+              data-discord-id="${escapeHtml(profile.discordId)}"
+              data-next-offset="${escapeHtml(String(model.recentMatchesNextOffset ?? 0))}"
+            >더보기</button>
+          </div>
+          `
+              : ""
+          }
         </section>
         <aside class="panel player-page__sidebar">
           <div class="panel__header">
@@ -134,4 +157,5 @@ function renderPlayerPage(model) {
 
 module.exports = {
   renderPlayerPage,
+  renderPlayerMatchCards,
 };

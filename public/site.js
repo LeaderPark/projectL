@@ -83,68 +83,120 @@ function wirePlayerSearch() {
 
 wirePlayerSearch();
 
-function wireMatchRows() {
-  const toggleButtons = document.querySelectorAll("[data-match-toggle]");
-  const tabButtons = document.querySelectorAll("[data-match-tab]");
+function handleMatchToggle(button) {
+  const detailId = button.getAttribute("aria-controls");
+  const detail = detailId
+    ? document.querySelector(`[data-match-detail="${detailId}"]`)
+    : null;
 
-  toggleButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const detailId = button.getAttribute("aria-controls");
-      const detail = detailId
-        ? document.querySelector(`[data-match-detail="${detailId}"]`)
-        : null;
+  if (!detail) {
+    return;
+  }
 
-      if (!detail) {
-        return;
-      }
-
-      const isExpanded = button.getAttribute("aria-expanded") === "true";
-      toggleButtons.forEach((otherButton) => {
-        const otherDetailId = otherButton.getAttribute("aria-controls");
-        const otherDetail = otherDetailId
-          ? document.querySelector(`[data-match-detail="${otherDetailId}"]`)
-          : null;
-        otherButton.setAttribute("aria-expanded", "false");
-        if (otherDetail) {
-          otherDetail.hidden = true;
-        }
-      });
-
-      button.setAttribute("aria-expanded", isExpanded ? "false" : "true");
-      detail.hidden = isExpanded;
-    });
+  const isExpanded = button.getAttribute("aria-expanded") === "true";
+  document.querySelectorAll("[data-match-toggle]").forEach((otherButton) => {
+    const otherDetailId = otherButton.getAttribute("aria-controls");
+    const otherDetail = otherDetailId
+      ? document.querySelector(`[data-match-detail="${otherDetailId}"]`)
+      : null;
+    otherButton.setAttribute("aria-expanded", "false");
+    if (otherDetail) {
+      otherDetail.hidden = true;
+    }
   });
 
-  tabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const panelId = button.dataset.matchTab;
-      const detailId = button.dataset.matchTabTarget;
-      if (!panelId || !detailId) {
-        return;
-      }
+  button.setAttribute("aria-expanded", isExpanded ? "false" : "true");
+  detail.hidden = isExpanded;
+}
 
-      document
-        .querySelectorAll(`[data-match-tab-target="${detailId}"]`)
-        .forEach((tabButton) => {
-          tabButton.classList.toggle("is-active", tabButton === button);
-          tabButton.setAttribute(
-            "aria-selected",
-            tabButton === button ? "true" : "false"
-          );
-        });
+function handleMatchTab(button) {
+  const panelId = button.dataset.matchTab;
+  const detailId = button.dataset.matchTabTarget;
+  if (!panelId || !detailId) {
+    return;
+  }
 
-      document
-        .querySelectorAll(`[data-match-panel-parent="${detailId}"]`)
-        .forEach((panel) => {
-          const isActive = panel.dataset.matchPanel === panelId;
-          panel.classList.toggle("is-active", isActive);
-          panel.hidden = !isActive;
-        });
+  document
+    .querySelectorAll(`[data-match-tab-target="${detailId}"]`)
+    .forEach((tabButton) => {
+      tabButton.classList.toggle("is-active", tabButton === button);
+      tabButton.setAttribute(
+        "aria-selected",
+        tabButton === button ? "true" : "false"
+      );
     });
+
+  document
+    .querySelectorAll(`[data-match-panel-parent="${detailId}"]`)
+    .forEach((panel) => {
+      const isActive = panel.dataset.matchPanel === panelId;
+      panel.classList.toggle("is-active", isActive);
+      panel.hidden = !isActive;
+    });
+}
+
+function wireMatchRows() {
+  // Event delegation so dynamically appended match cards (via "더보기") work too.
+  document.addEventListener("click", (event) => {
+    const toggleButton = event.target.closest("[data-match-toggle]");
+    if (toggleButton) {
+      handleMatchToggle(toggleButton);
+      return;
+    }
+
+    const tabButton = event.target.closest("[data-match-tab]");
+    if (tabButton) {
+      handleMatchTab(tabButton);
+    }
   });
 }
 
 wireMatchRows();
+
+function wireLoadMoreMatches() {
+  const button = document.querySelector("[data-load-more-matches]");
+  const feed = document.querySelector("[data-player-match-feed]");
+
+  if (!button || !feed) {
+    return;
+  }
+
+  button.addEventListener("click", async () => {
+    if (button.disabled) {
+      return;
+    }
+
+    button.disabled = true;
+    const guildId = button.dataset.guildId ?? "";
+    const discordId = button.dataset.discordId ?? "";
+    const offset = Number(button.dataset.nextOffset) || 0;
+
+    try {
+      const response = await fetch(
+        `/${encodeURIComponent(guildId)}/players/${encodeURIComponent(discordId)}/matches?offset=${offset}`
+      );
+      if (!response.ok) {
+        throw new Error("failed to load more matches");
+      }
+
+      const payload = await response.json();
+      if (payload.html) {
+        feed.insertAdjacentHTML("beforeend", payload.html);
+      }
+
+      if (payload.hasMore) {
+        button.dataset.nextOffset = String(payload.nextOffset);
+        button.disabled = false;
+      } else {
+        button.remove();
+      }
+    } catch (_error) {
+      button.disabled = false;
+    }
+  });
+}
+
+wireLoadMoreMatches();
 
 function wireServerIdForm() {
   const form = document.querySelector("[data-server-id-form]");

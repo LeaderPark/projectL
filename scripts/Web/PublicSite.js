@@ -12,11 +12,13 @@ const { renderHomePage } = require("./views/HomePage");
 const { renderLandingPage: renderLandingPageView } = require("./views/LandingPage");
 const { renderMatchDetailPage: renderMatchDetailView } = require("./views/MatchDetailPage");
 const { renderMatchesPage } = require("./views/MatchesPage");
-const { renderPlayerPage } = require("./views/PlayerPage");
+const { renderPlayerPage, renderPlayerMatchCards } = require("./views/PlayerPage");
 const { renderRankingPage: renderRankingPageView } = require("./views/RankingPage");
 const {
   createPlayerRiotIdentityRefreshService,
 } = require("./PlayerRiotIdentityRefresh");
+
+const PLAYER_MATCHES_PAGE_SIZE = 20;
 
 function buildEmptyHomeModel() {
   return {
@@ -389,20 +391,55 @@ function createPublicSiteHandlers({
         return null;
       }
 
+      const pageSize = PLAYER_MATCHES_PAGE_SIZE;
       const formatterOptions = await getFormatterOptions();
-      const recentMatchesResult = await resolvedGetLatestMatched(guildId, discordId);
+      const recentMatchesResult = await resolvedGetLatestMatched(guildId, discordId, {
+        limit: pageSize,
+        offset: 0,
+      });
       const recentMatchRows = recentMatchesResult.success
         ? await applyRepresentativeRiotNamesToMatches(guildId, recentMatchesResult.data)
         : [];
+      const recentMatches = recentMatchRows.map((matchRow) =>
+        formatMatchCard(matchRow, formatterOptions)
+      );
 
       return renderPlayerPage({
         guildId,
         refreshStatus,
         profile: formatPlayerProfileSummary(profileResult.data, formatterOptions),
-        recentMatches: recentMatchRows.map((matchRow) =>
-          formatMatchCard(matchRow, formatterOptions)
-        ),
+        recentMatches,
+        recentMatchesHasMore: recentMatches.length === pageSize,
+        recentMatchesNextOffset: recentMatches.length,
       });
+    },
+
+    async renderPlayerMatchesFragment(routeGuildId, discordId, offset) {
+      const guildId = await getGuildId(routeGuildId);
+      const pageSize = PLAYER_MATCHES_PAGE_SIZE;
+      const safeOffset = Number.isInteger(offset) && offset > 0 ? offset : 0;
+
+      if (!guildId) {
+        return { html: "", hasMore: false, nextOffset: safeOffset };
+      }
+
+      const formatterOptions = await getFormatterOptions();
+      const recentMatchesResult = await resolvedGetLatestMatched(guildId, discordId, {
+        limit: pageSize,
+        offset: safeOffset,
+      });
+      const recentMatchRows = recentMatchesResult.success
+        ? await applyRepresentativeRiotNamesToMatches(guildId, recentMatchesResult.data)
+        : [];
+      const cards = recentMatchRows.map((matchRow) =>
+        formatMatchCard(matchRow, formatterOptions)
+      );
+
+      return {
+        html: renderPlayerMatchCards(guildId, cards),
+        hasMore: cards.length === pageSize,
+        nextOffset: safeOffset + cards.length,
+      };
     },
 
     async handlePlayerRiotIdentityRefresh(routeGuildId, discordId) {

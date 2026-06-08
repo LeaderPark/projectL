@@ -74,6 +74,7 @@ class Player {
     this.quadraKill = quadra;
 
     this.gold = 0;
+    this.damageTaken = 0;
     this.performanceScore = 0;
   }
 }

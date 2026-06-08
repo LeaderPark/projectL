@@ -131,6 +131,7 @@ test("calculatePerformanceScore lets a strong losing player outscore a weak winn
     totalDamage: 35000,
     gold: 15000,
     minionScore: 180,
+    damageTaken: 30000,
     kda: {
       kills: 15,
       deaths: 2,
@@ -143,6 +144,7 @@ test("calculatePerformanceScore lets a strong losing player outscore a weak winn
     totalDamage: 1000,
     gold: 6000,
     minionScore: 20,
+    damageTaken: 20000,
     kda: {
       kills: 0,
       deaths: 12,
@@ -164,6 +166,7 @@ test("calculatePerformanceScore lands on the lol.ps-like scale (elite high, feed
     gold: 16000,
     visionScore: 30,
     minionScore: 200,
+    damageTaken: 25000,
     kda: { kills: 12, deaths: 2, assist: 8 },
   };
   const feeder = {
@@ -172,6 +175,7 @@ test("calculatePerformanceScore lands on the lol.ps-like scale (elite high, feed
     gold: 5000,
     visionScore: 5,
     minionScore: 30,
+    damageTaken: 18000,
     kda: { kills: 0, deaths: 10, assist: 1 },
   };
 

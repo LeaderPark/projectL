@@ -7,14 +7,15 @@ const Side = require("../enum/Side");
 
 // Per-game performance ("OP") score, tuned to approximate the lol.ps "PS Score"
 // (roughly 0-135, where MVP ~100+). Fitted by linear regression over 10 reference
-// games using only metrics we can parse from a replay: KDA ratio, kill participation,
-// team damage share, and win/loss.
+// games using metrics we can parse from a replay: KDA ratio, damage/min, gold/min,
+// vision/min and win/loss. (v2: Pearson ~0.94, leave-one-game-out MAE ~7.5.)
 const PERF_COEFFS = {
-  intercept: -7.72,
-  kda: 5.45,
-  killParticipation: 23.1,
-  damageShare: 105.47,
-  win: 10.08,
+  intercept: -21.321,
+  kda: 5.194,
+  damagePerMin: 0.02383,
+  goldPerMin: 0.06464,
+  visionPerMin: 4.604,
+  win: 4.45,
 };
 
 function mapLane(position) {
@@ -36,26 +37,26 @@ function buildPlayerName(participant) {
   return tagLine ? `${gameName}#${tagLine}` : gameName;
 }
 
-function calculatePerformanceScore(player, teamContext = {}) {
+function calculatePerformanceScore(player, gameLengthMs) {
+  const minutes = Math.max(Number(gameLengthMs) / 60000, 1);
   const kills = Number(player?.kda?.kills ?? 0);
   const deaths = Number(player?.kda?.deaths ?? 0);
   const assists = Number(player?.kda?.assist ?? 0);
-  const teamKills = Number(teamContext.teamKills) || 0;
-  const teamDamage = Number(teamContext.teamDamage) || 0;
 
-  // KDA ratio (deaths floored at 1), kill participation and team damage share,
-  // each derived only from data available in our parsed match payload.
+  // Per-minute rates keep the score comparable across game lengths. KDA ratio
+  // floors deaths at 1. All inputs come straight from the parsed player stats.
   const kda = (kills + assists) / Math.max(deaths, 1);
-  const killParticipation = teamKills > 0 ? (kills + assists) / teamKills : 0;
-  const damageShare =
-    teamDamage > 0 ? Number(player?.totalDamage ?? 0) / teamDamage : 0;
+  const damagePerMin = Number(player?.totalDamage ?? 0) / minutes;
+  const goldPerMin = Number(player?.gold ?? 0) / minutes;
+  const visionPerMin = Number(player?.visionScore ?? 0) / minutes;
   const win = player.win === "Win" ? 1 : 0;
 
   const raw =
     PERF_COEFFS.intercept +
     PERF_COEFFS.kda * kda +
-    PERF_COEFFS.killParticipation * killParticipation +
-    PERF_COEFFS.damageShare * damageShare +
+    PERF_COEFFS.damagePerMin * damagePerMin +
+    PERF_COEFFS.goldPerMin * goldPerMin +
+    PERF_COEFFS.visionPerMin * visionPerMin +
     PERF_COEFFS.win * win;
 
   return Math.max(1, Math.round(raw));
@@ -78,7 +79,7 @@ function buildPlayer(participant) {
     participant?.perks?.styles?.[0]?.selections?.[0]?.perk ?? 0;
   const subStyleId = participant?.perks?.styles?.[1]?.style ?? 0;
 
-  return new Player(
+  const player = new Player(
     buildPlayerName(participant),
     Number(participant?.participantId ?? 0),
     participant?.championName ?? "Unknown",
@@ -104,21 +105,16 @@ function buildPlayer(participant) {
     Number(participant?.pentaKills ?? 0),
     Number(participant?.quadraKills ?? 0)
   );
+  player.gold = Number(participant?.goldEarned ?? 0);
+  return player;
 }
 
 function buildTeam(side, players, gameLengthMs) {
   const teamPlayers = players.filter((player) => player.team === side);
   const totalKill = teamPlayers.reduce((sum, player) => sum + player.kda.kills, 0);
-  const totalDamage = teamPlayers.reduce(
-    (sum, player) => sum + Number(player.totalDamage ?? 0),
-    0
-  );
 
   teamPlayers.forEach((player) => {
-    player.performanceScore = calculatePerformanceScore(player, {
-      teamKills: totalKill,
-      teamDamage: totalDamage,
-    });
+    player.performanceScore = calculatePerformanceScore(player, gameLengthMs);
   });
 
   return new Team(teamPlayers[0]?.result ?? 0, side, teamPlayers, totalKill);

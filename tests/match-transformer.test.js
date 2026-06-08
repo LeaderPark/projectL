@@ -124,10 +124,12 @@ test("transformMatchPayload maps Riot participants into the internal match model
 });
 
 test("calculatePerformanceScore lets a strong losing player outscore a weak winning player", () => {
+  const gameLengthMs = 30 * 60 * 1000;
   const strongLosingPlayer = {
     win: "Fail",
     visionScore: 60,
     totalDamage: 35000,
+    gold: 15000,
     kda: {
       kills: 15,
       deaths: 2,
@@ -138,37 +140,39 @@ test("calculatePerformanceScore lets a strong losing player outscore a weak winn
     win: "Win",
     visionScore: 2,
     totalDamage: 1000,
+    gold: 6000,
     kda: {
       kills: 0,
       deaths: 12,
       assist: 0,
     },
   };
-  // teamContext provides the team totals used for kill participation / damage share.
-  const losingTeam = { teamKills: 30, teamDamage: 100000 };
-  const winningTeam = { teamKills: 40, teamDamage: 120000 };
 
   assert.ok(
-    calculatePerformanceScore(strongLosingPlayer, losingTeam) >
-      calculatePerformanceScore(weakWinningPlayer, winningTeam)
+    calculatePerformanceScore(strongLosingPlayer, gameLengthMs) >
+      calculatePerformanceScore(weakWinningPlayer, gameLengthMs)
   );
 });
 
 test("calculatePerformanceScore lands on the lol.ps-like scale (elite high, feeder low)", () => {
-  const team = { teamKills: 30, teamDamage: 100000 };
+  const gameLengthMs = 30 * 60 * 1000;
   const eliteCarry = {
     win: "Win",
     totalDamage: 36000,
+    gold: 16000,
+    visionScore: 30,
     kda: { kills: 12, deaths: 2, assist: 8 },
   };
   const feeder = {
     win: "Fail",
     totalDamage: 4000,
+    gold: 5000,
+    visionScore: 5,
     kda: { kills: 0, deaths: 10, assist: 1 },
   };
 
-  const carryScore = calculatePerformanceScore(eliteCarry, team);
-  const feederScore = calculatePerformanceScore(feeder, team);
+  const carryScore = calculatePerformanceScore(eliteCarry, gameLengthMs);
+  const feederScore = calculatePerformanceScore(feeder, gameLengthMs);
 
   assert.ok(Number.isInteger(carryScore));
   assert.ok(carryScore >= 80, `elite carry should score high, got ${carryScore}`);

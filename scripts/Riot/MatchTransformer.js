@@ -6,20 +6,25 @@ const Team = require("../VO/team");
 const Side = require("../enum/Side");
 
 // Per-game performance ("OP") score, tuned to approximate the lol.ps "PS Score"
-// (roughly 0-135, where MVP ~100+). Linear regression over 17 reference games
-// (170 players, Iron→Challenger) using replay-parsable metrics: KDA ratio,
-// damage/min, gold/min, vision/min, CS/min and win/loss. CS/min has a small
-// negative weight: controlling for gold, lower CS means more income came from
-// kills/objectives (more impactful). See docs/op-score-dataset.md.
-// (v3: Pearson ~0.94, leave-one-game-out MAE ~7.3.)
+// (roughly 0-150, where MVP ~100+). Linear regression over 56 reference games
+// (560 players, 4 players Iron→Challenger) using replay-parsable metrics: KDA
+// ratio, damage/min, gold/min, vision/min, CS/min, win/loss, deaths/min and
+// damage-taken/min. CS/min is negative (controlling for gold, lower CS means more
+// income came from kills/objectives); deaths/min is strongly negative because the
+// KDA ratio saturates at the top, so a separate deaths term restores carry-tier
+// resolution; damage-taken/min credits frontline/tank contribution.
+// See docs/op-score-dataset.md.
+// (v4: Pearson ~0.93, leave-one-game-out MAE ~7.9.)
 const PERF_COEFFS = {
-  intercept: -18.021,
-  kda: 5.326,
-  damagePerMin: 0.01915,
-  goldPerMin: 0.09791,
-  visionPerMin: 2.192,
-  csPerMin: -1.297,
-  win: 4.053,
+  intercept: -4.939,
+  kda: 4.021,
+  damagePerMin: 0.01837,
+  goldPerMin: 0.08929,
+  visionPerMin: 0.7726,
+  csPerMin: -1.715,
+  win: 8.239,
+  deathsPerMin: -45.85,
+  damageTakenPerMin: 0.008216,
 };
 
 function mapLane(position) {
@@ -54,6 +59,8 @@ function calculatePerformanceScore(player, gameLengthMs) {
   const goldPerMin = Number(player?.gold ?? 0) / minutes;
   const visionPerMin = Number(player?.visionScore ?? 0) / minutes;
   const csPerMin = Number(player?.minionScore ?? 0) / minutes;
+  const deathsPerMin = deaths / minutes;
+  const damageTakenPerMin = Number(player?.damageTaken ?? 0) / minutes;
   const win = player.win === "Win" ? 1 : 0;
 
   const raw =
@@ -63,7 +70,9 @@ function calculatePerformanceScore(player, gameLengthMs) {
     PERF_COEFFS.goldPerMin * goldPerMin +
     PERF_COEFFS.visionPerMin * visionPerMin +
     PERF_COEFFS.csPerMin * csPerMin +
-    PERF_COEFFS.win * win;
+    PERF_COEFFS.win * win +
+    PERF_COEFFS.deathsPerMin * deathsPerMin +
+    PERF_COEFFS.damageTakenPerMin * damageTakenPerMin;
 
   return Math.max(1, Math.round(raw));
 }
@@ -112,6 +121,7 @@ function buildPlayer(participant) {
     Number(participant?.quadraKills ?? 0)
   );
   player.gold = Number(participant?.goldEarned ?? 0);
+  player.damageTaken = Number(participant?.totalDamageTaken ?? 0);
   return player;
 }
 

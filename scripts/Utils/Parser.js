@@ -176,6 +176,7 @@ function buildPlayer(stats) {
     readNumber(stats.QUADRA_KILLS)
   );
   player.gold = readNumber(stats.GOLD_EARNED);
+  player.damageTaken = readNumber(stats.TOTAL_DAMAGE_TAKEN);
   return player;
 }
 

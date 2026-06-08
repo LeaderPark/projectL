@@ -39,37 +39,32 @@ lol.ps **PS Score**에 맞춰 튜닝하기 위한 레퍼런스 데이터입니�
 
 플레이어 순서: 각 경기 블루팀(100) 5명 → 레드팀(200) 5명. (신규 배치는 팀 순서만 보장)
 
-## 현재 배포 모델 (v3) · 56경기 일반화 검증
+## 현재 배포 모델 (v4b) · 56경기 적합
 `scripts/Riot/MatchTransformer.js`의 `calculatePerformanceScore`에 적용된 계수입니다.
 ```
-OP = -18.021 + 5.326·KDA비 + 0.01915·(딜/분) + 0.09791·(골드/분)
-   + 2.192·(시야/분) - 1.297·(CS/분) + 4.053·승리     → 1 이상 정수
+OP = -4.939 + 4.021·KDA비 + 0.01837·(딜/분) + 0.08929·(골드/분)
+   + 0.7726·(시야/분) - 1.715·(CS/분) + 8.239·승리
+   - 45.85·(데스/분) + 0.008216·(받은피해/분)        → 1 이상 정수
 ```
-- **KDA비** = (킬+어시) / max(데스, 1). **CS/분**은 음(−) 계수(골드 통제 시 낮은 CS = 킬·오브젝트 수입 = 임팩트↑).
+- **KDA비** = (킬+어시) / max(데스, 1).
+- **CS/분** 음(−): 골드 통제 시 낮은 CS = 킬·오브젝트 수입 = 임팩트↑.
+- **데스/분** 큰 음(−): KDA 비율이 상단에서 포화돼 엘리트 캐리를 못 가르므로 별도 데스 항으로 캐리 해상도 복원.
+- **받은피해/분** 양(+): 탱커·서폿 전방 기여 반영. (`damageTaken` = .rofl `TOTAL_DAMAGE_TAKEN` / Riot `totalDamageTaken`, Player VO에 추가.)
 
-v3는 옛 17경기(2명)로 적합됐습니다. 신규 2명에 대한 **일반화 성능**:
-
-| 평가셋 | Pearson | MAE |
-|---|---|---|
-| 옛 17경기(학습셋) | 0.939 | 7.29 |
-| 수영장파티티모 20 (Bronze, 신규) | 0.925 | 8.47 |
-| Bluffing 19 (Challenger, 신규) | 0.918 | 8.45 |
-| **전체 56경기** | 0.923 | 8.11 |
-
-→ 새 플레이어에선 MAE가 ~8.5로 올라감(실제 유저 기반에 가까운 값). 데이터가 4명/전 티어로 늘었으니 재적합 가치가 큼.
-
-## 재적합 후보 (56경기, leave-one-game-out CV)
+### 검증 (leave-one-game-out CV, 56경기 560명)
 | 모델 | 피처 | CV Pearson | CV MAE | PS≥100 구간 MAE |
 |---|---|---|---|---|
-| v3 재적합 | 6 (현행) | 0.924 | 8.25 | 17.14 |
-| v4a | +데스/분 | 0.929 | 8.20 | 16.01 |
-| **v4b (권장)** | +데스/분 +받은피해/분 | **0.932** | **7.94** | **15.95** |
+| v3-form 재적합 | 6 | 0.924 | 8.25 | 17.1 |
+| v4a | +데스/분 | 0.929 | 8.20 | 16.0 |
+| **v4b (배포)** | +데스/분 +받은피해/분 | **0.932** | **7.94** | **16.0** |
 
-- **데스/분**: KDA 비율이 상단에서 포화돼 엘리트 캐리를 못 가르는 문제를 보완(큰 음수 계수).
-- **받은피해/분**: 탱커·서폿의 전방 기여 포착. 둘 다 `dmgTaken`은 이미 파싱되지만 현재 Player VO엔 미노출.
-- PS≥100(캐리) 구간은 여전히 MAE ~16 — 종료 시점 집계 지표 + 선형 모델의 한계. 더 낮추려면 타임라인 지표(분당 골드/경험치 리드, 킬관여%) 또는 비선형이 필요.
+### 39경기 신규 데이터가 한 일 (유의미성)
+1. **실제 오차를 드러냄**: 옛 v3는 자체 17경기에선 MAE 7.29 / Pearson 0.939였지만, 신규 39경기(새 2명)에선 **MAE 8.46 / Pearson 0.918** — 실제로는 ~1.2 MAE 더 틀림. 데이터가 없었으면 과신했을 것.
+2. **데이터만으론 소폭**: 피처를 v3 그대로 두고 데이터만 추가 → 신규 39경기 MAE 8.46 → 8.43 (거의 그대로). bias-limited 재확인.
+3. **데이터가 새 피처를 가능케 함**: 560명(특히 캐리 구간 ~22→~91명)으로 데스/분·받은피해/분을 과적합 없이 검증 가능. v4b의 신규 39경기 held-out 성능 **MAE 8.18 / Pearson 0.929 / 캐리 16.7** (옛 v3 8.46 / 0.918 / 19.6 대비 개선, 특히 캐리 구간).
 
-> v2 계수(참고): `-21.32 + 5.19·KDA + 0.0238·딜/분 + 0.0646·골드/분 + 4.60·시야/분 + 4.45·승리`.
+> PS≥100(캐리)는 여전히 MAE ~16 — 종료 시점 집계 + 선형 모델의 한계. 더 낮추려면 타임라인 지표(분당 골드/경험치 리드, 킬관여%)나 비선형 필요.
+> v3 계수(참고): `-18.021 + 5.326·KDA + 0.01915·딜/분 + 0.09791·골드/분 + 2.192·시야/분 - 1.297·CS/분 + 4.053·승리`.
 
 ## 데이터 추가 방법 (계속 쓰기 위해)
 1. 새 `.rofl`을 폴더에 두고, 각 경기의 lol.ps PS Score를 텍스트/스크린샷으로 제공.
@@ -81,8 +76,8 @@ v3는 옛 17경기(2명)로 적합됐습니다. 신규 2명에 대한 **일반�
 ```bash
 node -e "
 const d = require('./docs/op-score-dataset.json');
-const C = { intercept:-18.021, kda:5.326, damagePerMin:0.01915, goldPerMin:0.09791, visionPerMin:2.192, csPerMin:-1.297, win:4.053 };
-const pred=(p,m)=>C.intercept+C.kda*((p.k+p.a)/Math.max(p.d,1))+C.damagePerMin*(p.dmgDealt/m)+C.goldPerMin*(p.gold/m)+C.visionPerMin*(p.vision/m)+C.csPerMin*(p.cs/m)+C.win*(p.win?1:0);
+const C = { intercept:-4.939, kda:4.021, damagePerMin:0.01837, goldPerMin:0.08929, visionPerMin:0.7726, csPerMin:-1.715, win:8.239, deathsPerMin:-45.85, damageTakenPerMin:0.008216 };
+const pred=(p,m)=>C.intercept+C.kda*((p.k+p.a)/Math.max(p.d,1))+C.damagePerMin*(p.dmgDealt/m)+C.goldPerMin*(p.gold/m)+C.visionPerMin*(p.vision/m)+C.csPerMin*(p.cs/m)+C.win*(p.win?1:0)+C.deathsPerMin*(p.d/m)+C.damageTakenPerMin*(p.dmgTaken/m);
 let xs=[],ys=[],ae=0,n=0;
 for(const g of d.games)for(const p of g.players){const yp=pred(p,g.gameLengthMin);xs.push(yp);ys.push(p.psScore);ae+=Math.abs(yp-p.psScore);n++;}
 const m=a=>a.reduce((s,x)=>s+x,0)/a.length,ma=m(xs),mb=m(ys);

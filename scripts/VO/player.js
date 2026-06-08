@@ -73,6 +73,7 @@ class Player {
     this.pentaKill = penta;
     this.quadraKill = quadra;
 
+    this.gold = 0;
     this.performanceScore = 0;
   }
 }

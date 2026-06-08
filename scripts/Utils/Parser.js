@@ -147,7 +147,7 @@ function buildInventory(stats) {
 }
 
 function buildPlayer(stats) {
-  return new Player(
+  const player = new Player(
     readPlayerName(stats),
     readNumber(stats.ID),
     String(stats.SKIN ?? "Unknown"),
@@ -175,6 +175,8 @@ function buildPlayer(stats) {
     readNumber(stats.PENTA_KILLS),
     readNumber(stats.QUADRA_KILLS)
   );
+  player.gold = readNumber(stats.GOLD_EARNED);
+  return player;
 }
 
 function buildTeam(side, players, gameLength) {
@@ -183,16 +185,9 @@ function buildTeam(side, players, gameLength) {
     (sum, player) => sum + player.kda.kills,
     0
   );
-  const totalDamage = teamPlayers.reduce(
-    (sum, player) => sum + Number(player.totalDamage ?? 0),
-    0
-  );
 
   teamPlayers.forEach((player) => {
-    player.performanceScore = calculatePerformanceScore(player, {
-      teamKills: totalKill,
-      teamDamage: totalDamage,
-    });
+    player.performanceScore = calculatePerformanceScore(player, gameLength);
   });
 
   return new Team(teamPlayers[0]?.result ?? 0, side, teamPlayers, totalKill);

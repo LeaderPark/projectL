@@ -87,7 +87,8 @@ function clampNumber(value, minimum, maximum) {
 }
 
 function formatOpScore(value) {
-  return Math.max(4.2 + toNumberFromText(value) / 10, 0).toFixed(1);
+  // performanceScore is already on the lol.ps-like ~0-135 scale, shown as a whole number.
+  return String(Math.max(0, Math.round(toNumberFromText(value))));
 }
 
 function getTeamSideName(sideLabel) {

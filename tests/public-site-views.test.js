@@ -694,11 +694,11 @@ test("renderMatchCard hides the result strip and uses the compact public summary
   assert.match(html, /class="match-row__summary-teams match-row__summary-teams--public"/);
   assert.match(
     html,
-    /match-row__summary-team--blue[\s\S]*Flash\.png[\s\S]*Ignite\.png[\s\S]*Electrocute\.png[\s\S]*Sorcery\.png[\s\S]*6\.4[\s\S]*MVP[\s\S]*9\/2\/7 \(57%\)[\s\S]*8\.00:1/
+    /match-row__summary-team--blue[\s\S]*Flash\.png[\s\S]*Ignite\.png[\s\S]*Electrocute\.png[\s\S]*Sorcery\.png[\s\S]*22[\s\S]*MVP[\s\S]*9\/2\/7 \(57%\)[\s\S]*8\.00:1/
   );
   assert.match(
     html,
-    /match-row__summary-team--red[\s\S]*Heal\.png[\s\S]*Flash\.png[\s\S]*LethalTempo\.png[\s\S]*Inspiration\.png[\s\S]*5\.1[\s\S]*ACE[\s\S]*6\/5\/2 \(44%\)[\s\S]*1\.60:1/
+    /match-row__summary-team--red[\s\S]*Heal\.png[\s\S]*Flash\.png[\s\S]*LethalTempo\.png[\s\S]*Inspiration\.png[\s\S]*9[\s\S]*ACE[\s\S]*6\/5\/2 \(44%\)[\s\S]*1\.60:1/
   );
   assert.match(html, /match-row__summary-team--red[\s\S]*테스트 인디아/);
 });
@@ -721,11 +721,7 @@ test("renderMatchCard allows OP Score values above ten", () => {
 
   assert.match(
     html,
-    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>11\.4<\/strong>/
-  );
-  assert.doesNotMatch(
-    html,
-    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>10\.0<\/strong>/
+    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>72<\/strong>/
   );
 });
 

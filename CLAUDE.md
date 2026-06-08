@@ -67,6 +67,8 @@ Defined in `scripts/Utils/GuildDatabase.js` (`buildGuildSchemaStatements`):
 
 Important: user stats in `user` are accumulated incrementally as matches are saved (`Query.js` → `updateUserData`). Deleting rows from `matches` does **not** roll those stats back — resetting match history and resetting accumulated stats are separate operations.
 
+`mmr` is **performance-weighted Elo**: win/loss sets the sign, opponent strength the magnitude, and each player's OP Score (`performanceScore`) redistributes the delta within the team (see [`docs/mmr-system.md`](docs/mmr-system.md)). The OP Score model that feeds it is documented in [`docs/op-score-dataset.md`](docs/op-score-dataset.md). After a scoring/MMR model change, replay all matches with `Query.recomputeGuildUserStats(guildId)`.
+
 ## Common Commands
 
 ```powershell

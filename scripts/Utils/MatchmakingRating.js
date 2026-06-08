@@ -31,10 +31,55 @@ function calculateExpectedScore(teamRating, opponentRating) {
   return 1 / (1 + 10 ** ((opponentRating - teamRating) / 400));
 }
 
+// Performance weighting: the team's Elo delta (sign fixed by win/loss, magnitude
+// by opponent strength) is redistributed within the team by each player's OP score
+// relative to teammates. A carry gains more / loses less; a passenger the opposite.
+// Weights are clamped and normalized so the team's aggregate MMR transfer is
+// preserved (no inflation). If OP scores are missing, weights are all 1 (== plain
+// Elo), so callers that don't supply performanceScore are unaffected.
+const PERF_WEIGHT = { sensitivity: 0.5, min: 0.7, max: 1.3 };
+
+function getPerformanceScore(player) {
+  const value = Number(player?.performanceScore);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function buildPerformanceWeights(players, actualScore) {
+  const scores = players.map(getPerformanceScore);
+  const valid = scores.filter((score) => score !== null);
+  if (valid.length < 2) {
+    return players.map(() => 1);
+  }
+
+  const teamMean = valid.reduce((sum, score) => sum + score, 0) / valid.length;
+  if (!(teamMean > 0)) {
+    return players.map(() => 1);
+  }
+
+  // Winners (actualScore 1): higher OP -> larger weight. Losers (0): higher OP ->
+  // smaller weight (less loss). Missing OP is treated as average (neutral weight).
+  const direction = actualScore >= 1 ? 1 : -1;
+  const raw = scores.map((score) => {
+    const relative = ((score ?? teamMean) - teamMean) / teamMean;
+    const weight = 1 + direction * PERF_WEIGHT.sensitivity * relative;
+    return Math.min(PERF_WEIGHT.max, Math.max(PERF_WEIGHT.min, weight));
+  });
+
+  const rawMean = raw.reduce((sum, weight) => sum + weight, 0) / raw.length;
+  if (!(rawMean > 0)) {
+    return players.map(() => 1);
+  }
+
+  return raw.map((weight) => weight / rawMean);
+}
+
 function buildTeamAdjustments(players, actualScore, expectedScore) {
-  return players.map((player) => {
+  const weights = buildPerformanceWeights(players, actualScore);
+
+  return players.map((player, index) => {
     const gamesPlayed = getGamesPlayed(player);
-    const delta = Math.round(getKFactor(gamesPlayed) * (actualScore - expectedScore));
+    const base = getKFactor(gamesPlayed) * (actualScore - expectedScore);
+    const delta = Math.round(base * weights[index]);
 
     return {
       playerId: getPlayerId(player),
@@ -63,6 +108,7 @@ function buildMatchmakingAdjustments({ winningTeam, losingTeam }) {
 
 module.exports = {
   buildMatchmakingAdjustments,
+  buildPerformanceWeights,
   calculateExpectedScore,
   getGamesPlayed,
   getKFactor,

@@ -120,3 +120,85 @@ test("newer players move faster than established players", () => {
     "newer players should have larger swings"
   );
 });
+
+function buildPerfPlayer(id, op) {
+  return { discordId: id, mmr: 1000, win: 15, lose: 15, performanceScore: op };
+}
+
+test("performance weighting: a carry gains more than a passenger on the same winning team", () => {
+  const result = buildMatchmakingAdjustments({
+    winningTeam: [
+      buildPerfPlayer("carry", 120),
+      buildPerfPlayer("mid", 60),
+      buildPerfPlayer("mid2", 60),
+      buildPerfPlayer("mid3", 60),
+      buildPerfPlayer("passenger", 20),
+    ],
+    losingTeam: [
+      buildPerfPlayer("l1", 40),
+      buildPerfPlayer("l2", 40),
+      buildPerfPlayer("l3", 40),
+      buildPerfPlayer("l4", 40),
+      buildPerfPlayer("l5", 40),
+    ],
+  });
+
+  const carry = result.winners.find((w) => w.playerId === "carry");
+  const passenger = result.winners.find((w) => w.playerId === "passenger");
+
+  assert.ok(carry.delta > passenger.delta, "carry should gain more than passenger");
+  assert.ok(passenger.delta > 0, "every winner should still gain MMR");
+  // aggregate transfer preserved vs flat Elo (5 even players, K=24, base +12 each = 60)
+  const total = result.winners.reduce((sum, w) => sum + w.delta, 0);
+  assert.ok(Math.abs(total - 60) <= 2, `winning team aggregate preserved, got ${total}`);
+});
+
+test("performance weighting: a strong loser loses less than a feeder on the same team", () => {
+  const result = buildMatchmakingAdjustments({
+    winningTeam: [
+      buildPerfPlayer("w1", 50),
+      buildPerfPlayer("w2", 50),
+      buildPerfPlayer("w3", 50),
+      buildPerfPlayer("w4", 50),
+      buildPerfPlayer("w5", 50),
+    ],
+    losingTeam: [
+      buildPerfPlayer("ace", 70),
+      buildPerfPlayer("avg", 30),
+      buildPerfPlayer("avg2", 30),
+      buildPerfPlayer("avg3", 30),
+      buildPerfPlayer("feeder", 10),
+    ],
+  });
+
+  const ace = result.losers.find((l) => l.playerId === "ace");
+  const feeder = result.losers.find((l) => l.playerId === "feeder");
+
+  assert.ok(ace.delta < 0 && feeder.delta < 0, "every loser should still lose MMR");
+  assert.ok(
+    Math.abs(ace.delta) < Math.abs(feeder.delta),
+    "the ACE should lose less than the feeder"
+  );
+});
+
+test("performance weighting is a no-op when no OP scores are supplied (backward compatible)", () => {
+  const result = buildMatchmakingAdjustments({
+    winningTeam: [
+      { discordId: "a", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "b", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "c", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "d", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "e", mmr: 1000, win: 15, lose: 15 },
+    ],
+    losingTeam: [
+      { discordId: "f", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "g", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "h", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "i", mmr: 1000, win: 15, lose: 15 },
+      { discordId: "j", mmr: 1000, win: 15, lose: 15 },
+    ],
+  });
+
+  const deltas = result.winners.map((w) => w.delta);
+  assert.ok(deltas.every((d) => d === deltas[0]), "all winners move identically without OP");
+});

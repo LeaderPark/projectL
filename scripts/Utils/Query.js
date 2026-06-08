@@ -1069,7 +1069,7 @@ async function updateUserDataWithExecutor(executor, match) {
     }
     return key;
   };
-  match.blueTeam.players.forEach((player) => {
+  const registerRatingInput = (player) => {
     const identityKey = identityKeyOf(player);
     const user = linkedByIdentity.get(identityKey);
     ratingInputsByIdentity.set(identityKey, {
@@ -1077,18 +1077,11 @@ async function updateUserDataWithExecutor(executor, match) {
       mmr: Number(user?.mmr ?? 1000),
       win: Number(user?.win ?? 0),
       lose: Number(user?.lose ?? 0),
+      performanceScore: Number(player?.performanceScore ?? 0),
     });
-  });
-  match.purpleTeam.players.forEach((player) => {
-    const identityKey = identityKeyOf(player);
-    const user = linkedByIdentity.get(identityKey);
-    ratingInputsByIdentity.set(identityKey, {
-      playerId: identityKey,
-      mmr: Number(user?.mmr ?? 1000),
-      win: Number(user?.win ?? 0),
-      lose: Number(user?.lose ?? 0),
-    });
-  });
+  };
+  match.blueTeam.players.forEach(registerRatingInput);
+  match.purpleTeam.players.forEach(registerRatingInput);
 
   const blueWon = Boolean(match.blueTeam.players[0]?.result);
   const ratingAdjustments = blueWon
@@ -1339,6 +1332,43 @@ async function recomputeUserStatsFromMatchesWithExecutor(executor) {
 
   return matchRows.length;
 }
+
+// Public one-shot: rebuild every user's accumulated stats + MMR by replaying all
+// stored matches in chronological order. Use after a scoring/MMR model change.
+const recomputeGuildUserStats = async (guildId) => {
+  let connection;
+
+  try {
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
+    }
+
+    const matchCount = await recomputeUserStatsFromMatchesWithExecutor(executor);
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
+    return { success: true, data: { matchCount } };
+  } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
+    return buildErrorResult(error, "전적을 다시 계산하는 중 오류가 발생했습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
+  }
+};
 
 const deleteMatchById = async (guildId, matchId) => {
   const numericMatchId = Number(matchId);
@@ -1999,6 +2029,7 @@ module.exports = {
   listPendingTournamentSessions,
   parseDiscordIdList,
   persistMatchResult,
+  recomputeGuildUserStats,
   registerRiotAccount,
   searchPublicPlayers,
   setPrimaryRiotAccount,

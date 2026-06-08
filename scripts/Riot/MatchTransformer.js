@@ -6,16 +6,20 @@ const Team = require("../VO/team");
 const Side = require("../enum/Side");
 
 // Per-game performance ("OP") score, tuned to approximate the lol.ps "PS Score"
-// (roughly 0-135, where MVP ~100+). Fitted by linear regression over 10 reference
-// games using metrics we can parse from a replay: KDA ratio, damage/min, gold/min,
-// vision/min and win/loss. (v2: Pearson ~0.94, leave-one-game-out MAE ~7.5.)
+// (roughly 0-135, where MVP ~100+). Linear regression over 17 reference games
+// (170 players, Iron→Challenger) using replay-parsable metrics: KDA ratio,
+// damage/min, gold/min, vision/min, CS/min and win/loss. CS/min has a small
+// negative weight: controlling for gold, lower CS means more income came from
+// kills/objectives (more impactful). See docs/op-score-dataset.md.
+// (v3: Pearson ~0.94, leave-one-game-out MAE ~7.3.)
 const PERF_COEFFS = {
-  intercept: -21.321,
-  kda: 5.194,
-  damagePerMin: 0.02383,
-  goldPerMin: 0.06464,
-  visionPerMin: 4.604,
-  win: 4.45,
+  intercept: -18.021,
+  kda: 5.326,
+  damagePerMin: 0.01915,
+  goldPerMin: 0.09791,
+  visionPerMin: 2.192,
+  csPerMin: -1.297,
+  win: 4.053,
 };
 
 function mapLane(position) {
@@ -49,6 +53,7 @@ function calculatePerformanceScore(player, gameLengthMs) {
   const damagePerMin = Number(player?.totalDamage ?? 0) / minutes;
   const goldPerMin = Number(player?.gold ?? 0) / minutes;
   const visionPerMin = Number(player?.visionScore ?? 0) / minutes;
+  const csPerMin = Number(player?.minionScore ?? 0) / minutes;
   const win = player.win === "Win" ? 1 : 0;
 
   const raw =
@@ -57,6 +62,7 @@ function calculatePerformanceScore(player, gameLengthMs) {
     PERF_COEFFS.damagePerMin * damagePerMin +
     PERF_COEFFS.goldPerMin * goldPerMin +
     PERF_COEFFS.visionPerMin * visionPerMin +
+    PERF_COEFFS.csPerMin * csPerMin +
     PERF_COEFFS.win * win;
 
   return Math.max(1, Math.round(raw));

@@ -3,7 +3,7 @@
   "psScale": "lol.ps PS Score, integer ~0-135 (MVP ~100+).",
   "owners": {
     "Hide on bush_KR1": "10 games, PS from screenshots (validated)",
-    "대상혁_2005": "7 games, PS PENDING"
+    "대상혁_2005": "7 games, PS from lol.ps text (validated)"
   },
   "games": [
     {
@@ -1690,7 +1690,7 @@
       "matchId": "KR-8246642821",
       "owner": "대상혁_2005",
       "gameLengthMin": 23.4,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Kayn",
@@ -1705,7 +1705,7 @@
           "gold": 7607,
           "dmgDealt": 15842,
           "dmgTaken": 29570,
-          "psScore": null,
+          "psScore": 23,
           "isOwner": false
         },
         {
@@ -1721,7 +1721,7 @@
           "gold": 12500,
           "dmgDealt": 21281,
           "dmgTaken": 22731,
-          "psScore": null,
+          "psScore": 43,
           "isOwner": false
         },
         {
@@ -1737,7 +1737,7 @@
           "gold": 8332,
           "dmgDealt": 13547,
           "dmgTaken": 21913,
-          "psScore": null,
+          "psScore": 38,
           "isOwner": true
         },
         {
@@ -1753,7 +1753,7 @@
           "gold": 8441,
           "dmgDealt": 12526,
           "dmgTaken": 27542,
-          "psScore": null,
+          "psScore": 26,
           "isOwner": false
         },
         {
@@ -1769,7 +1769,7 @@
           "gold": 5959,
           "dmgDealt": 5212,
           "dmgTaken": 23413,
-          "psScore": null,
+          "psScore": 12,
           "isOwner": false
         },
         {
@@ -1785,7 +1785,7 @@
           "gold": 10108,
           "dmgDealt": 21108,
           "dmgTaken": 27534,
-          "psScore": null,
+          "psScore": 68,
           "isOwner": false
         },
         {
@@ -1801,7 +1801,7 @@
           "gold": 11143,
           "dmgDealt": 18640,
           "dmgTaken": 19630,
-          "psScore": null,
+          "psScore": 91,
           "isOwner": false
         },
         {
@@ -1817,7 +1817,7 @@
           "gold": 12729,
           "dmgDealt": 31271,
           "dmgTaken": 20314,
-          "psScore": null,
+          "psScore": 62,
           "isOwner": false
         },
         {
@@ -1833,7 +1833,7 @@
           "gold": 11949,
           "dmgDealt": 26629,
           "dmgTaken": 21806,
-          "psScore": null,
+          "psScore": 47,
           "isOwner": false
         },
         {
@@ -1849,7 +1849,7 @@
           "gold": 9136,
           "dmgDealt": 7573,
           "dmgTaken": 9437,
-          "psScore": null,
+          "psScore": 116,
           "isOwner": false
         }
       ]
@@ -1858,7 +1858,7 @@
       "matchId": "KR-8246709967",
       "owner": "대상혁_2005",
       "gameLengthMin": 45.3,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "XinZhao",
@@ -1873,7 +1873,7 @@
           "gold": 25298,
           "dmgDealt": 83331,
           "dmgTaken": 145264,
-          "psScore": null,
+          "psScore": 92,
           "isOwner": false
         },
         {
@@ -1889,7 +1889,7 @@
           "gold": 30479,
           "dmgDealt": 73273,
           "dmgTaken": 60380,
-          "psScore": null,
+          "psScore": 78,
           "isOwner": true
         },
         {
@@ -1905,7 +1905,7 @@
           "gold": 16296,
           "dmgDealt": 22688,
           "dmgTaken": 32244,
-          "psScore": null,
+          "psScore": 28,
           "isOwner": false
         },
         {
@@ -1921,7 +1921,7 @@
           "gold": 22695,
           "dmgDealt": 34653,
           "dmgTaken": 55225,
-          "psScore": null,
+          "psScore": 32,
           "isOwner": false
         },
         {
@@ -1937,7 +1937,7 @@
           "gold": 17568,
           "dmgDealt": 44543,
           "dmgTaken": 52457,
-          "psScore": null,
+          "psScore": 42,
           "isOwner": false
         },
         {
@@ -1953,7 +1953,7 @@
           "gold": 21424,
           "dmgDealt": 47426,
           "dmgTaken": 56435,
-          "psScore": null,
+          "psScore": 75,
           "isOwner": false
         },
         {
@@ -1969,7 +1969,7 @@
           "gold": 24737,
           "dmgDealt": 93431,
           "dmgTaken": 61718,
-          "psScore": null,
+          "psScore": 46,
           "isOwner": false
         },
         {
@@ -1985,7 +1985,7 @@
           "gold": 22638,
           "dmgDealt": 65569,
           "dmgTaken": 75640,
-          "psScore": null,
+          "psScore": 74,
           "isOwner": false
         },
         {
@@ -2001,7 +2001,7 @@
           "gold": 24003,
           "dmgDealt": 57450,
           "dmgTaken": 59497,
-          "psScore": null,
+          "psScore": 56,
           "isOwner": false
         },
         {
@@ -2017,7 +2017,7 @@
           "gold": 18676,
           "dmgDealt": 42437,
           "dmgTaken": 56589,
-          "psScore": null,
+          "psScore": 41,
           "isOwner": false
         }
       ]
@@ -2026,7 +2026,7 @@
       "matchId": "KR-8248474508",
       "owner": "대상혁_2005",
       "gameLengthMin": 16.9,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Illaoi",
@@ -2041,7 +2041,7 @@
           "gold": 7694,
           "dmgDealt": 18788,
           "dmgTaken": 18426,
-          "psScore": null,
+          "psScore": 54,
           "isOwner": false
         },
         {
@@ -2057,7 +2057,7 @@
           "gold": 6869,
           "dmgDealt": 9073,
           "dmgTaken": 12191,
-          "psScore": null,
+          "psScore": 95,
           "isOwner": true
         },
         {
@@ -2073,7 +2073,7 @@
           "gold": 6429,
           "dmgDealt": 12485,
           "dmgTaken": 7410,
-          "psScore": null,
+          "psScore": 50,
           "isOwner": false
         },
         {
@@ -2089,7 +2089,7 @@
           "gold": 10482,
           "dmgDealt": 14795,
           "dmgTaken": 10894,
-          "psScore": null,
+          "psScore": 61,
           "isOwner": false
         },
         {
@@ -2105,7 +2105,7 @@
           "gold": 6674,
           "dmgDealt": 7355,
           "dmgTaken": 11404,
-          "psScore": null,
+          "psScore": 65,
           "isOwner": false
         },
         {
@@ -2121,7 +2121,7 @@
           "gold": 4892,
           "dmgDealt": 15000,
           "dmgTaken": 20466,
-          "psScore": null,
+          "psScore": 19,
           "isOwner": false
         },
         {
@@ -2137,7 +2137,7 @@
           "gold": 5578,
           "dmgDealt": 6317,
           "dmgTaken": 18018,
-          "psScore": null,
+          "psScore": 16,
           "isOwner": false
         },
         {
@@ -2153,7 +2153,7 @@
           "gold": 7073,
           "dmgDealt": 9445,
           "dmgTaken": 9497,
-          "psScore": null,
+          "psScore": 48,
           "isOwner": false
         },
         {
@@ -2169,7 +2169,7 @@
           "gold": 6456,
           "dmgDealt": 11790,
           "dmgTaken": 13129,
-          "psScore": null,
+          "psScore": 22,
           "isOwner": false
         },
         {
@@ -2185,7 +2185,7 @@
           "gold": 4754,
           "dmgDealt": 4639,
           "dmgTaken": 13505,
-          "psScore": null,
+          "psScore": 22,
           "isOwner": false
         }
       ]
@@ -2194,7 +2194,7 @@
       "matchId": "KR-8248529432",
       "owner": "대상혁_2005",
       "gameLengthMin": 32.6,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Yone",
@@ -2209,7 +2209,7 @@
           "gold": 16452,
           "dmgDealt": 47123,
           "dmgTaken": 35044,
-          "psScore": null,
+          "psScore": 74,
           "isOwner": false
         },
         {
@@ -2225,7 +2225,7 @@
           "gold": 14337,
           "dmgDealt": 24279,
           "dmgTaken": 35381,
-          "psScore": null,
+          "psScore": 58,
           "isOwner": false
         },
         {
@@ -2241,7 +2241,7 @@
           "gold": 15014,
           "dmgDealt": 43062,
           "dmgTaken": 33608,
-          "psScore": null,
+          "psScore": 50,
           "isOwner": false
         },
         {
@@ -2257,7 +2257,7 @@
           "gold": 18812,
           "dmgDealt": 30226,
           "dmgTaken": 29637,
-          "psScore": null,
+          "psScore": 70,
           "isOwner": false
         },
         {
@@ -2273,7 +2273,7 @@
           "gold": 11881,
           "dmgDealt": 24353,
           "dmgTaken": 23152,
-          "psScore": null,
+          "psScore": 54,
           "isOwner": false
         },
         {
@@ -2289,7 +2289,7 @@
           "gold": 10567,
           "dmgDealt": 19419,
           "dmgTaken": 36610,
-          "psScore": null,
+          "psScore": 31,
           "isOwner": false
         },
         {
@@ -2305,7 +2305,7 @@
           "gold": 15256,
           "dmgDealt": 26588,
           "dmgTaken": 45192,
-          "psScore": null,
+          "psScore": 75,
           "isOwner": true
         },
         {
@@ -2321,7 +2321,7 @@
           "gold": 15678,
           "dmgDealt": 43812,
           "dmgTaken": 44696,
-          "psScore": null,
+          "psScore": 61,
           "isOwner": false
         },
         {
@@ -2337,7 +2337,7 @@
           "gold": 13642,
           "dmgDealt": 25046,
           "dmgTaken": 29326,
-          "psScore": null,
+          "psScore": 43,
           "isOwner": false
         },
         {
@@ -2353,7 +2353,7 @@
           "gold": 9926,
           "dmgDealt": 13895,
           "dmgTaken": 32010,
-          "psScore": null,
+          "psScore": 37,
           "isOwner": false
         }
       ]
@@ -2362,7 +2362,7 @@
       "matchId": "KR-8250291740",
       "owner": "대상혁_2005",
       "gameLengthMin": 27.1,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Darius",
@@ -2377,7 +2377,7 @@
           "gold": 11326,
           "dmgDealt": 30582,
           "dmgTaken": 37286,
-          "psScore": null,
+          "psScore": 69,
           "isOwner": false
         },
         {
@@ -2393,7 +2393,7 @@
           "gold": 13248,
           "dmgDealt": 19719,
           "dmgTaken": 19472,
-          "psScore": null,
+          "psScore": 124,
           "isOwner": false
         },
         {
@@ -2409,7 +2409,7 @@
           "gold": 10454,
           "dmgDealt": 17745,
           "dmgTaken": 26612,
-          "psScore": null,
+          "psScore": 36,
           "isOwner": false
         },
         {
@@ -2425,7 +2425,7 @@
           "gold": 13903,
           "dmgDealt": 20806,
           "dmgTaken": 11980,
-          "psScore": null,
+          "psScore": 98,
           "isOwner": false
         },
         {
@@ -2441,7 +2441,7 @@
           "gold": 9272,
           "dmgDealt": 11471,
           "dmgTaken": 9517,
-          "psScore": null,
+          "psScore": 138,
           "isOwner": false
         },
         {
@@ -2457,7 +2457,7 @@
           "gold": 11510,
           "dmgDealt": 32556,
           "dmgTaken": 29818,
-          "psScore": null,
+          "psScore": 58,
           "isOwner": false
         },
         {
@@ -2473,7 +2473,7 @@
           "gold": 8195,
           "dmgDealt": 8165,
           "dmgTaken": 31945,
-          "psScore": null,
+          "psScore": 15,
           "isOwner": true
         },
         {
@@ -2489,7 +2489,7 @@
           "gold": 10196,
           "dmgDealt": 19256,
           "dmgTaken": 20968,
-          "psScore": null,
+          "psScore": 33,
           "isOwner": false
         },
         {
@@ -2505,7 +2505,7 @@
           "gold": 9096,
           "dmgDealt": 6508,
           "dmgTaken": 20833,
-          "psScore": null,
+          "psScore": 11,
           "isOwner": false
         },
         {
@@ -2521,7 +2521,7 @@
           "gold": 8782,
           "dmgDealt": 18214,
           "dmgTaken": 13922,
-          "psScore": null,
+          "psScore": 16,
           "isOwner": false
         }
       ]
@@ -2530,7 +2530,7 @@
       "matchId": "KR-8250334888",
       "owner": "대상혁_2005",
       "gameLengthMin": 29.8,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Darius",
@@ -2545,7 +2545,7 @@
           "gold": 18460,
           "dmgDealt": 39286,
           "dmgTaken": 38032,
-          "psScore": null,
+          "psScore": 113,
           "isOwner": false
         },
         {
@@ -2561,7 +2561,7 @@
           "gold": 12829,
           "dmgDealt": 17213,
           "dmgTaken": 38279,
-          "psScore": null,
+          "psScore": 39,
           "isOwner": true
         },
         {
@@ -2577,7 +2577,7 @@
           "gold": 9436,
           "dmgDealt": 8708,
           "dmgTaken": 18431,
-          "psScore": null,
+          "psScore": 24,
           "isOwner": false
         },
         {
@@ -2593,7 +2593,7 @@
           "gold": 16752,
           "dmgDealt": 21722,
           "dmgTaken": 20424,
-          "psScore": null,
+          "psScore": 37,
           "isOwner": false
         },
         {
@@ -2609,7 +2609,7 @@
           "gold": 10007,
           "dmgDealt": 12190,
           "dmgTaken": 22626,
-          "psScore": null,
+          "psScore": 52,
           "isOwner": false
         },
         {
@@ -2625,7 +2625,7 @@
           "gold": 10055,
           "dmgDealt": 17222,
           "dmgTaken": 26509,
-          "psScore": null,
+          "psScore": 32,
           "isOwner": false
         },
         {
@@ -2641,7 +2641,7 @@
           "gold": 10343,
           "dmgDealt": 7603,
           "dmgTaken": 22432,
-          "psScore": null,
+          "psScore": 25,
           "isOwner": false
         },
         {
@@ -2657,7 +2657,7 @@
           "gold": 12140,
           "dmgDealt": 43919,
           "dmgTaken": 23677,
-          "psScore": null,
+          "psScore": 64,
           "isOwner": false
         },
         {
@@ -2673,7 +2673,7 @@
           "gold": 12831,
           "dmgDealt": 19316,
           "dmgTaken": 18348,
-          "psScore": null,
+          "psScore": 43,
           "isOwner": false
         },
         {
@@ -2689,7 +2689,7 @@
           "gold": 12371,
           "dmgDealt": 17489,
           "dmgTaken": 25266,
-          "psScore": null,
+          "psScore": 45,
           "isOwner": false
         }
       ]
@@ -2698,7 +2698,7 @@
       "matchId": "KR-8250377808",
       "owner": "대상혁_2005",
       "gameLengthMin": 37.3,
-      "psSource": "PENDING (need lol.ps PS values)",
+      "psSource": "lol.ps text (validated)",
       "players": [
         {
           "champion": "Poppy",
@@ -2713,7 +2713,7 @@
           "gold": 12887,
           "dmgDealt": 28106,
           "dmgTaken": 51902,
-          "psScore": null,
+          "psScore": 42,
           "isOwner": false
         },
         {
@@ -2729,7 +2729,7 @@
           "gold": 19411,
           "dmgDealt": 50561,
           "dmgTaken": 53267,
-          "psScore": null,
+          "psScore": 76,
           "isOwner": true
         },
         {
@@ -2745,7 +2745,7 @@
           "gold": 19471,
           "dmgDealt": 45117,
           "dmgTaken": 34124,
-          "psScore": null,
+          "psScore": 62,
           "isOwner": false
         },
         {
@@ -2761,7 +2761,7 @@
           "gold": 17160,
           "dmgDealt": 27783,
           "dmgTaken": 28815,
-          "psScore": null,
+          "psScore": 66,
           "isOwner": false
         },
         {
@@ -2777,7 +2777,7 @@
           "gold": 12405,
           "dmgDealt": 17208,
           "dmgTaken": 27653,
-          "psScore": null,
+          "psScore": 79,
           "isOwner": false
         },
         {
@@ -2793,7 +2793,7 @@
           "gold": 20790,
           "dmgDealt": 69321,
           "dmgTaken": 46417,
-          "psScore": null,
+          "psScore": 105,
           "isOwner": false
         },
         {
@@ -2809,7 +2809,7 @@
           "gold": 16168,
           "dmgDealt": 23290,
           "dmgTaken": 49845,
-          "psScore": null,
+          "psScore": 47,
           "isOwner": false
         },
         {
@@ -2825,7 +2825,7 @@
           "gold": 12704,
           "dmgDealt": 27806,
           "dmgTaken": 31987,
-          "psScore": null,
+          "psScore": 30,
           "isOwner": false
         },
         {
@@ -2841,7 +2841,7 @@
           "gold": 13141,
           "dmgDealt": 14140,
           "dmgTaken": 29317,
-          "psScore": null,
+          "psScore": 14,
           "isOwner": false
         },
         {
@@ -2857,7 +2857,7 @@
           "gold": 10744,
           "dmgDealt": 22551,
           "dmgTaken": 40179,
-          "psScore": null,
+          "psScore": 19,
           "isOwner": false
         }
       ]

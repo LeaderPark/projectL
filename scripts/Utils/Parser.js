@@ -10,9 +10,8 @@ const Kda = require("../VO/kda");
 const Match = require("../VO/match");
 const Player = require("../VO/player");
 const Team = require("../VO/team");
-const Lane = require("../enum/Lane");
 const Side = require("../enum/Side");
-const { calculatePerformanceScore } = require("../Riot/MatchTransformer");
+const { calculatePerformanceScore, mapLane } = require("../Riot/MatchTransformer");
 const { parseROFL } = require("./roflxd");
 
 function downloadHttpFile(url, filePath, redirectsRemaining = 3) {
@@ -161,7 +160,10 @@ function buildPlayer(stats) {
       readNumber(stats.NUM_DEATHS),
       readNumber(stats.ASSISTS)
     ),
-    Lane[readNumber(stats.PLAYER_POSITION)] ?? "SUPPORT",
+    // Use the role STRING (TEAM_POSITION / INDIVIDUAL_POSITION). The numeric
+    // PLAYER_POSITION is unreliable — it conflates roles (e.g. top & jungle share
+    // one value, bot & support another), which mislabeled lanes badly.
+    mapLane(firstNonEmpty(stats.TEAM_POSITION, stats.INDIVIDUAL_POSITION)),
     readNumber(stats.MINIONS_KILLED) +
       readNumber(stats.NEUTRAL_MINIONS_KILLED) +
       readNumber(stats.NEUTRAL_MINIONS_KILLED_YOUR_JUNGLE) +

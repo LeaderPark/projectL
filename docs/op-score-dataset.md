@@ -14,9 +14,10 @@ lol.ps **PS Score**에 맞춰 튜닝하기 위한 레퍼런스 데이터입니�
 | `대상혁_2005` | 7 | Silver~Gold | lol.ps 텍스트(챔피언/KDA 매칭, 검증) |
 | `수영장파티티모#KR2` | 20 | Bronze | lol.ps 텍스트(KDA 매칭, 200/200 검증) |
 | `Bluffing#1207` | 19 | Challenger | lol.ps 텍스트(KDA 매칭, 190/190 검증) |
+| `A D#Code` | 17 | Gold~Diamond(주로 Emerald/Plat) | lol.ps 텍스트(KDA 매칭, 170/170 검증) |
 
-> 현재 **56경기 / 560명** 전원 PS Score가 채워져 있습니다(`null` 없음). Iron~Challenger 4명 커버.
-> (Bluffing의 15:14 1경기는 리플레이 파일이 없어 제외.)
+> 현재 **73경기 / 730명** 전원 PS Score가 채워져 있습니다(`null` 없음). Iron~Challenger 5명, 전 티어 커버.
+> (Bluffing 15:14, A D의 02:05·05:34 다시하기 경기는 제외.)
 
 > lol.ps는 SPA(자바스크립트 렌더)라 웹에서 PS Score를 자동으로 긁어올 수 없고, PS Score는
 > lol.ps 독자 지표라 Riot 공식 API에도 없습니다. 그래서 PS 값은 **스크린샷 또는 텍스트 붙여넣기**로 받아야 합니다.
@@ -39,43 +40,41 @@ lol.ps **PS Score**에 맞춰 튜닝하기 위한 레퍼런스 데이터입니�
 
 플레이어 순서: 각 경기 블루팀(100) 5명 → 레드팀(200) 5명. (신규 배치는 팀 순서만 보장)
 
-## 현재 배포 모델 (v4b) · 56경기 적합
+## 현재 배포 모델 (v5) · 73경기 적합
 `scripts/Riot/MatchTransformer.js`의 `calculatePerformanceScore`에 적용된 계수입니다.
 ```
-OP = -4.939 + 4.021·KDA비 + 0.01837·(딜/분) + 0.08929·(골드/분)
-   + 0.7726·(시야/분) - 1.715·(CS/분) + 8.239·승리
-   - 45.85·(데스/분) + 0.008216·(받은피해/분)        → 1 이상 정수
+OP = -9.619 + 8.262·KDA비 - 0.1727·KDA비²
+   + 0.01872·(딜/분) + 0.0704·(골드/분) - 0.05324·(시야/분)
+   - 1.549·(CS/분) + 3.436·승리
+   - 19.8·(데스/분) + 0.007256·(받은피해/분)        → 1 이상 정수
 ```
 - **KDA비** = (킬+어시) / max(데스, 1).
-- **CS/분** 음(−): 골드 통제 시 낮은 CS = 킬·오브젝트 수입 = 임팩트↑.
-- **데스/분** 큰 음(−): KDA 비율이 상단에서 포화돼 엘리트 캐리를 못 가르므로 별도 데스 항으로 캐리 해상도 복원.
-- **받은피해/분** 양(+): 탱커·서폿 전방 기여 반영. (`damageTaken` = .rofl `TOTAL_DAMAGE_TAKEN` / Riot `totalDamageTaken`, Player VO에 추가.)
+- **KDA비² (음, 오목)**: PS는 캐리를 비선형으로 보상하므로 KDA가 선형으로 폭주하지 않게 곡선을 맞춤. **v5의 핵심 개선**(캐리 구간 오차를 크게 줄임). 730명에선 과적합 없이 일반화(17경기 때는 과적합했음).
+- **CS/분** 음(−): 골드 통제 시 낮은 CS = 킬·오브젝트 수입 = 임팩트↑. **데스/분** 음(−). **받은피해/분** 양(+): 탱커·서폿 전방 기여.
 
-### 검증 (leave-one-game-out CV, 56경기 560명)
+### 검증 (leave-one-game-out CV, 73경기 730명)
 | 모델 | 피처 | CV Pearson | CV MAE | PS≥100 구간 MAE |
 |---|---|---|---|---|
-| v3-form 재적합 | 6 | 0.924 | 8.25 | 17.1 |
-| v4a | +데스/분 | 0.929 | 8.20 | 16.0 |
-| **v4b (배포)** | +데스/분 +받은피해/분 | **0.932** | **7.94** | **16.0** |
+| v4b | 9 (선형) | 0.933 | 7.93 | 17.2 |
+| **v5 (배포)** | +KDA² | **0.948** | **6.92** | **12.1** |
 
-### 39경기 신규 데이터가 한 일 (유의미성)
-1. **실제 오차를 드러냄**: 옛 v3는 자체 17경기에선 MAE 7.29 / Pearson 0.939였지만, 신규 39경기(새 2명)에선 **MAE 8.46 / Pearson 0.918** — 실제로는 ~1.2 MAE 더 틀림. 데이터가 없었으면 과신했을 것.
-2. **데이터만으론 소폭**: 피처를 v3 그대로 두고 데이터만 추가 → 신규 39경기 MAE 8.46 → 8.43 (거의 그대로). bias-limited 재확인.
-3. **데이터가 새 피처를 가능케 함**: 560명(특히 캐리 구간 ~22→~91명)으로 데스/분·받은피해/분을 과적합 없이 검증 가능. v4b의 신규 39경기 held-out 성능 **MAE 8.18 / Pearson 0.929 / 캐리 16.7** (옛 v3 8.46 / 0.918 / 19.6 대비 개선, 특히 캐리 구간).
+### 시도했지만 효과 없던 것 (정직한 기록)
+- 추가 집계 지표(CC시간·오브젝트딜·포탑딜·팀힐·자가완화) → CV ΔMAE ±0.02, **사실상 무의미**(오브젝트/포탑딜은 오히려 악화). 종료 시점 집계 지표는 천장.
+- 데이터만 더 추가(중간 티어 17경기) → CV 7.94→7.93, **거의 그대로**(bias-limited).
+- **실제 효과는 비선형(KDA²)에서 나옴.** 데이터가 730명으로 늘어 비선형을 과적합 없이 쓸 수 있게 된 게 핵심.
 
-> PS≥100(캐리)는 여전히 MAE ~16 — 종료 시점 집계 + 선형 모델의 한계. 더 낮추려면 타임라인 지표(분당 골드/경험치 리드, 킬관여%)나 비선형 필요.
-> v3 계수(참고): `-18.021 + 5.326·KDA + 0.01915·딜/분 + 0.09791·골드/분 + 2.192·시야/분 - 1.297·CS/분 + 4.053·승리`.
+> 더 올리려면(>0.95) 타임라인 API 지표(분당 골드/경험치 리드, 킬관여%)가 필요 — .rofl 종료 집계엔 없는 신호.
 
-## OP ↔ PS 일치도 (현재 v4b, 56경기 560명)
+## OP ↔ PS 일치도 (현재 v5, 73경기 730명)
 | 측정 방식 | 값 | 의미 |
 |---|---|---|
-| Pearson 상관 r | **0.936** | 선형 상관 |
-| R² (분산 설명력) | **88%** | PS 변동의 88%를 설명 |
-| 팀내 순위 일치율 | **91%** | 두 선수 우열 방향이 PS와 일치 |
-| 평균 절대오차 MAE | **7.7점** | PS 0~140 척도의 ~5.5% |
-| 예측 ±10 / ±15 / ±20 이내 | **74% / 89% / 96%** | |
+| Pearson 상관 r | **0.952** | 선형 상관 |
+| R² (분산 설명력) | **91%** | PS 변동의 91%를 설명 |
+| 팀내 순위 일치율 | **92%** | 두 선수 우열 방향이 PS와 일치 |
+| 평균 절대오차 MAE | **6.7점** | PS 0~166 척도의 ~4% |
+| 예측 ±10 / ±15 / ±20 이내 | **80% / 93% / 96%** | |
 
-→ 한 줄 요약: **순위·분산 기준 ≈ 90% 일치**, 절대 점수는 평균 ±7.7점.
+→ 한 줄 요약: **순위·분산 기준 ≈ 92% 일치**, 절대 점수는 평균 ±6.7점. (v4b는 0.936 / 88% / ±7.7)
 
 ## 역할별 적합도 & 다음에 넣을 데이터
 v4b 잔차(배치 2+3, 390명, Bronze+Challenger). 모든 경기에 5역할이 이미 포함되므로 역할은 **표본 부족이 아니라 적합도** 문제.
@@ -105,8 +104,9 @@ v4b 잔차(배치 2+3, 390명, Bronze+Challenger). 모든 경기에 5역할이 �
 ```bash
 node -e "
 const d = require('./docs/op-score-dataset.json');
-const C = { intercept:-4.939, kda:4.021, damagePerMin:0.01837, goldPerMin:0.08929, visionPerMin:0.7726, csPerMin:-1.715, win:8.239, deathsPerMin:-45.85, damageTakenPerMin:0.008216 };
-const pred=(p,m)=>C.intercept+C.kda*((p.k+p.a)/Math.max(p.d,1))+C.damagePerMin*(p.dmgDealt/m)+C.goldPerMin*(p.gold/m)+C.visionPerMin*(p.vision/m)+C.csPerMin*(p.cs/m)+C.win*(p.win?1:0)+C.deathsPerMin*(p.d/m)+C.damageTakenPerMin*(p.dmgTaken/m);
+const C = { intercept:-9.619, kda:8.262, damagePerMin:0.01872, goldPerMin:0.0704, visionPerMin:-0.05324, csPerMin:-1.549, win:3.436, deathsPerMin:-19.8, damageTakenPerMin:0.007256, kdaSq:-0.1727 };
+const kr=p=>(p.k+p.a)/Math.max(p.d,1);
+const pred=(p,m)=>C.intercept+C.kda*kr(p)+C.damagePerMin*(p.dmgDealt/m)+C.goldPerMin*(p.gold/m)+C.visionPerMin*(p.vision/m)+C.csPerMin*(p.cs/m)+C.win*(p.win?1:0)+C.deathsPerMin*(p.d/m)+C.damageTakenPerMin*(p.dmgTaken/m)+C.kdaSq*kr(p)*kr(p);
 let xs=[],ys=[],ae=0,n=0;
 for(const g of d.games)for(const p of g.players){const yp=pred(p,g.gameLengthMin);xs.push(yp);ys.push(p.psScore);ae+=Math.abs(yp-p.psScore);n++;}
 const m=a=>a.reduce((s,x)=>s+x,0)/a.length,ma=m(xs),mb=m(ys);

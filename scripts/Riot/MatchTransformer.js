@@ -6,25 +6,26 @@ const Team = require("../VO/team");
 const Side = require("../enum/Side");
 
 // Per-game performance ("OP") score, tuned to approximate the lol.ps "PS Score"
-// (roughly 0-150, where MVP ~100+). Linear regression over 56 reference games
-// (560 players, 4 players Iron→Challenger) using replay-parsable metrics: KDA
-// ratio, damage/min, gold/min, vision/min, CS/min, win/loss, deaths/min and
-// damage-taken/min. CS/min is negative (controlling for gold, lower CS means more
-// income came from kills/objectives); deaths/min is strongly negative because the
-// KDA ratio saturates at the top, so a separate deaths term restores carry-tier
-// resolution; damage-taken/min credits frontline/tank contribution.
-// See docs/op-score-dataset.md.
-// (v4: Pearson ~0.93, leave-one-game-out MAE ~7.9.)
+// (roughly 0-150, where MVP ~100+). Regression over 73 reference games (730
+// players, 5 players Iron→Challenger) using replay-parsable metrics: KDA ratio,
+// damage/min, gold/min, vision/min, CS/min, win/loss, deaths/min, damage-taken/min
+// and a KDA-squared term. CS/min is negative (controlling for gold, lower CS means
+// more income came from kills/objectives); deaths/min is negative; damage-taken/min
+// credits frontline/tank contribution; the KDA² term (negative = concave) shapes
+// the carry curve so high-KDA performances land on PS's nonlinear scale instead of
+// blowing up linearly. See docs/op-score-dataset.md.
+// (v5: Pearson ~0.95, leave-one-game-out MAE ~6.9.)
 const PERF_COEFFS = {
-  intercept: -4.939,
-  kda: 4.021,
-  damagePerMin: 0.01837,
-  goldPerMin: 0.08929,
-  visionPerMin: 0.7726,
-  csPerMin: -1.715,
-  win: 8.239,
-  deathsPerMin: -45.85,
-  damageTakenPerMin: 0.008216,
+  intercept: -9.619,
+  kda: 8.262,
+  damagePerMin: 0.01872,
+  goldPerMin: 0.0704,
+  visionPerMin: -0.05324,
+  csPerMin: -1.549,
+  win: 3.436,
+  deathsPerMin: -19.8,
+  damageTakenPerMin: 0.007256,
+  kdaSq: -0.1727,
 };
 
 function mapLane(position) {
@@ -72,7 +73,8 @@ function calculatePerformanceScore(player, gameLengthMs) {
     PERF_COEFFS.csPerMin * csPerMin +
     PERF_COEFFS.win * win +
     PERF_COEFFS.deathsPerMin * deathsPerMin +
-    PERF_COEFFS.damageTakenPerMin * damageTakenPerMin;
+    PERF_COEFFS.damageTakenPerMin * damageTakenPerMin +
+    PERF_COEFFS.kdaSq * kda * kda;
 
   return Math.max(1, Math.round(raw));
 }

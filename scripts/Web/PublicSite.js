@@ -316,12 +316,16 @@ function createPublicSiteHandlers({
       }
 
       const formatterOptions = await getFormatterOptions();
-      const matchesResult = await resolvedGetPublicMatchHistory(guildId);
+      const [matchesResult, serverName] = await Promise.all([
+        resolvedGetPublicMatchHistory(guildId),
+        resolvedGetGuildName(guildId),
+      ]);
       const matchRows = matchesResult.success
         ? await applyRepresentativeRiotNamesToMatches(guildId, matchesResult.data)
         : [];
       return renderMatchesPage({
         guildId,
+        serverName,
         cards: matchRows.map((matchRow) =>
           formatMatchCard(matchRow, formatterOptions)
         ),

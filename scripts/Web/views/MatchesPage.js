@@ -1,6 +1,7 @@
 const { renderLayout } = require("./Layout");
 const {
   buildGuildPath,
+  escapeHtml,
   renderMatchCard,
   renderNoticePanel,
 } = require("./ViewHelpers");
@@ -47,8 +48,7 @@ function renderMatchesPage(model) {
       <section class="hero-card hero-card--compact">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Timeline</p>
-          <h1>전체 경기</h1>
-          <p>최신 경기부터 이어지는 카드형 타임라인으로 전체 전적 흐름을 한눈에 확인할 수 있습니다.</p>
+          <h1>${model.serverName ? `${escapeHtml(model.serverName)} ` : ""}전체 경기</h1>
         </div>
       </section>
       <section class="panel panel--timeline">

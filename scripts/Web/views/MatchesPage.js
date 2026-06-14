@@ -1,5 +1,9 @@
 const { renderLayout } = require("./Layout");
-const { buildGuildPath, escapeHtml, renderMatchCard } = require("./ViewHelpers");
+const {
+  buildGuildPath,
+  renderMatchCard,
+  renderNoticePanel,
+} = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderEmptyTimelineState() {
@@ -11,16 +15,35 @@ function renderEmptyTimelineState() {
   `;
 }
 
+function renderFilterControl(hasCards) {
+  if (!hasCards) {
+    return "";
+  }
+
+  return `
+    <div class="match-filter">
+      <label class="sr-only" for="match-filter-input">경기 필터 (플레이어 이름)</label>
+      <input
+        type="search"
+        id="match-filter-input"
+        class="match-filter__input"
+        placeholder="플레이어 이름으로 이 목록 거르기"
+        autocomplete="off"
+        data-match-filter
+        aria-controls="match-timeline-feed"
+      />
+      <p class="match-filter__empty" data-match-filter-empty role="status" aria-live="polite" hidden>
+        조건에 맞는 경기가 없어요.
+      </p>
+    </div>
+  `;
+}
+
 function renderMatchesPage(model) {
   const hasCards = model.cards.length > 0;
   const body = `
     <main id="main-content" class="page page--matches">
-      ${model.notice ? `
-        <section class="panel panel--notice">
-          <h2>${escapeHtml(model.notice.title)}</h2>
-          <p>${escapeHtml(model.notice.description)}</p>
-        </section>
-      ` : ""}
+      ${renderNoticePanel(model.notice)}
       <section class="hero-card hero-card--compact">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Timeline</p>
@@ -33,7 +56,8 @@ function renderMatchesPage(model) {
           <h2>전체 전적 타임라인</h2>
           <span>최신순</span>
         </div>
-        <div class="match-feed${hasCards ? "" : " match-feed--empty"}">
+        ${renderFilterControl(hasCards)}
+        <div class="match-feed${hasCards ? "" : " match-feed--empty"}" id="match-timeline-feed">
           ${hasCards
             ? model.cards
               .map((card) =>

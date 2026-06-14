@@ -21,13 +21,24 @@ async function fetchPlayerSuggestions(query) {
   return response.json();
 }
 
-function renderSearchResults(container, items) {
+function renderSearchResults(container, items, query = "") {
   const searchForm = document.querySelector("[data-player-search]");
   const playerPathPrefix =
     searchForm?.dataset.playerPathPrefix ?? "/players";
   const input = document.querySelector("[data-player-search-input]");
 
   if (!items.length) {
+    // 검색어가 있는데 결과가 없으면 침묵하지 말고 알려준다 (가이드: 상태 가시성/검색성).
+    if (query) {
+      container.innerHTML = `<p class="site-search__empty" role="status">‘${escapeHtml(query)}’ 검색 결과가 없어요.</p>`;
+      container.classList.add("is-open");
+      if (input) {
+        input.setAttribute("aria-expanded", "true");
+        input.removeAttribute("aria-activedescendant");
+      }
+      return;
+    }
+
     container.classList.remove("is-open");
     container.innerHTML = "";
     if (input) {
@@ -103,7 +114,7 @@ function wirePlayerSearch() {
       if (pendingRequest !== query) {
         return;
       }
-      renderSearchResults(results, items);
+      renderSearchResults(results, items, query);
     }, 200);
   });
 
@@ -368,3 +379,108 @@ function wireServerIdForm() {
 }
 
 wireServerIdForm();
+
+// 닉네임 새로고침: POST 폼 전체 리로드 직전 즉시 상태 피드백 (가이드: 상태 가시성).
+function wireRefreshForm() {
+  const form = document.querySelector("[data-refresh-form]");
+  const button = form?.querySelector("[data-refresh-button]");
+  if (!form || !button) {
+    return;
+  }
+
+  form.addEventListener("submit", () => {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.textContent = "갱신 중…";
+  });
+}
+
+wireRefreshForm();
+
+// 랭킹 표 클라이언트 정렬 (가이드: 찾기/검색성). 머리글 버튼으로 정렬·방향 토글.
+function wireRankingSort() {
+  document.querySelectorAll("[data-sortable-table]").forEach((table) => {
+    const tbody = table.querySelector("tbody");
+    if (!tbody) {
+      return;
+    }
+
+    const originalRows = Array.from(tbody.querySelectorAll("tr"));
+
+    const valueFor = (row, key) => {
+      if (key === "name") {
+        return (row.children[1]?.textContent ?? "").trim().toLowerCase();
+      }
+      if (key === "wins") {
+        return Number(row.dataset.wins ?? 0);
+      }
+      if (key === "winrate") {
+        return Number(row.dataset.winrate ?? 0);
+      }
+      return Number(row.dataset.rank ?? 0);
+    };
+
+    table.querySelectorAll("[data-sort-key]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const key = button.dataset.sortKey;
+        const th = button.closest("th");
+        const ascending = th?.getAttribute("aria-sort") !== "ascending";
+
+        // 다른 머리글의 정렬 표시 초기화.
+        table
+          .querySelectorAll("th[aria-sort]")
+          .forEach((other) => other.removeAttribute("aria-sort"));
+        if (th) {
+          th.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+        }
+
+        const sorted = originalRows.slice().sort((a, b) => {
+          const av = valueFor(a, key);
+          const bv = valueFor(b, key);
+          let cmp;
+          if (typeof av === "number" && typeof bv === "number") {
+            cmp = av - bv;
+          } else {
+            cmp = String(av).localeCompare(String(bv), "ko");
+          }
+          return ascending ? cmp : -cmp;
+        });
+
+        sorted.forEach((row) => tbody.appendChild(row));
+      });
+    });
+  });
+}
+
+wireRankingSort();
+
+// 경기 목록 필터: 이미 로드된 카드를 플레이어 이름 등 텍스트로 거른다 (가이드: 찾기/인지부하).
+function wireMatchFilter() {
+  const input = document.querySelector("[data-match-filter]");
+  const feed = document.querySelector("#match-timeline-feed");
+  const emptyMessage = document.querySelector("[data-match-filter-empty]");
+  if (!input || !feed) {
+    return;
+  }
+
+  const cards = Array.from(feed.querySelectorAll(".match-row"));
+
+  input.addEventListener("input", () => {
+    const query = input.value.trim().toLowerCase();
+    let visible = 0;
+
+    cards.forEach((card) => {
+      const match = !query || card.textContent.toLowerCase().includes(query);
+      card.hidden = !match;
+      if (match) {
+        visible += 1;
+      }
+    });
+
+    if (emptyMessage) {
+      emptyMessage.hidden = !(query && visible === 0);
+    }
+  });
+}
+
+wireMatchFilter();

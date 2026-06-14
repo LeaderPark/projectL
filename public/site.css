@@ -2864,3 +2864,91 @@ button:disabled,
 .match-feed__status--error {
   color: var(--color-error);
 }
+
+/* ============================================================
+   전문가 원칙 기반 2차 개선 (검색 빈결과·모바일 라벨·정렬·필터·용어)
+   ============================================================ */
+
+/* #1 검색 빈 결과 메시지 */
+.site-search__empty {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+/* #3 푸터 용어 풀이 */
+.site-footer__glossary {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+/* #7 랭킹 정렬 머리글 버튼 */
+.ranking-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.ranking-table__sort::after {
+  content: "↕";
+  opacity: 0.45;
+  font-size: 0.85em;
+}
+
+.ranking-table th[aria-sort="ascending"] .ranking-table__sort::after {
+  content: "↑";
+  opacity: 1;
+}
+
+.ranking-table th[aria-sort="descending"] .ranking-table__sort::after {
+  content: "↓";
+  opacity: 1;
+}
+
+/* #7 경기 목록 필터 */
+.match-filter {
+  margin-bottom: var(--space-16);
+}
+
+.match-filter__input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+}
+
+.match-filter__input:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+.match-filter__empty {
+  margin: var(--space-16) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+  text-align: center;
+}
+
+/* #2 스코어보드 모바일: 컬럼 헤더가 숨겨질 때 각 셀에 라벨을 보여준다 */
+@media (max-width: 1200px) {
+  .match-scoreboard__row [data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    font-weight: var(--fw-medium);
+  }
+}

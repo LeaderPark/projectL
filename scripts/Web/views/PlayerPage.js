@@ -4,6 +4,7 @@ const {
   escapeHtml,
   renderMatchCard,
   renderSimpleRows,
+  renderStatTile,
 } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
@@ -70,10 +71,10 @@ function renderPlayerPage(model) {
           <p>${escapeHtml(profile.recordText)} · 승률 ${escapeHtml(profile.winRateText)} · 최근 경기와 주력 지표를 한 번에 확인할 수 있습니다.</p>
         </div>
         <div class="player-hero__stats player-summary-hero__stats">
-          <article><span>전적</span><strong>${escapeHtml(profile.recordText)}</strong></article>
-          <article><span>승률</span><strong>${escapeHtml(profile.winRateText)}</strong></article>
-          <article><span>평균 KDA</span><strong>${escapeHtml(profile.averageKdaText)}</strong></article>
-          <article><span>평균 킬관여</span><strong>${escapeHtml(profile.averageKillRateText)}</strong></article>
+          ${renderStatTile("전적", profile.recordText)}
+          ${renderStatTile("승률", profile.winRateText)}
+          ${renderStatTile("평균 KDA", profile.averageKdaText)}
+          ${renderStatTile("평균 킬관여", profile.averageKillRateText)}
         </div>
       </section>
 
@@ -120,8 +121,9 @@ function renderPlayerPage(model) {
                     model.guildId,
                     `/players/${encodeURIComponent(profile.discordId)}/refresh-riot-accounts`
                   )}"
+                  data-refresh-form
                 >
-                  <button class="player-page__refresh-button" type="submit">닉네임 새로고침</button>
+                  <button class="player-page__refresh-button" type="submit" data-refresh-button>닉네임 새로고침</button>
                 </form>
               </div>
               <ul class="simple-list">

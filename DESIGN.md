@@ -82,6 +82,17 @@
 2. 디자인: 위 토큰/상태/대비 규칙 적용.
 3. 검수: `npm test`(뷰/클라이언트/포맷터 테스트) + 모바일 실기기 + 키보드 전용 흐름.
 
+## 8-1. 전문가 원칙 2차 반영 (Nielsen·Krug·Morville·Wroblewski 등)
+
+- **검색 빈 결과**: 검색어가 있는데 결과 0건이면 `.site-search__empty`로 "‘…’ 검색 결과가 없어요"를 표시(침묵 금지 — 상태 가시성).
+- **스코어보드 모바일 라벨**: 컬럼 헤더가 숨겨지는 ≤1200px에서 각 셀의 `data-label`을 `::before`로 노출(라벨 없는 숫자 나열 방지).
+- **용어 풀이**: 푸터 `.site-footer__glossary`(OP Score/MVP/ACE) + OP Score 컬럼 `title`. **MMR은 공개 사이트에서 노출 금지**(값·용어 모두 — 홈/플레이어 페이지). 랭킹의 정렬 라벨에서만 "MMR" 단어 허용.
+- **랭킹 정렬**: `renderRankingTable`이 `data-sortable-table` + 머리글 `button[data-sort-key]`(name/wins/winrate) 생성, `site.js`가 클라이언트 정렬·`aria-sort` 토글. 행에 `data-rank/wins/winrate`.
+- **경기 필터**: `/matches`에 `[data-match-filter]` 입력 → 로드된 카드 텍스트 필터, 빈 결과 시 `[data-match-filter-empty]` 안내.
+- **새로고침 로딩**: 플레이어 닉네임 새로고침 폼 제출 시 버튼 disabled + "갱신 중…" + `aria-busy`.
+- **공유 컴포넌트**: `renderNoticePanel` / `renderStatTile` / `renderRankingTable`로 홈·랭킹·경기·플레이어 중복 제거(시스템적 일관성).
+- **분석(측정) 시드**: `Layout`이 `WEB_ANALYTICS_SCRIPT_URL`(+선택 `WEB_ANALYTICS_DOMAIN`) 설정 시에만 `<head>`에 스크립트 주입. **기본 비활성 = 어떤 추적도 안 함.** 쿠키리스·프라이버시 친화 도구(Plausible/Umami 등) 권장. 출시 후 "행동 관찰" 원칙의 진입점.
+
 ## 8. 관련 파일
 
 - `public/site.css` — 토큰 + 컴포넌트 + 반응형 + 접근성 보정(파일 끝 블록).

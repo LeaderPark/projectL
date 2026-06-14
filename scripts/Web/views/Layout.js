@@ -91,8 +91,22 @@ function renderFooter(guildId) {
             <a href="${escapeHtml(rankingHref)}">랭킹</a>
           </nav>
           <p>${escapeHtml(PROJECT_DISPLAY_NAME)} · 디스코드 내전 전적 공개 기록</p>
+          <p class="site-footer__glossary">OP Score = 경기 성과 점수 · MVP = 승리팀 최고 기여 · ACE = 패배팀 최고 기여</p>
         </footer>
   `;
+}
+
+// 분석 도구는 기본 비활성. 운영자가 WEB_ANALYTICS_SCRIPT_URL을 설정한 경우에만
+// 주입한다(예: Plausible/Umami 등 쿠키리스·프라이버시 친화 도구). 가이드: 출시 후 관찰/측정.
+function renderAnalytics() {
+  const scriptUrl = String(process.env.WEB_ANALYTICS_SCRIPT_URL ?? "").trim();
+  if (!scriptUrl) {
+    return "";
+  }
+
+  const domain = String(process.env.WEB_ANALYTICS_DOMAIN ?? "").trim();
+  const domainAttr = domain ? ` data-domain="${escapeHtml(domain)}"` : "";
+  return `<script defer src="${escapeHtml(scriptUrl)}"${domainAttr}></script>`;
 }
 
 function renderLayout({
@@ -118,6 +132,7 @@ function renderLayout({
       <link rel="icon" type="image/webp" href="${escapeHtml(faviconAsset.href)}" />
       <style data-inline-site-css>${escapeInlineStyle(stylesheetAsset.content)}</style>
       <link rel="stylesheet" href="${escapeHtml(stylesheetAsset.href)}" />
+      ${renderAnalytics()}
     </head>
     <body>
       ${showHeader ? '<a class="skip-link" href="#main-content">본문 바로가기</a>' : ""}

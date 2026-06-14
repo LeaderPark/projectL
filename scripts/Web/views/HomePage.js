@@ -10,25 +10,13 @@ const {
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderHomePage(model) {
-  const latestMatch = model.recentMatches[0] ?? null;
   const body = `
     <main id="main-content" class="page page--home">
       ${renderNoticePanel(model.notice)}
       <section class="overview-hero hero-card">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Competitive Board</p>
-          <h1>전체 내전 전적</h1>
-        </div>
-        <div class="overview-hero__spotlight">
-          <span>최근 전적</span>
-          <strong>${latestMatch ? escapeHtml(latestMatch.durationText) : "기록 없음"}</strong>
-          <p>${
-            model.serverName
-              ? escapeHtml(model.serverName)
-              : latestMatch
-                ? escapeHtml(latestMatch.gameId || `Match #${latestMatch.id}`)
-                : "아직 집계된 경기가 없어요."
-          }</p>
+          <h1>${model.serverName ? `${escapeHtml(model.serverName)} ` : ""}전체 내전 전적</h1>
         </div>
       </section>
 

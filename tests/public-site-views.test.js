@@ -448,7 +448,7 @@ test("renderHomePage renders summary cards and ranking rows", () => {
   assert.doesNotMatch(pageHtml, /1,700/);
 });
 
-test("renderHomePage shows the Discord server name in the spotlight instead of the game id", () => {
+test("renderHomePage prefixes the Discord server name to the hero title", () => {
   const html = renderHomePage({
     guildId: "123456789",
     serverName: "머글들의 피난처",
@@ -462,8 +462,9 @@ test("renderHomePage shows the Discord server name in the spotlight instead of t
   });
   const pageHtml = stripInlineStyles(html);
 
-  // The spotlight panel surfaces the Discord server name as the recent-record label.
-  assert.match(pageHtml, /overview-hero__spotlight[\s\S]*머글들의 피난처/);
+  // The server name is shown as part of the H1 (the right-side spotlight box was removed).
+  assert.match(pageHtml, /<h1>머글들의 피난처 전체 내전 전적<\/h1>/);
+  assert.doesNotMatch(pageHtml, /overview-hero__spotlight/);
 });
 
 test("renderMatchesPage renders OP.GG-style team sections with public result labels", () => {

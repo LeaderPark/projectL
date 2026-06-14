@@ -712,33 +712,16 @@ body::before {
     linear-gradient(180deg, rgba(10, 16, 30, 0.94), rgba(19, 28, 47, 0.94));
 }
 
+/* 홈 히어로는 우측 스포트라이트 박스를 제거해 단일 컬럼으로 폭을 채운다 */
+.overview-hero {
+  grid-template-columns: 1fr;
+}
+
 .overview-hero__copy,
 .player-summary-hero__identity {
   display: grid;
   gap: 10px;
   align-content: start;
-}
-
-.overview-hero__spotlight {
-  display: grid;
-  gap: 8px;
-  align-content: center;
-  padding: 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(83, 131, 255, 0.18);
-  background: rgba(6, 12, 23, 0.56);
-}
-
-.overview-hero__spotlight span {
-  color: var(--color-accent-strong);
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.overview-hero__spotlight strong {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
 }
 
 .summary-grid,

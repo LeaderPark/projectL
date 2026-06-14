@@ -1,45 +1,24 @@
 const { renderLayout } = require("./Layout");
-const { buildGuildPath, escapeHtml, renderMatchCard } = require("./ViewHelpers");
+const {
+  buildGuildPath,
+  escapeHtml,
+  renderMatchCard,
+  renderNoticePanel,
+  renderRankingTable,
+  renderStatTile,
+} = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
-
-function renderRankingRows(rows, guildId) {
-  if (!rows.length) {
-    return `
-        <tr>
-          <td colspan="4">아직 집계된 플레이어가 없어요.</td>
-        </tr>
-      `;
-  }
-
-  return rows
-    .map(
-      (row, index) => `
-        <tr>
-          <td>#${index + 1}</td>
-          <td><a href="${escapeHtml(buildGuildPath(guildId, `/players/${encodeURIComponent(row.discordId)}`))}">${escapeHtml(row.name)}</a></td>
-          <td>${escapeHtml(row.recordText)}</td>
-          <td>${escapeHtml(row.winRateText)}</td>
-        </tr>
-      `
-    )
-    .join("");
-}
 
 function renderHomePage(model) {
   const latestMatch = model.recentMatches[0] ?? null;
   const body = `
     <main id="main-content" class="page page--home">
-      ${model.notice ? `
-        <section class="panel panel--notice">
-          <h2>${escapeHtml(model.notice.title)}</h2>
-          <p>${escapeHtml(model.notice.description)}</p>
-        </section>
-      ` : ""}
+      ${renderNoticePanel(model.notice)}
       <section class="overview-hero hero-card">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Competitive Board</p>
           <h1>전체 내전 전적</h1>
-          <p>승패 흐름, 최근 경기 결과, 플레이어 랭킹을 한 화면에서 확인하고 경기별 상세 기록까지 바로 이동할 수 있습니다.</p>
+          <p>이 디스코드 서버의 내전 경기 기록과 플레이어 랭킹을 모아 보여주는 공개 페이지입니다. 최근 경기 결과부터 경기별 상세 기록까지 바로 이동할 수 있습니다.</p>
         </div>
         <div class="overview-hero__spotlight">
           <span>최근 전적</span>
@@ -55,9 +34,9 @@ function renderHomePage(model) {
       </section>
 
       <section class="summary-grid">
-        <article class="summary-card"><span>총 경기 수</span><strong>${escapeHtml(model.summary.totalMatchesText)}</strong></article>
-        <article class="summary-card"><span>등록 플레이어</span><strong>${escapeHtml(model.summary.totalPlayersText)}</strong></article>
-        <article class="summary-card"><span>최고 승률</span><strong>${escapeHtml(model.summary.topWinRateText)}</strong></article>
+        ${renderStatTile("총 경기 수", model.summary.totalMatchesText, "summary-card")}
+        ${renderStatTile("등록 플레이어", model.summary.totalPlayersText, "summary-card")}
+        ${renderStatTile("최고 승률", model.summary.topWinRateText, "summary-card")}
       </section>
 
       <section class="content-grid">
@@ -87,21 +66,7 @@ function renderHomePage(model) {
           <div class="panel__header">
             <h2>공개 랭킹</h2>
           </div>
-          <div class="table-scroll">
-            <table class="ranking-table">
-              <thead>
-                <tr>
-                  <th scope="col">순위</th>
-                  <th scope="col">플레이어</th>
-                  <th scope="col">전적</th>
-                  <th scope="col">승률</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${renderRankingRows(model.ranking, model.guildId)}
-              </tbody>
-            </table>
-          </div>
+          ${renderRankingTable(model.ranking, model.guildId)}
         </section>
       </section>
     </main>

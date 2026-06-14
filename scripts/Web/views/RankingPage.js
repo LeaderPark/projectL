@@ -1,60 +1,11 @@
 const { renderLayout } = require("./Layout");
-const { buildGuildPath, escapeHtml } = require("./ViewHelpers");
+const { renderNoticePanel, renderRankingTable } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
-
-function buildRankCell(index) {
-  const rank = index + 1;
-
-  if (rank > 3) {
-    return `#${rank}`;
-  }
-
-  return `
-    <span class="ranking-table__rank-badge ranking-table__rank-badge--top-${rank}">
-      <strong>${rank}</strong>
-    </span>
-  `;
-}
-
-function renderRankingRows(rows, guildId) {
-  if (!rows.length) {
-    return `
-      <tr>
-        <td colspan="4">아직 집계된 플레이어가 없어요.</td>
-      </tr>
-    `;
-  }
-
-  return rows
-    .map(
-      (row, index) => {
-        const rank = index + 1;
-        const rowClassName = rank <= 3
-          ? `ranking-table__row ranking-table__row--top-${rank}`
-          : "ranking-table__row";
-
-        return `
-        <tr class="${rowClassName}">
-          <td class="ranking-table__rank-cell">${buildRankCell(index)}</td>
-          <td><a href="${escapeHtml(buildGuildPath(guildId, `/players/${encodeURIComponent(row.discordId)}`))}">${escapeHtml(row.name)}</a></td>
-          <td>${escapeHtml(row.recordText)}</td>
-          <td>${escapeHtml(row.winRateText)}</td>
-        </tr>
-      `;
-      }
-    )
-    .join("");
-}
 
 function renderRankingPage(model) {
   const body = `
     <main id="main-content" class="page page--ranking">
-      ${model.notice ? `
-        <section class="panel panel--notice">
-          <h2>${escapeHtml(model.notice.title)}</h2>
-          <p>${escapeHtml(model.notice.description)}</p>
-        </section>
-      ` : ""}
+      ${renderNoticePanel(model.notice)}
       <section class="hero-card hero-card--compact">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Ranking</p>
@@ -65,23 +16,9 @@ function renderRankingPage(model) {
       <section class="panel panel--ranking-full">
         <div class="panel__header">
           <h2>전체 플레이어 랭킹</h2>
-          <span>MMR 기준 정렬</span>
+          <span>MMR(실력 점수) 기준 정렬 · 머리글을 눌러 다시 정렬</span>
         </div>
-        <div class="table-scroll">
-          <table class="ranking-table">
-            <thead>
-              <tr>
-                <th scope="col">순위</th>
-                <th scope="col">플레이어</th>
-                <th scope="col">전적</th>
-                <th scope="col">승률</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${renderRankingRows(model.ranking, model.guildId)}
-            </tbody>
-          </table>
-        </div>
+        ${renderRankingTable(model.ranking, model.guildId)}
       </section>
     </main>
   `;

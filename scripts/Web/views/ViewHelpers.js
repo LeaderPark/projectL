@@ -16,6 +16,11 @@ function buildGuildPath(guildId, suffix = "") {
   return `/${encodeURIComponent(normalizedGuildId)}${suffix}`;
 }
 
+// 사용자용 용어 풀이 (가이드: 사용자 언어 / 개념 모델). title 속성으로만 쓰이므로 escape.
+const OP_SCORE_HELP = escapeHtml(
+  "한 경기에서 얼마나 잘했는지를 종합해 환산한 성과 점수"
+);
+
 function renderAssetImage({ imageUrl, name = "" } = {}, className, fallback = "") {
   if (imageUrl) {
     return `<img class="${className}" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(name)}" loading="lazy" />`;
@@ -560,7 +565,7 @@ function renderScoreboardColumns(mode = "full") {
     return `
       <div class="match-scoreboard__columns" role="row">
         <span role="columnheader">플레이어</span>
-        <span role="columnheader">OP Score</span>
+        <span role="columnheader" title="${OP_SCORE_HELP}">OP Score</span>
         <span role="columnheader">KDA</span>
       </div>
     `;
@@ -569,7 +574,7 @@ function renderScoreboardColumns(mode = "full") {
   return `
     <div class="match-scoreboard__columns" role="row">
       <span role="columnheader">플레이어</span>
-      <span role="columnheader">OP Score</span>
+      <span role="columnheader" title="${OP_SCORE_HELP}">OP Score</span>
       <span role="columnheader">KDA</span>
       <span role="columnheader">피해량</span>
       <span role="columnheader">시야점수</span>
@@ -723,11 +728,11 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context, mode = "fu
     return `
       <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}" role="row">
         ${renderScoreboardIdentity(player)}
-        <div class="match-scoreboard__score" role="cell">
+        <div class="match-scoreboard__score" role="cell" data-label="OP Score">
           <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
           <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
         </div>
-        <div class="match-scoreboard__kda" role="cell">
+        <div class="match-scoreboard__kda" role="cell" data-label="KDA">
           <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
           <span>${escapeHtml(kdaRatioText)}</span>
         </div>
@@ -738,27 +743,27 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context, mode = "fu
   return `
     <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}" role="row">
       ${renderScoreboardIdentity(player)}
-      <div class="match-scoreboard__score" role="cell">
+      <div class="match-scoreboard__score" role="cell" data-label="OP Score">
         <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
         <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
       </div>
-      <div class="match-scoreboard__kda" role="cell">
+      <div class="match-scoreboard__kda" role="cell" data-label="KDA">
         <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
         <span>${escapeHtml(kdaRatioText)}</span>
       </div>
-      <div class="match-scoreboard__damage" role="cell">
+      <div class="match-scoreboard__damage" role="cell" data-label="피해량">
         <strong>${escapeHtml(player.damageText)}</strong>
         ${renderScoreboardMeter((damageValue / context.maxDamage) * 100, sideLabel)}
       </div>
-      <div class="match-scoreboard__stat" role="cell">
+      <div class="match-scoreboard__stat" role="cell" data-label="시야점수">
         <strong>${escapeHtml(player.visionScoreText)}</strong>
         ${renderScoreboardMeter((visionValue / context.maxVision) * 100, sideLabel)}
       </div>
-      <div class="match-scoreboard__stat match-scoreboard__stat--cs" role="cell">
+      <div class="match-scoreboard__stat match-scoreboard__stat--cs" role="cell" data-label="CS">
         <strong>${escapeHtml(player.minionScoreText)}</strong>
         <span>분당 ${escapeHtml(player.csPerMinuteText)}</span>
       </div>
-      <div class="match-scoreboard__build" role="cell">
+      <div class="match-scoreboard__build" role="cell" data-label="아이템">
         ${renderScoreboardItemBuild(player)}
       </div>
     </li>
@@ -1091,11 +1096,111 @@ function renderSimpleRows(items) {
     .join("");
 }
 
+// --- 공유 컴포넌트 (가이드: 시스템으로 설계, 일관성) ---
+
+// 안내 패널: HomePage / RankingPage / MatchesPage 공통.
+function renderNoticePanel(notice) {
+  if (!notice) {
+    return "";
+  }
+
+  return `
+    <section class="panel panel--notice">
+      <h2>${escapeHtml(notice.title)}</h2>
+      <p>${escapeHtml(notice.description)}</p>
+    </section>
+  `;
+}
+
+// 요약 통계 타일: HomePage 요약 / PlayerPage 히어로 공통.
+function renderStatTile(label, value, className = "") {
+  const classAttr = className ? ` class="${escapeHtml(className)}"` : "";
+  return `<article${classAttr}><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
+}
+
+function buildRankCell(index) {
+  const rank = index + 1;
+  if (rank > 3) {
+    return `#${rank}`;
+  }
+
+  return `
+    <span class="ranking-table__rank-badge ranking-table__rank-badge--top-${rank}">
+      <strong>${rank}</strong>
+    </span>
+  `;
+}
+
+// 정렬용 숫자 추출: "10승 2패" -> 10, "57%" -> 57.
+function firstNumber(text) {
+  const match = String(text ?? "").match(/-?\d+(\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+
+function renderRankingRows(rows, guildId) {
+  if (!rows.length) {
+    return `
+      <tr>
+        <td colspan="4">아직 집계된 플레이어가 없어요.</td>
+      </tr>
+    `;
+  }
+
+  return rows
+    .map((row, index) => {
+      const rank = index + 1;
+      const rowClassName =
+        rank <= 3
+          ? `ranking-table__row ranking-table__row--top-${rank}`
+          : "ranking-table__row";
+
+      return `
+        <tr class="${rowClassName}" data-rank="${rank}" data-wins="${firstNumber(row.recordText)}" data-winrate="${firstNumber(row.winRateText)}">
+          <td class="ranking-table__rank-cell">${buildRankCell(index)}</td>
+          <td><a href="${escapeHtml(buildGuildPath(guildId, `/players/${encodeURIComponent(row.discordId)}`))}">${escapeHtml(row.name)}</a></td>
+          <td>${escapeHtml(row.recordText)}</td>
+          <td>${escapeHtml(row.winRateText)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+// 정렬 가능한 랭킹 표 (가이드: 검색성/찾기 + 일관성). 정렬은 site.js가 클라이언트에서 처리.
+function renderRankingTable(rows, guildId) {
+  const sortable = rows.length > 1 ? " data-sortable-table" : "";
+  const sortBtn = (key, label) =>
+    rows.length > 1
+      ? `<button type="button" class="ranking-table__sort" data-sort-key="${key}">${label}</button>`
+      : label;
+
+  return `
+    <div class="table-scroll">
+      <table class="ranking-table"${sortable}>
+        <thead>
+          <tr>
+            <th scope="col">순위</th>
+            <th scope="col">${sortBtn("name", "플레이어")}</th>
+            <th scope="col">${sortBtn("wins", "전적")}</th>
+            <th scope="col" aria-sort="descending">${sortBtn("winrate", "승률")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${renderRankingRows(rows, guildId)}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 module.exports = {
   buildGuildPath,
   escapeHtml,
   renderAssetImage,
   renderMatchCard,
   renderMatchDetailShell,
+  renderNoticePanel,
+  renderRankingTable,
   renderSimpleRows,
+  renderStatTile,
 };

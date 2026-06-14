@@ -7,7 +7,7 @@ function renderLandingPage() {
       <section class="landing-card">
         <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Server Record</p>
         <h1>서버 아이디 입력</h1>
-        <p>확인하려는 디스코드 서버 아이디를 입력하면 해당 서버 전적 페이지로 바로 이동합니다.</p>
+        <p>이곳은 디스코드 내전(커스텀 게임)의 경기 기록과 플레이어 랭킹을 보여주는 공개 사이트입니다. 확인하려는 디스코드 서버 아이디를 입력하면 해당 서버의 전적·랭킹 페이지로 이동합니다.</p>
         <form
           class="server-id-form"
           action="/"

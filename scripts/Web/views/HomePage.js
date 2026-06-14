@@ -18,7 +18,6 @@ function renderHomePage(model) {
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Competitive Board</p>
           <h1>전체 내전 전적</h1>
-          <p>이 디스코드 서버의 내전 경기 기록과 플레이어 랭킹을 모아 보여주는 공개 페이지입니다. 최근 경기 결과부터 경기별 상세 기록까지 바로 이동할 수 있습니다.</p>
         </div>
         <div class="overview-hero__spotlight">
           <span>최근 전적</span>

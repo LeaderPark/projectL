@@ -76,22 +76,10 @@ function renderHeader(guildId, activeNav = "") {
   `;
 }
 
-function renderFooter(guildId) {
-  const homeHref = buildGuildPath(guildId);
-  const matchesHref = buildGuildPath(guildId, "/matches");
-  const rankingHref = buildGuildPath(guildId, "/ranking");
-
+function renderFooter() {
   return `
         <footer class="site-footer">
-          <nav aria-label="푸터 메뉴">
-            <a href="${escapeHtml(homeHref)}">홈</a>
-            ·
-            <a href="${escapeHtml(matchesHref)}">전체 경기</a>
-            ·
-            <a href="${escapeHtml(rankingHref)}">랭킹</a>
-          </nav>
           <p>${escapeHtml(PROJECT_DISPLAY_NAME)} · 디스코드 내전 전적 공개 기록</p>
-          <p class="site-footer__glossary">OP Score = 경기 성과 점수 · MVP = 승리팀 최고 기여 · ACE = 패배팀 최고 기여</p>
         </footer>
   `;
 }
@@ -139,7 +127,7 @@ function renderLayout({
       <div class="${escapeHtml(shellClassName)}">
         ${showHeader ? renderHeader(guildId, activeNav) : ""}
         ${body}
-        ${showHeader ? renderFooter(guildId) : ""}
+        ${showHeader ? renderFooter() : ""}
       </div>
       <script src="${escapeHtml(scriptAsset.href)}"></script>
     </body>

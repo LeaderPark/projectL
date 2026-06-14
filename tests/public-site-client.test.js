@@ -23,9 +23,22 @@ function createEventTarget(initialState = {}) {
 }
 
 function loadPublicSiteScript({ fetchImpl }) {
+  const submit = {
+    disabled: false,
+    attributes: {},
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+    removeAttribute(name) {
+      delete this.attributes[name];
+    },
+  };
   const form = createEventTarget({
     dataset: {
       serverIdCheckEndpoint: "/api/server-validation",
+    },
+    querySelector(selector) {
+      return selector === '[type="submit"]' ? submit : null;
     },
   });
   const input = createEventTarget({
@@ -116,7 +129,7 @@ test("landing-page script redirects only after confirming the server id is regis
   assert.equal(location.href, "/123456789");
 });
 
-test("landing-page script alerts and stays put when the server id is not registered", async () => {
+test("landing-page script shows an inline error and stays put when the server id is not registered", async () => {
   const seenUrls = [];
   const { alerts, error, form, input, location } = loadPublicSiteScript({
     fetchImpl: async (url) => {
@@ -136,8 +149,10 @@ test("landing-page script alerts and stays put when the server id is not registe
   });
 
   assert.deepEqual(seenUrls, ["/api/server-validation?serverId=999999999"]);
-  assert.deepEqual(alerts, ["등록되지 않은 서버 아이디입니다."]);
+  // The script now surfaces the error inline (no jarring window.alert).
+  assert.deepEqual(alerts, []);
+  assert.equal(error.hidden, false);
+  assert.equal(error.textContent, "등록되지 않은 서버 아이디입니다.");
   assert.equal(location.href, "/");
-  assert.equal(error.hidden, true);
   assert.equal(input.focused, true);
 });

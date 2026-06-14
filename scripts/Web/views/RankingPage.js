@@ -48,7 +48,7 @@ function renderRankingRows(rows, guildId) {
 
 function renderRankingPage(model) {
   const body = `
-    <main class="page page--ranking">
+    <main id="main-content" class="page page--ranking">
       ${model.notice ? `
         <section class="panel panel--notice">
           <h2>${escapeHtml(model.notice.title)}</h2>
@@ -71,10 +71,10 @@ function renderRankingPage(model) {
           <table class="ranking-table">
             <thead>
               <tr>
-                <th>순위</th>
-                <th>플레이어</th>
-                <th>전적</th>
-                <th>승률</th>
+                <th scope="col">순위</th>
+                <th scope="col">플레이어</th>
+                <th scope="col">전적</th>
+                <th scope="col">승률</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +91,7 @@ function renderRankingPage(model) {
     description: `${PROJECT_DISPLAY_NAME} 전체 플레이어 랭킹`,
     body,
     guildId: model.guildId,
+    activeNav: "ranking",
   });
 }
 

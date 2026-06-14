@@ -3,7 +3,7 @@ const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderLandingPage() {
   const body = `
-    <main class="page page--landing">
+    <main id="main-content" class="page page--landing">
       <section class="landing-card">
         <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Server Record</p>
         <h1>서버 아이디 입력</h1>

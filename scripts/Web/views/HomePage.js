@@ -3,6 +3,14 @@ const { buildGuildPath, escapeHtml, renderMatchCard } = require("./ViewHelpers")
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderRankingRows(rows, guildId) {
+  if (!rows.length) {
+    return `
+        <tr>
+          <td colspan="4">아직 집계된 플레이어가 없어요.</td>
+        </tr>
+      `;
+  }
+
   return rows
     .map(
       (row, index) => `
@@ -20,7 +28,7 @@ function renderRankingRows(rows, guildId) {
 function renderHomePage(model) {
   const latestMatch = model.recentMatches[0] ?? null;
   const body = `
-    <main class="page page--home">
+    <main id="main-content" class="page page--home">
       ${model.notice ? `
         <section class="panel panel--notice">
           <h2>${escapeHtml(model.notice.title)}</h2>
@@ -58,15 +66,20 @@ function renderHomePage(model) {
             <h2>최근 전적</h2>
             <a class="panel__link" href="${escapeHtml(buildGuildPath(model.guildId, "/matches"))}">전체 경기 보기</a>
           </div>
-          <div class="match-feed">
-            ${model.recentMatches
-              .map((card) =>
-                renderMatchCard({
-                  ...card,
-                  href: buildGuildPath(model.guildId, `/matches/${card.id}`),
-                }, { showResult: false, showSummaryHighlight: false })
-              )
-              .join("")}
+          <div class="match-feed${model.recentMatches.length ? "" : " match-feed--empty"}">
+            ${model.recentMatches.length
+              ? model.recentMatches
+                  .map((card) =>
+                    renderMatchCard({
+                      ...card,
+                      href: buildGuildPath(model.guildId, `/matches/${card.id}`),
+                    }, { showResult: false, showSummaryHighlight: false })
+                  )
+                  .join("")
+              : `<div class="panel-empty-state">
+                  <strong>아직 집계된 경기가 없어요.</strong>
+                  <p>첫 경기 결과가 등록되면 이곳에 최근 전적이 표시됩니다.</p>
+                </div>`}
           </div>
         </section>
 
@@ -74,19 +87,21 @@ function renderHomePage(model) {
           <div class="panel__header">
             <h2>공개 랭킹</h2>
           </div>
-          <table class="ranking-table">
-            <thead>
-              <tr>
-                <th>순위</th>
-                <th>플레이어</th>
-                <th>전적</th>
-                <th>승률</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${renderRankingRows(model.ranking, model.guildId)}
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="ranking-table">
+              <thead>
+                <tr>
+                  <th scope="col">순위</th>
+                  <th scope="col">플레이어</th>
+                  <th scope="col">전적</th>
+                  <th scope="col">승률</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${renderRankingRows(model.ranking, model.guildId)}
+              </tbody>
+            </table>
+          </div>
         </section>
       </section>
     </main>
@@ -97,6 +112,7 @@ function renderHomePage(model) {
     description: `${PROJECT_DISPLAY_NAME} 내전 기록을 한눈에 보여주는 공개 페이지`,
     body,
     guildId: model.guildId,
+    activeNav: "home",
   });
 }
 

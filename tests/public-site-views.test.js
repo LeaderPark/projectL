@@ -584,7 +584,7 @@ test("ranking page styles reuse the shared shell gutters", () => {
   );
   assert.match(
     css,
-    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.site-shell\s*\{[\s\S]*width:\s*min\(100%\s*-\s*18px,\s*1360px\);/
+    /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.site-shell\s*\{[\s\S]*width:\s*min\(100%\s*-\s*32px,\s*1360px\);/
   );
   assert.doesNotMatch(css, /\.site-shell--ranking-wide\s*\{/);
   assert.match(
@@ -721,7 +721,7 @@ test("renderMatchCard allows OP Score values above ten", () => {
 
   assert.match(
     html,
-    /테스트 찰리[\s\S]*class="match-scoreboard__score">[\s\S]*<strong>72<\/strong>/
+    /테스트 찰리[\s\S]*class="match-scoreboard__score"[^>]*>[\s\S]*<strong>72<\/strong>/
   );
 });
 

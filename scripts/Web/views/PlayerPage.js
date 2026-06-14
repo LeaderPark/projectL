@@ -53,7 +53,7 @@ function renderPlayerPage(model) {
   const { profile } = model;
   const refreshMessage = buildRefreshMessage(model.refreshStatus);
   const body = `
-    <main class="page page--player">
+    <main id="main-content" class="page page--player">
       ${
         refreshMessage
           ? `
@@ -80,8 +80,13 @@ function renderPlayerPage(model) {
       <section class="player-page__shell">
         <section class="panel panel--timeline player-page__main">
           <div class="panel__header"><h2>최근 경기</h2></div>
-          <div class="match-feed" data-player-match-feed>
-            ${renderPlayerMatchCards(model.guildId, model.recentMatches)}
+          <div class="match-feed${model.recentMatches.length ? "" : " match-feed--empty"}" data-player-match-feed>
+            ${model.recentMatches.length
+              ? renderPlayerMatchCards(model.guildId, model.recentMatches)
+              : `<div class="panel-empty-state">
+                  <strong>아직 집계된 경기가 없어요.</strong>
+                  <p>이 플레이어의 경기가 기록되면 이곳에 표시됩니다.</p>
+                </div>`}
           </div>
           ${
             model.recentMatchesHasMore

@@ -1,5 +1,5 @@
 const { renderLayout } = require("./Layout");
-const { buildGuildPath, renderMatchCard } = require("./ViewHelpers");
+const { buildGuildPath, escapeHtml, renderMatchCard } = require("./ViewHelpers");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderEmptyTimelineState() {
@@ -14,11 +14,11 @@ function renderEmptyTimelineState() {
 function renderMatchesPage(model) {
   const hasCards = model.cards.length > 0;
   const body = `
-    <main class="page page--matches">
+    <main id="main-content" class="page page--matches">
       ${model.notice ? `
         <section class="panel panel--notice">
-          <h2>${model.notice.title}</h2>
-          <p>${model.notice.description}</p>
+          <h2>${escapeHtml(model.notice.title)}</h2>
+          <p>${escapeHtml(model.notice.description)}</p>
         </section>
       ` : ""}
       <section class="hero-card hero-card--compact">
@@ -54,6 +54,7 @@ function renderMatchesPage(model) {
     description: `${PROJECT_DISPLAY_NAME} 전체 경기 히스토리`,
     body,
     guildId: model.guildId,
+    activeNav: "matches",
   });
 }
 

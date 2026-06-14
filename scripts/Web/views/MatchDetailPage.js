@@ -4,7 +4,7 @@ const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 
 function renderMatchDetailPage({ guildId, match }) {
   const body = `
-    <main class="page page--match-detail">
+    <main id="main-content" class="page page--match-detail">
       <section class="overview-hero hero-card hero-card--compact">
         <div class="overview-hero__copy">
           <p class="hero-card__eyebrow">${PROJECT_DISPLAY_NAME} Match Detail</p>

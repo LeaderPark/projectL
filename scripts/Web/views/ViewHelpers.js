@@ -558,23 +558,23 @@ function renderPlayerLayoutSummary(card, context) {
 function renderScoreboardColumns(mode = "full") {
   if (mode === "compact") {
     return `
-      <div class="match-scoreboard__columns">
-        <span>플레이어</span>
-        <span>OP Score</span>
-        <span>KDA</span>
+      <div class="match-scoreboard__columns" role="row">
+        <span role="columnheader">플레이어</span>
+        <span role="columnheader">OP Score</span>
+        <span role="columnheader">KDA</span>
       </div>
     `;
   }
 
   return `
-    <div class="match-scoreboard__columns">
-      <span>플레이어</span>
-      <span>OP Score</span>
-      <span>KDA</span>
-      <span>피해량</span>
-      <span>시야점수</span>
-      <span>CS</span>
-      <span>아이템</span>
+    <div class="match-scoreboard__columns" role="row">
+      <span role="columnheader">플레이어</span>
+      <span role="columnheader">OP Score</span>
+      <span role="columnheader">KDA</span>
+      <span role="columnheader">피해량</span>
+      <span role="columnheader">시야점수</span>
+      <span role="columnheader">CS</span>
+      <span role="columnheader">아이템</span>
     </div>
   `;
 }
@@ -599,7 +599,7 @@ function renderScoreboardItemBuild(player) {
 
 function renderScoreboardIdentity(player) {
   return `
-    <div class="match-scoreboard__identity">
+    <div class="match-scoreboard__identity" role="rowheader">
       ${renderAssetImage(
         { imageUrl: player.championImageUrl, name: player.championName },
         "match-scoreboard__champion-image",
@@ -721,13 +721,13 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context, mode = "fu
 
   if (mode === "compact") {
     return `
-      <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
+      <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}" role="row">
         ${renderScoreboardIdentity(player)}
-        <div class="match-scoreboard__score">
+        <div class="match-scoreboard__score" role="cell">
           <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
           <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
         </div>
-        <div class="match-scoreboard__kda">
+        <div class="match-scoreboard__kda" role="cell">
           <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
           <span>${escapeHtml(kdaRatioText)}</span>
         </div>
@@ -736,29 +736,29 @@ function renderScoreboardRow(player, sideLabel, teamMetrics, context, mode = "fu
   }
 
   return `
-    <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}">
+    <li class="match-scoreboard__row match-scoreboard__row--${escapeHtml(sideLabel)}" role="row">
       ${renderScoreboardIdentity(player)}
-      <div class="match-scoreboard__score">
+      <div class="match-scoreboard__score" role="cell">
         <strong>${escapeHtml(formatOpScore(player.performanceScore))}</strong>
         <span class="match-scoreboard__badge match-scoreboard__badge--${escapeHtml(badgeModifier)}">${escapeHtml(badgeText)}</span>
       </div>
-      <div class="match-scoreboard__kda">
+      <div class="match-scoreboard__kda" role="cell">
         <strong>${escapeHtml(player.kdaText)} (${escapeHtml(killParticipation)}%)</strong>
         <span>${escapeHtml(kdaRatioText)}</span>
       </div>
-      <div class="match-scoreboard__damage">
+      <div class="match-scoreboard__damage" role="cell">
         <strong>${escapeHtml(player.damageText)}</strong>
         ${renderScoreboardMeter((damageValue / context.maxDamage) * 100, sideLabel)}
       </div>
-      <div class="match-scoreboard__stat">
+      <div class="match-scoreboard__stat" role="cell">
         <strong>${escapeHtml(player.visionScoreText)}</strong>
         ${renderScoreboardMeter((visionValue / context.maxVision) * 100, sideLabel)}
       </div>
-      <div class="match-scoreboard__stat match-scoreboard__stat--cs">
+      <div class="match-scoreboard__stat match-scoreboard__stat--cs" role="cell">
         <strong>${escapeHtml(player.minionScoreText)}</strong>
         <span>분당 ${escapeHtml(player.csPerMinuteText)}</span>
       </div>
-      <div class="match-scoreboard__build">
+      <div class="match-scoreboard__build" role="cell">
         ${renderScoreboardItemBuild(player)}
       </div>
     </li>
@@ -772,7 +772,7 @@ function renderScoreboardTeam(team, sideLabel, context, mode = "full") {
     <section class="match-scoreboard__team match-scoreboard__team--${escapeHtml(sideLabel)}">
       <header class="match-scoreboard__team-header">
         <div class="match-scoreboard__team-heading">
-          <strong>${escapeHtml(team.resultText)} (${escapeHtml(getTeamSideName(sideLabel))})</strong>
+          <strong role="heading" aria-level="2">${escapeHtml(team.resultText)} (${escapeHtml(getTeamSideName(sideLabel))})</strong>
           ${
             mode === "full"
               ? `<span>${escapeHtml(team.totalKillsText)}킬 · 피해량 ${escapeHtml(
@@ -782,14 +782,18 @@ function renderScoreboardTeam(team, sideLabel, context, mode = "full") {
           }
         </div>
       </header>
-      ${renderScoreboardColumns(mode)}
-      <ul class="match-scoreboard__list">
-        ${(team.players ?? [])
-          .map((player) =>
-            renderScoreboardRow(player, sideLabel, teamMetrics, context, mode)
-          )
-          .join("")}
-      </ul>
+      <div class="match-scoreboard__table" role="table" aria-label="${escapeHtml(team.resultText)} ${escapeHtml(getTeamSideName(sideLabel))} 스코어보드">
+        <div role="rowgroup">
+          ${renderScoreboardColumns(mode)}
+        </div>
+        <ul class="match-scoreboard__list" role="rowgroup">
+          ${(team.players ?? [])
+            .map((player) =>
+              renderScoreboardRow(player, sideLabel, teamMetrics, context, mode)
+            )
+            .join("")}
+        </ul>
+      </div>
     </section>
   `;
 }

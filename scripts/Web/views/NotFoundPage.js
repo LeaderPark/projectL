@@ -9,7 +9,7 @@ function renderNotFoundPage({
     title,
     description,
     body: `
-      <main class="page page--missing">
+      <main id="main-content" class="page page--missing">
         <section class="panel panel--missing">
           <h1>${escapeHtml(title)}</h1>
           <p>${escapeHtml(description)}</p>

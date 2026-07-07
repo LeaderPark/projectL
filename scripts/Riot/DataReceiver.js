@@ -3,9 +3,14 @@ const { getRuntimeConfig } = require("../../config/runtime");
 
 const runtimeConfig = getRuntimeConfig();
 
+const RIOT_HTTP_TIMEOUT_MS = 8000;
+
 // Pass the Riot API key via the X-Riot-Token header (like TournamentApi) instead
 // of a ?api_key= query string, so the secret does not leak into URLs/logs.
-const RIOT_AUTH = { headers: { "X-Riot-Token": runtimeConfig.riot.token } };
+const RIOT_AUTH = {
+  headers: { "X-Riot-Token": runtimeConfig.riot.token },
+  timeout: RIOT_HTTP_TIMEOUT_MS,
+};
 
 const getSummonerData = async (summonerName, summonerTag) => {
   try {

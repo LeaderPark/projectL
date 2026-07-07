@@ -7,6 +7,8 @@ const DEFAULT_VERSIONS_URL =
 const DEFAULT_CDN_BASE_URL = "https://ddragon.leagueoflegends.com";
 const DEFAULT_FALLBACK_VERSION = "10.11.1";
 const DEFAULT_LOCALE = "ko_KR";
+const RIOT_HTTP_TIMEOUT_MS = 8000;
+const ASSET_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 function buildChampionAssets(rawChampionData, baseUrl, version) {
   return Object.entries(rawChampionData ?? {}).reduce((assets, [key, champion]) => {
@@ -99,11 +101,14 @@ function createRiotAssetService({
   locale = DEFAULT_LOCALE,
 } = {}) {
   let cachedManifest = null;
+  let cachedManifestAt = 0;
   let pendingManifest = null;
 
   async function resolveVersion() {
     try {
-      const response = await httpClient.get(versionsUrl);
+      const response = await httpClient.get(versionsUrl, {
+        timeout: RIOT_HTTP_TIMEOUT_MS,
+      });
       const versions = Array.isArray(response?.data) ? response.data : [];
       const latestVersion = versions.find(
         (version) => typeof version === "string" && version.trim() !== ""
@@ -127,16 +132,20 @@ function createRiotAssetService({
     const [championResponse, itemResponse, spellResponse, runeResponse] =
       await Promise.all([
         httpClient.get(
-          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/champion.json`
+          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/champion.json`,
+          { timeout: RIOT_HTTP_TIMEOUT_MS }
         ),
         httpClient.get(
-          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/item.json`
+          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/item.json`,
+          { timeout: RIOT_HTTP_TIMEOUT_MS }
         ),
         httpClient.get(
-          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/summoner.json`
+          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/summoner.json`,
+          { timeout: RIOT_HTTP_TIMEOUT_MS }
         ),
         httpClient.get(
-          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/runesReforged.json`
+          `${baseUrl}/cdn/${encodeURIComponent(version)}/data/${localePath}/runesReforged.json`,
+          { timeout: RIOT_HTTP_TIMEOUT_MS }
         ),
       ]);
 
@@ -154,7 +163,7 @@ function createRiotAssetService({
   }
 
   async function getAssetManifest() {
-    if (cachedManifest) {
+    if (cachedManifest && Date.now() - cachedManifestAt < ASSET_CACHE_TTL_MS) {
       return cachedManifest;
     }
 
@@ -162,6 +171,7 @@ function createRiotAssetService({
       pendingManifest = loadAssetManifest()
         .then((manifest) => {
           cachedManifest = manifest;
+          cachedManifestAt = Date.now();
           return manifest;
         })
         .finally(() => {

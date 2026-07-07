@@ -1,7 +1,28 @@
 const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000;
+const MAX_COOLDOWN_STORE_SIZE = 5000;
 
 function normalizeIdentityValue(value) {
   return String(value ?? "").trim();
+}
+
+function pruneCooldownStore(cooldownStore, currentTime, cooldownMs) {
+  for (const [key, timestamp] of cooldownStore) {
+    if (currentTime - Number(timestamp) >= cooldownMs) {
+      cooldownStore.delete(key);
+    }
+  }
+
+  if (cooldownStore.size > MAX_COOLDOWN_STORE_SIZE) {
+    let overflow = cooldownStore.size - MAX_COOLDOWN_STORE_SIZE;
+    for (const key of cooldownStore.keys()) {
+      if (overflow <= 0) {
+        break;
+      }
+
+      cooldownStore.delete(key);
+      overflow -= 1;
+    }
+  }
 }
 
 function buildRefreshKey(guildId, discordId) {
@@ -40,6 +61,9 @@ function createPlayerRiotIdentityRefreshService({
     async refreshPlayerRiotIdentity(guildId, discordId) {
       const refreshKey = buildRefreshKey(guildId, discordId);
       const currentTime = Number(now());
+
+      pruneCooldownStore(cooldownStore, currentTime, cooldownMs);
+
       const lastAcceptedAt = Number(cooldownStore.get(refreshKey) ?? 0);
 
       if (
@@ -52,8 +76,6 @@ function createPlayerRiotIdentityRefreshService({
           status: "throttled",
         };
       }
-
-      cooldownStore.set(refreshKey, currentTime);
 
       const accountsResult = await resolvedListRefreshableRiotAccounts(guildId, discordId);
       if (!accountsResult?.success) {
@@ -71,6 +93,8 @@ function createPlayerRiotIdentityRefreshService({
           status: "unchanged",
         };
       }
+
+      cooldownStore.set(refreshKey, currentTime);
 
       let updatedCount = 0;
       let failedCount = 0;

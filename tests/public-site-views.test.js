@@ -366,7 +366,7 @@ const sampleMatchDetail = {
   },
 };
 
-test("renderLayout uses a fixed browser title and shared assets", () => {
+test("renderLayout uses the passed page title, OG metadata, and shared assets", () => {
   const html = renderLayout({
     title: "임의 페이지 제목",
     guildId: "123456789",
@@ -374,10 +374,11 @@ test("renderLayout uses a fixed browser title and shared assets", () => {
   });
   const pageHtml = stripInlineStyles(html);
 
-  assert.match(html, /<title>마법공학 분류모자<\/title>/);
-  assert.doesNotMatch(html, /<title>임의 페이지 제목<\/title>/);
-  assert.match(html, /<style data-inline-site-css>/);
-  assert.match(html, /--color-bg:/);
+  // Title now reflects the per-page title (with brand fallback) instead of a fixed brand string.
+  assert.match(html, /<title>임의 페이지 제목<\/title>/);
+  assert.match(html, /og:title" content="임의 페이지 제목"/);
+  // CSS is delivered only via the cacheable external link, not an inline <style> dump.
+  assert.doesNotMatch(html, /<style data-inline-site-css>/);
   assert.match(pageHtml, /\/public\/site\.css\?v=\d+/);
   assert.match(pageHtml, /\/public\/site\.js\?v=\d+/);
   assert.match(
@@ -400,7 +401,7 @@ test("renderLandingPage renders only a server-id entry form", () => {
   const pageHtml = stripInlineStyles(html);
 
   assert.match(pageHtml, /서버 아이디/);
-  assert.match(pageHtml, /<title>마법공학 분류모자<\/title>/);
+  assert.match(pageHtml, /<title>마법공학 분류모자 서버 선택<\/title>/);
   assert.match(pageHtml, /<form/);
   assert.match(pageHtml, /name="serverId"/);
   assert.doesNotMatch(pageHtml, /ProjectL/);
@@ -855,7 +856,7 @@ test("renderPlayerPage renders profile stats, champion rows, and recent matches"
     "";
 
   assert.match(html, /Alpha/);
-  assert.match(html, /<title>마법공학 분류모자<\/title>/);
+  assert.match(html, /<title>Alpha - 마법공학 분류모자<\/title>/);
   assert.match(html, /마법공학 분류모자 Player/);
   assert.match(html, /승률/);
   assert.match(html, /주 챔피언/);

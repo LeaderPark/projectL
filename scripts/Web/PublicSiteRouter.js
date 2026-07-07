@@ -1,16 +1,30 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+};
+
+const HTML_CONTENT_SECURITY_POLICY =
+  "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; script-src 'self'; frame-ancestors 'none'; base-uri 'self'";
+
 function sendHtml(res, statusCode, body) {
   res.writeHead(statusCode, {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store, max-age=0",
+    ...SECURITY_HEADERS,
+    "Content-Security-Policy": HTML_CONTENT_SECURITY_POLICY,
   });
   res.end(body);
 }
 
 function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    ...SECURITY_HEADERS,
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -83,6 +97,16 @@ function createPublicSiteRouter({
     const pathname = requestUrl.pathname;
 
     if (req.method === "GET" && pathname === "/") {
+      const queryServerId = requestUrl.searchParams.get("serverId") ?? "";
+      if (
+        isGuildIdSegment(queryServerId) &&
+        typeof isRegisteredServerId === "function" &&
+        (await isRegisteredServerId(queryServerId))
+      ) {
+        redirectTo(res, `/${encodeURIComponent(queryServerId)}`);
+        return true;
+      }
+
       sendHtml(res, 200, await renderLandingPage());
       return true;
     }
@@ -181,6 +205,7 @@ function createPublicSiteRouter({
           res,
           404,
           renderNotFoundPage({
+            guildId: serverId,
             title: "경기를 찾을 수 없습니다",
             description: "등록된 경기 기록이 아니에요.",
           })
@@ -217,6 +242,7 @@ function createPublicSiteRouter({
         res,
         404,
         renderNotFoundPage({
+          guildId: serverId,
           title: "플레이어를 찾을 수 없습니다",
           description: "입력한 이름과 일치하는 플레이어가 없어요.",
         })
@@ -249,6 +275,7 @@ function createPublicSiteRouter({
           res,
           404,
           renderNotFoundPage({
+            guildId: serverId,
             title: "플레이어를 찾을 수 없습니다",
             description: "등록된 내전 플레이어가 아니에요.",
           })
@@ -258,7 +285,16 @@ function createPublicSiteRouter({
       return true;
     }
 
-    return false;
+    sendHtml(
+      res,
+      404,
+      renderNotFoundPage({
+        guildId: serverId,
+        title: "페이지를 찾을 수 없습니다",
+        description: "요청하신 페이지를 찾을 수 없어요.",
+      })
+    );
+    return true;
   };
 }
 

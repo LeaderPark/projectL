@@ -119,7 +119,8 @@ INSERT INTO `user` (`discord_id`, `puuid`, `name`, `mmr`, `win`, `lose`, `penta`
 -- 테이블의 인덱스 `matches`
 --
 ALTER TABLE `matches`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_matches_game_id` (`game_id`);
 
 --
 -- 테이블의 인덱스 `match_in_users`

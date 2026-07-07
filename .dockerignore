@@ -7,3 +7,11 @@ npm-debug.log
 .env
 config.json
 secret.js
+backups
+backups/
+_wipe_backup.json
+*wipe*backup*.json
+*.sql
+tests
+docs
+ops

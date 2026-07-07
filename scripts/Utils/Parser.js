@@ -14,7 +14,14 @@ const Side = require("../enum/Side");
 const { calculatePerformanceScore, mapLane } = require("../Riot/MatchTransformer");
 const { parseROFL } = require("./roflxd");
 
-function downloadHttpFile(url, filePath, redirectsRemaining = 3) {
+const REPLAY_DOWNLOAD_TIMEOUT_MS = 15000;
+
+function downloadHttpFile(
+  url,
+  filePath,
+  redirectsRemaining = 3,
+  timeoutMs = REPLAY_DOWNLOAD_TIMEOUT_MS
+) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https:") ? https : http;
     const request = client.get(url, (response) => {
@@ -25,7 +32,7 @@ function downloadHttpFile(url, filePath, redirectsRemaining = 3) {
         redirectsRemaining > 0
       ) {
         response.resume();
-        downloadHttpFile(response.headers.location, filePath, redirectsRemaining - 1)
+        downloadHttpFile(response.headers.location, filePath, redirectsRemaining - 1, timeoutMs)
           .then(resolve)
           .catch(reject);
         return;
@@ -49,6 +56,9 @@ function downloadHttpFile(url, filePath, redirectsRemaining = 3) {
     });
 
     request.on("error", reject);
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error("replay download timed out"));
+    });
   });
 }
 
@@ -227,5 +237,6 @@ async function getMatchData(url, name, options = {}) {
 module.exports = {
   buildMatchFromMetadata,
   downloadFile,
+  downloadHttpFile,
   getMatchData,
 };

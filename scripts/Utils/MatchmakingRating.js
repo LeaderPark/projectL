@@ -1,3 +1,10 @@
+// Shared magic numbers for accumulated user stats: the starting MMR for a
+// freshly registered user, and the floor MMR cannot drop below regardless of
+// losses. Kept here (rather than duplicated in Query.js/GuildDatabase.js) so
+// there is a single source of truth for JS-side reads of these values.
+const DEFAULT_MMR = 1000;
+const MMR_FLOOR = 300;
+
 function getPlayerId(player) {
   return player?.playerId ?? player?.discordId ?? player?.id ?? null;
 }
@@ -113,4 +120,6 @@ module.exports = {
   getGamesPlayed,
   getKFactor,
   getTeamAverageRating,
+  DEFAULT_MMR,
+  MMR_FLOOR,
 };

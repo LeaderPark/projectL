@@ -5,6 +5,8 @@ const DEFAULT_VERSIONS_URL =
 const DEFAULT_CHAMPION_CDN_BASE_URL =
   "https://ddragon.leagueoflegends.com";
 const DEFAULT_FALLBACK_VERSION = "10.11.1";
+const RIOT_HTTP_TIMEOUT_MS = 8000;
+const CHAMPION_NAME_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const API_CHAMPION_ALIASES = Object.freeze({
   MonkeyKing: ["Wukong"],
 });
@@ -47,11 +49,14 @@ function createChampionNameService({
   fallbackVersion = DEFAULT_FALLBACK_VERSION,
 } = {}) {
   let cachedChampionNameMap = null;
+  let cachedChampionNameMapAt = 0;
   let pendingChampionNameMap = null;
 
   async function resolveChampionVersion() {
     try {
-      const response = await httpClient.get(versionsUrl);
+      const response = await httpClient.get(versionsUrl, {
+        timeout: RIOT_HTTP_TIMEOUT_MS,
+      });
       const versions = Array.isArray(response?.data) ? response.data : [];
       const latestVersion = versions.find(
         (version) => typeof version === "string" && version.trim() !== ""
@@ -71,14 +76,18 @@ function createChampionNameService({
     const version = await resolveChampionVersion();
     const baseUrl = championCdnBaseUrl.replace(/\/$/, "");
     const response = await httpClient.get(
-      `${baseUrl}/cdn/${encodeURIComponent(version)}/data/ko_KR/champion.json`
+      `${baseUrl}/cdn/${encodeURIComponent(version)}/data/ko_KR/champion.json`,
+      { timeout: RIOT_HTTP_TIMEOUT_MS }
     );
 
     return buildChampionNameMap(response?.data?.data);
   }
 
   async function getChampionNameMap() {
-    if (cachedChampionNameMap) {
+    if (
+      cachedChampionNameMap &&
+      Date.now() - cachedChampionNameMapAt < CHAMPION_NAME_CACHE_TTL_MS
+    ) {
       return cachedChampionNameMap;
     }
 
@@ -86,6 +95,7 @@ function createChampionNameService({
       pendingChampionNameMap = loadChampionNameMap()
         .then((championNameMap) => {
           cachedChampionNameMap = championNameMap;
+          cachedChampionNameMapAt = Date.now();
           return championNameMap;
         })
         .finally(() => {

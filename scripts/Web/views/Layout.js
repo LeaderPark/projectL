@@ -4,19 +4,13 @@ const path = require("node:path");
 const { PROJECT_DISPLAY_NAME } = require("../../Utils/Branding");
 const { buildGuildPath, escapeHtml } = require("./ViewHelpers");
 
-function getAssetSnapshot(fileName, options = {}) {
+function getAssetSnapshot(fileName) {
   const assetPath = path.join(__dirname, "../../../public", fileName);
   const version = Math.floor(fs.statSync(assetPath).mtimeMs);
 
   return {
     href: `/public/${fileName}?v=${version}`,
-    content:
-      options.readAsText === true ? fs.readFileSync(assetPath, "utf8") : undefined,
   };
-}
-
-function escapeInlineStyle(cssText) {
-  return String(cssText ?? "").replace(/<\/style/gi, "<\\/style");
 }
 
 function navLinkAttrs(isActive) {
@@ -107,18 +101,22 @@ function renderLayout({
   shellClassName = "site-shell",
 }) {
   const faviconAsset = getAssetSnapshot("favicon.webp");
-  const stylesheetAsset = getAssetSnapshot("site.css", { readAsText: true });
+  const stylesheetAsset = getAssetSnapshot("site.css");
   const scriptAsset = getAssetSnapshot("site.js");
+  const effectiveTitle = _title || PROJECT_DISPLAY_NAME;
 
   return `<!DOCTYPE html>
   <html lang="ko">
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${escapeHtml(PROJECT_DISPLAY_NAME)}</title>
+      <title>${escapeHtml(effectiveTitle)}</title>
       <meta name="description" content="${escapeHtml(description)}" />
+      <meta property="og:title" content="${escapeHtml(effectiveTitle)}" />
+      <meta property="og:description" content="${escapeHtml(description)}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="${escapeHtml(PROJECT_DISPLAY_NAME)}" />
       <link rel="icon" type="image/webp" href="${escapeHtml(faviconAsset.href)}" />
-      <style data-inline-site-css>${escapeInlineStyle(stylesheetAsset.content)}</style>
       <link rel="stylesheet" href="${escapeHtml(stylesheetAsset.href)}" />
       ${renderAnalytics()}
     </head>

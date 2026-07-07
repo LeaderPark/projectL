@@ -55,16 +55,20 @@ function registerInteractionHandler({ client, logger = console }) {
       await command.execute(interaction);
     } catch (error) {
       logger.error(error);
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({
-          content: "There was an error while executing this command!",
-          ephemeral: true,
-        });
-      } else {
-        await interaction.reply({
-          content: "There was an error while executing this command!",
-          ephemeral: true,
-        });
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({
+            content: "There was an error while executing this command!",
+            ephemeral: true,
+          });
+        } else {
+          await interaction.reply({
+            content: "There was an error while executing this command!",
+            ephemeral: true,
+          });
+        }
+      } catch (recoveryError) {
+        logger.error(recoveryError);
       }
     }
   });

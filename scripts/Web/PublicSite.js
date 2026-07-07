@@ -20,6 +20,7 @@ const {
 const { parseStoredJson: parseStoredMatchJson } = require("../Utils/Json");
 
 const PLAYER_MATCHES_PAGE_SIZE = 20;
+const MATCHES_PAGE_LIMIT = 200;
 
 function buildEmptyHomeModel() {
   return {
@@ -317,7 +318,7 @@ function createPublicSiteHandlers({
 
       const formatterOptions = await getFormatterOptions();
       const [matchesResult, serverName] = await Promise.all([
-        resolvedGetPublicMatchHistory(guildId),
+        resolvedGetPublicMatchHistory(guildId, MATCHES_PAGE_LIMIT),
         resolvedGetGuildName(guildId),
       ]);
       const matchRows = matchesResult.success

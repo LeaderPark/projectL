@@ -1,5 +1,7 @@
 const axios = require("axios");
 
+const RIOT_HTTP_TIMEOUT_MS = 8000;
+
 function buildTournamentApiBaseUrl({ useStub, platform }) {
   const family = useStub ? "tournament-stub" : "tournament";
   return `https://${platform}.api.riotgames.com/lol/${family}/v5`;
@@ -86,6 +88,7 @@ function createTournamentApi(config) {
       "X-Riot-Token": config.token,
       "Content-Type": "application/json",
     },
+    timeout: RIOT_HTTP_TIMEOUT_MS,
   });
   const matchApi = axios.create({
     baseURL: buildMatchApiBaseUrl(config),
@@ -93,6 +96,7 @@ function createTournamentApi(config) {
       "X-Riot-Token": config.token,
       "Content-Type": "application/json",
     },
+    timeout: RIOT_HTTP_TIMEOUT_MS,
   });
 
   return {

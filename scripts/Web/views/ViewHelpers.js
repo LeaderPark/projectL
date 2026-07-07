@@ -388,25 +388,6 @@ function renderSummaryHighlight(card) {
   `;
 }
 
-function renderPlayerPerspectiveSummary(card) {
-  const perspectivePlayer = getPerspectivePlayer(card) ?? getFeaturedPlayer(card);
-  if (!perspectivePlayer) {
-    return `
-      <ul class="match-row__player-list match-row__player-list--summary">
-        <li class="match-row__player match-row__player--empty">
-          <span>표시할 플레이어 데이터가 없습니다.</span>
-        </li>
-      </ul>
-    `;
-  }
-
-  return `
-    <ul class="match-row__player-list match-row__player-list--summary">
-      ${renderCompactPlayer(perspectivePlayer, { variant: "summary" })}
-    </ul>
-  `;
-}
-
 function getMatchDisplayName(card) {
   return card?.matchName || card?.gameId || `Match #${card?.id ?? "-"}`;
 }
@@ -1029,9 +1010,7 @@ function renderMatchCard(card, options = {}) {
     `;
   }
 
-  const summaryBody = isPlayerLayout
-    ? renderPlayerPerspectiveSummary(card)
-    : `
+  const summaryBody = `
           <div class="match-row__summary-teams${showSummaryHighlight ? "" : " match-row__summary-teams--public"}">
             ${renderSummaryTeamCard(context.teamLeaders.blue, "blue", context)}
             ${renderSummaryTeamCard(context.teamLeaders.red, "red", context)}
@@ -1179,10 +1158,10 @@ function renderRankingTable(rows, guildId) {
       <table class="ranking-table"${sortable}>
         <thead>
           <tr>
-            <th scope="col">순위</th>
+            <th scope="col" aria-sort="descending">순위</th>
             <th scope="col">${sortBtn("name", "플레이어")}</th>
             <th scope="col">${sortBtn("wins", "전적")}</th>
-            <th scope="col" aria-sort="descending">${sortBtn("winrate", "승률")}</th>
+            <th scope="col">${sortBtn("winrate", "승률")}</th>
           </tr>
         </thead>
         <tbody>

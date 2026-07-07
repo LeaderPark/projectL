@@ -8,3 +8,5 @@ config.json
 json
 /.serena
 /backups
+_wipe_backup.json
+*wipe*backup*.json

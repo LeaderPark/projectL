@@ -1,5 +1,9 @@
 const { getGuildPromisePool } = require("./DB");
-const { buildMatchmakingAdjustments } = require("./MatchmakingRating");
+const {
+  buildMatchmakingAdjustments,
+  DEFAULT_MMR,
+  MMR_FLOOR,
+} = require("./MatchmakingRating");
 const {
   formatGuildConfigurationError,
   isGuildConfigurationError,
@@ -385,7 +389,44 @@ async function resolveUsersByNamesWithExecutor(executor, names) {
   return { success: true, data: rows };
 }
 
-async function resolveUsersByMatchPlayersWithExecutor(executor, players) {
+// Locks the given base `user` rows by discord_id — a single-table SELECT
+// (no UNION, no derived table) so `FOR UPDATE` unambiguously targets base
+// `user` rows. Used only by resolveUsersByMatchPlayersWithExecutor's
+// forUpdate path (see the note there) inside a transaction; a plain
+// (non-transactional, autocommit) pool — as used by some test mocks — takes
+// no real lock.
+async function lockUserRowsByDiscordIdsWithExecutor(executor, discordIds) {
+  if (!discordIds.length) {
+    return { success: true, data: [] };
+  }
+
+  const placeholders = buildInClausePlaceholders(discordIds.length);
+  const [rows] = await executor.query(
+    `SELECT u.*, u.puuid AS linked_puuid
+     FROM user u
+     WHERE u.discord_id IN (${placeholders})
+     FOR UPDATE`,
+    discordIds
+  );
+
+  return { success: true, data: rows };
+}
+
+// `options.forUpdate` is used only by updateUserDataWithExecutor so the rows
+// it is about to overwrite are locked for the duration of the transaction.
+// Resolution (puuid/name matching) always runs non-locking first — a
+// UNION'd or derived-table query only binds a trailing `FOR UPDATE` to its
+// last SELECT block (or silently doesn't lock at all over a materialized
+// derived table), so it cannot reliably lock the base `user` rows resolved
+// via the first UNION block or via the name fallback. Once the matching
+// discord_ids are known, a single unambiguous base-table SELECT (no UNION,
+// no derived table) filtered by discord_id with a trailing `FOR UPDATE`
+// (lockUserRowsByDiscordIdsWithExecutor) re-fetches and locks those exact
+// rows, and the locked column values are merged back into each linked row.
+// Read-only callers (insert/overwrite match data resolution) omit forUpdate
+// and keep the original non-locking behavior.
+async function resolveUsersByMatchPlayersWithExecutor(executor, players, options = {}) {
+  const { forUpdate = false } = options;
   const uniquePuuids = [
     ...new Set(
       players
@@ -437,7 +478,29 @@ async function resolveUsersByMatchPlayersWithExecutor(executor, players) {
     }
   });
 
-  return { success: true, data: linkedRows };
+  if (!forUpdate || !linkedRows.length) {
+    return { success: true, data: linkedRows };
+  }
+
+  const lockResult = await lockUserRowsByDiscordIdsWithExecutor(
+    executor,
+    getUniqueDiscordIds(linkedRows)
+  );
+  if (!lockResult.success) {
+    return lockResult;
+  }
+
+  const lockedByDiscordId = new Map(
+    lockResult.data.map((row) => [row.discord_id, row])
+  );
+
+  return {
+    success: true,
+    data: linkedRows.map((row) => ({
+      ...row,
+      ...(lockedByDiscordId.get(row.discord_id) ?? {}),
+    })),
+  };
 }
 
 function getUniqueDiscordIds(linkedRows) {
@@ -619,19 +682,31 @@ async function ensureUserProfile(promisePool, discordId, displayName, puuid) {
 }
 
 async function registerRiotAccount(guildId, discordId, account) {
+  const validationError = validateRiotAccount(account);
+  if (validationError) {
+    return validationError;
+  }
+
+  let connection;
+
   try {
-    const validationError = validateRiotAccount(account);
-    if (validationError) {
-      return validationError;
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
     }
 
-    const promisePool = await getGuildPromisePool(guildId);
     const displayName = buildRiotDisplayName(
       account.riotGameName,
       account.riotTagLine
     );
 
-    const [conflicts] = await promisePool.query(
+    const [conflicts] = await executor.query(
       `SELECT discord_id
        FROM riot_accounts
        WHERE puuid = ?
@@ -647,6 +722,10 @@ async function registerRiotAccount(guildId, discordId, account) {
     );
 
     if (conflicts.length > 0) {
+      if (typeof executor.rollback === "function") {
+        await executor.rollback();
+      }
+
       const message =
         conflicts[0].discord_id === discordId
           ? "이미 등록된 계정입니다."
@@ -660,18 +739,18 @@ async function registerRiotAccount(guildId, discordId, account) {
     }
 
     const linkedAccounts = await listLinkedRiotAccountsWithExecutor(
-      promisePool,
+      executor,
       discordId
     );
     const insertedAccountIsPrimary = linkedAccounts.length === 0;
     const userProfile = await ensureUserProfile(
-      promisePool,
+      executor,
       discordId,
       displayName,
       account.puuid
     );
 
-    await promisePool.query(
+    await executor.query(
       `INSERT INTO riot_accounts
        (discord_id, riot_game_name, riot_tag_line, puuid, summoner_id, is_primary)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -688,20 +767,28 @@ async function registerRiotAccount(guildId, discordId, account) {
     let primaryAccountDisplayName = displayName;
     if (insertedAccountIsPrimary) {
       if (String(userProfile?.name ?? "").trim() !== displayName) {
-        await promisePool.query(`UPDATE user SET name = ? WHERE discord_id = ?`, [
+        await executor.query(`UPDATE user SET name = ? WHERE discord_id = ?`, [
           displayName,
           discordId,
         ]);
       }
     } else {
       const syncResult = await syncPrimaryRiotAccountNameWithExecutor(
-        promisePool,
+        executor,
         discordId
       );
       if (!syncResult.success) {
+        if (typeof executor.rollback === "function") {
+          await executor.rollback();
+        }
+
         return syncResult;
       }
       primaryAccountDisplayName = syncResult.data.primaryAccountDisplayName;
+    }
+
+    if (typeof executor.commit === "function") {
+      await executor.commit();
     }
 
     const accountCount = linkedAccounts.length + 1;
@@ -718,7 +805,15 @@ async function registerRiotAccount(guildId, discordId, account) {
       },
     };
   } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
     return buildErrorResult(error, "에러가 발생하였습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
   }
 }
 
@@ -1005,6 +1100,12 @@ async function insertMatchDataWithExecutor(executor, match, name) {
     return validationError;
   }
 
+  // NOTE (D4): ideally this would be `SELECT id` to avoid dragging the longtext
+  // purple_team/blue_team blobs off a game_id lookup, but tests/match-ingestion.test.js
+  // (a shared test file outside this partition) asserts the literal `SELECT *`
+  // shape via regex, so the column list is left as-is here; see deferrals. The
+  // index added below (D4b) already removes the full-table-scan cost, which was
+  // the primary performance problem.
   let sql = `SELECT * FROM matches WHERE game_id = ?`;
   let [result] = await executor.query(sql, [name]);
   const existingMatch = result[0] ?? null;
@@ -1043,7 +1144,12 @@ async function insertMatchDataWithExecutor(executor, match, name) {
 
 async function updateUserDataWithExecutor(executor, match) {
   const players = getMatchPlayers(match);
-  const linkedUsers = await resolveUsersByMatchPlayersWithExecutor(executor, players);
+  // forUpdate: true — this function writes back accumulated stats it read here,
+  // so the read must lock the rows (FOR UPDATE) to avoid a lost update when two
+  // match saves race inside concurrent transactions (see docs/mmr-system.md).
+  const linkedUsers = await resolveUsersByMatchPlayersWithExecutor(executor, players, {
+    forUpdate: true,
+  });
 
   if (!linkedUsers.success) {
     return linkedUsers;
@@ -1074,7 +1180,7 @@ async function updateUserDataWithExecutor(executor, match) {
     const user = linkedByIdentity.get(identityKey);
     ratingInputsByIdentity.set(identityKey, {
       playerId: identityKey,
-      mmr: Number(user?.mmr ?? 1000),
+      mmr: Number(user?.mmr ?? DEFAULT_MMR),
       win: Number(user?.win ?? 0),
       lose: Number(user?.lose ?? 0),
       performanceScore: Number(player?.performanceScore ?? 0),
@@ -1119,8 +1225,8 @@ async function updateUserDataWithExecutor(executor, match) {
     }
 
     let mmr = Number(user.mmr) + Number(deltaByIdentity.get(identityKey) ?? 0);
-    if (mmr <= 300) {
-      mmr = 300;
+    if (mmr <= MMR_FLOOR) {
+      mmr = MMR_FLOOR;
     }
 
     const win = Number(user.win) + (p.result ? 1 : 0);
@@ -1128,9 +1234,12 @@ async function updateUserDataWithExecutor(executor, match) {
     const penta = Number(user.penta) + p.pentaKill;
     const quadra = Number(user.quadra) + p.quadraKill;
 
-    const champions = user.champions === "" ? {} : JSON.parse(user.champions);
-    const lanes = user.lanes === "" ? {} : JSON.parse(user.lanes);
-    const friends = user.friends === "" ? {} : JSON.parse(user.friends);
+    // parseStoredJson tolerates a malformed/corrupt stored value (falls back to
+    // {}) instead of throwing and aborting the whole recompute/save transaction
+    // for every user in this guild over a single bad row.
+    const champions = parseStoredJson(user.champions, {});
+    const lanes = parseStoredJson(user.lanes, {});
+    const friends = parseStoredJson(user.friends, {});
 
     if (!champions[p.championName]) {
       champions[p.championName] = {
@@ -1287,7 +1396,7 @@ const persistMatchResult = async (guildId, match, name) => {
 async function recomputeUserStatsFromMatchesWithExecutor(executor) {
   await executor.query(
     `UPDATE user
-       SET mmr = 1000,
+       SET mmr = ${DEFAULT_MMR},
            win = 0,
            lose = 0,
            penta = 0,
@@ -1770,21 +1879,32 @@ const clearHardFearlessSeriesState = async (guildId) => {
 };
 
 const replaceActiveTournamentSession = async (guildId, session) => {
+  const validationError = validateTournamentSession(session);
+  if (validationError) {
+    return validationError;
+  }
+
+  let connection;
+
   try {
-    const validationError = validateTournamentSession(session);
-    if (validationError) {
-      return validationError;
+    const promisePool = await getGuildPromisePool(guildId);
+    connection =
+      typeof promisePool.getConnection === "function"
+        ? await promisePool.getConnection()
+        : null;
+    const executor = connection ?? promisePool;
+
+    if (typeof executor.beginTransaction === "function") {
+      await executor.beginTransaction();
     }
 
-    const promisePool = await getGuildPromisePool(guildId);
-
-    await promisePool.query(
+    await executor.query(
       `UPDATE active_tournament_sessions
        SET status = 'CANCELLED'
        WHERE status IN ('LOBBY', 'CHAMP_SELECT_STARTED')`
     );
 
-    const [result] = await promisePool.query(
+    const [result] = await executor.query(
       `INSERT INTO active_tournament_sessions
        (tournament_code, provider_id, tournament_id, source_channel_id, team1_channel_id, team2_channel_id, unity_voice_channel_id, team1_discord_ids, team2_discord_ids, status, last_event_at, series_mode, series_game_number, fearless_used_champions)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1806,11 +1926,29 @@ const replaceActiveTournamentSession = async (guildId, session) => {
       ]
     );
 
+    if (typeof executor.commit === "function") {
+      await executor.commit();
+    }
+
     return { success: true, data: { id: result.insertId } };
   } catch (error) {
+    if (connection && typeof connection.rollback === "function") {
+      await connection.rollback();
+    }
+
     return buildErrorResult(error, "토너먼트 세션을 저장하는 중 오류가 발생했습니다.");
+  } finally {
+    if (connection && typeof connection.release === "function") {
+      connection.release();
+    }
   }
 };
+
+// D5: result_attempts is incremented by the poller on each failed Match API
+// ingestion attempt but was never read back, so a permanently-failing COMPLETED
+// session retried forever. Once a session's attempts reach this cap it drops
+// out of the pending set instead of hammering the Riot Match API indefinitely.
+const MAX_RESULT_ATTEMPTS = 10;
 
 const listPendingTournamentSessions = async (guildId) => {
   try {
@@ -1819,8 +1957,9 @@ const listPendingTournamentSessions = async (guildId) => {
       `SELECT *
        FROM active_tournament_sessions
        WHERE status IN ('LOBBY', 'CHAMP_SELECT_STARTED', 'MOVE_FAILED', 'COMPLETED_PENDING_GATHER', 'GATHER_FAILED', 'COMPLETED')
-         AND (status <> 'COMPLETED' OR result_status IN ('PENDING', 'FAILED'))
-       ORDER BY id ASC`
+         AND (status <> 'COMPLETED' OR (result_status IN ('PENDING', 'FAILED') AND result_attempts < ?))
+       ORDER BY id ASC`,
+      [MAX_RESULT_ATTEMPTS]
     );
 
     return {
@@ -2027,6 +2166,7 @@ module.exports = {
   getUsersData,
   insertMatchData,
   listPendingTournamentSessions,
+  MAX_RESULT_ATTEMPTS,
   parseDiscordIdList,
   persistMatchResult,
   recomputeGuildUserStats,

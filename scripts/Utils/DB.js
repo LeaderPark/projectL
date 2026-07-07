@@ -5,6 +5,7 @@ const {
   buildControlSchemaStatements,
   buildGuildDatabaseName,
   buildGuildColumnMigrations,
+  buildGuildIndexMigrations,
   buildGuildSchemaStatements,
   createGuildConfigurationError,
 } = require("./GuildDatabase");
@@ -66,6 +67,32 @@ async function ensureColumns(promisePool, migrations) {
   }
 }
 
+// Idempotent index-ensure step, parallel to ensureColumns but keyed on
+// SHOW INDEX instead of SHOW COLUMNS (indexes have no equivalent of
+// `MODIFY COLUMN`, so there is no `needsUpdate` — an index either exists or it
+// doesn't). Also tolerates a duplicate-key-name race (e.g. two bootstraps
+// running concurrently) so it never throws for an index that already exists.
+async function ensureIndexes(promisePool, migrations) {
+  for (const migration of migrations) {
+    const [rows] = await promisePool.query(
+      `SHOW INDEX FROM ${mysql.escapeId(migration.tableName)} WHERE Key_name = ?`,
+      [migration.indexName]
+    );
+
+    if (rows.length > 0) {
+      continue;
+    }
+
+    try {
+      await promisePool.query(migration.statement);
+    } catch (error) {
+      if (error?.code !== "ER_DUP_KEYNAME") {
+        throw error;
+      }
+    }
+  }
+}
+
 function ensureControlSchema() {
   if (!controlSchemaReadyPromise) {
     controlSchemaReadyPromise = (async () => {
@@ -93,6 +120,7 @@ function ensureGuildDatabaseReady(databaseName) {
       const guildPromisePool = getOrCreateGuildPromisePool(databaseName);
       await ensureSchema(guildPromisePool, buildGuildSchemaStatements());
       await ensureColumns(guildPromisePool, buildGuildColumnMigrations());
+      await ensureIndexes(guildPromisePool, buildGuildIndexMigrations());
     })().catch((error) => {
       guildReadyPromiseCache.delete(databaseName);
       throw error;
@@ -104,8 +132,25 @@ function ensureGuildDatabaseReady(databaseName) {
   return guildReadyPromiseCache.get(databaseName);
 }
 
+// D7: guild_settings rarely changes (only via /서버설정), but getGuildPromisePool
+// (called on every guild-scoped query) hits it every time via getGuildSettings.
+// A short TTL memo cuts a page load's handful of identical PK lookups down to
+// one per TTL window. Negative (not-yet-initialized) results are NOT cached so
+// a guild that just ran /서버설정 초기화 is seen immediately on the next call.
+const GUILD_SETTINGS_CACHE_TTL_MS = 30_000;
+const guildSettingsCache = new Map();
+
+function invalidateGuildSettingsCache(guildId) {
+  guildSettingsCache.delete(guildId);
+}
+
 async function getGuildSettings(guildId) {
   await ensureControlSchema();
+
+  const cached = guildSettingsCache.get(guildId);
+  if (cached && Date.now() - cached.cachedAt < GUILD_SETTINGS_CACHE_TTL_MS) {
+    return cached.value;
+  }
 
   const [rows] = await controlPromisePool.query(
     `SELECT guild_id, guild_name, database_name, unity_voice_channel_id, created_at, updated_at
@@ -114,7 +159,15 @@ async function getGuildSettings(guildId) {
     [guildId]
   );
 
-  return rows[0] ?? null;
+  const guildSettings = rows[0] ?? null;
+
+  if (guildSettings) {
+    guildSettingsCache.set(guildId, { value: guildSettings, cachedAt: Date.now() });
+  } else {
+    guildSettingsCache.delete(guildId);
+  }
+
+  return guildSettings;
 }
 
 async function listGuildSettings() {
@@ -143,6 +196,7 @@ async function initializeGuildDatabase(guildId, guildName) {
        database_name = VALUES(database_name)`,
     [guildId, guildName, databaseName]
   );
+  invalidateGuildSettingsCache(guildId);
 
   return {
     guildId,
@@ -181,6 +235,7 @@ async function updateGuildUnityVoiceChannel(guildId, unityVoiceChannelId) {
      WHERE guild_id = ?`,
     [unityVoiceChannelId, guildId]
   );
+  invalidateGuildSettingsCache(guildId);
 
   return { success: true };
 }
@@ -190,6 +245,7 @@ module.exports = {
   controlPromisePool,
   ensureControlSchema,
   ensureColumns,
+  ensureIndexes,
   getGuildPromisePool,
   getGuildSettings,
   initializeGuildDatabase,

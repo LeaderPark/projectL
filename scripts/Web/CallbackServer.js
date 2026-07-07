@@ -41,12 +41,36 @@ async function handleTournamentCallback(body, deps) {
   };
 }
 
+const MAX_JSON_BODY_BYTES = 64 * 1024;
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
+    let totalBytes = 0;
+    let rejected = false;
 
-    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("data", (chunk) => {
+      if (rejected) {
+        return;
+      }
+
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_JSON_BODY_BYTES) {
+        rejected = true;
+        req.pause();
+        const error = new Error("request body too large");
+        error.statusCode = 413;
+        reject(error);
+        return;
+      }
+
+      chunks.push(chunk);
+    });
     req.on("end", () => {
+      if (rejected) {
+        return;
+      }
+
       try {
         const raw = Buffer.concat(chunks).toString("utf8");
         resolve(raw ? JSON.parse(raw) : {});
@@ -54,7 +78,11 @@ function readJsonBody(req) {
         reject(error);
       }
     });
-    req.on("error", reject);
+    req.on("error", (error) => {
+      if (!rejected) {
+        reject(error);
+      }
+    });
   });
 }
 
@@ -77,6 +105,13 @@ function createCallbackServer({
         res.writeHead(result.status, { "Content-Type": "text/plain; charset=utf-8" });
         res.end(result.body);
       } catch (error) {
+        if (error?.statusCode === 413) {
+          res.writeHead(413, { "Content-Type": "text/plain; charset=utf-8" });
+          res.end("payload too large");
+          req.destroy();
+          return;
+        }
+
         console.error("Tournament callback handling failed:", error);
         res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
         res.end("internal error");

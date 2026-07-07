@@ -33,6 +33,8 @@ $envPath = Join-Path $projectRoot ".env"
 
 Set-Location $projectRoot
 
+$env:COMPOSE_PROFILES = "cloudflare"
+
 Write-Host "[deploy] Starting deployment from $projectRoot"
 
 Require-Command -Name "git"

@@ -216,6 +216,25 @@ function buildGuildColumnMigrations() {
   ];
 }
 
+// D4: matches.game_id has no index, yet it's looked up on every match save
+// (duplicate-match check). A UNIQUE index would be the eventual goal (it would
+// also close a duplicate-match race), but live guild databases may already
+// contain duplicate game_id rows, and a UNIQUE index add would throw and abort
+// bootstrap for those guilds. A plain (non-unique) index is safe to add
+// unconditionally and still turns that lookup into an index seek instead of a
+// full table scan. Applying a UNIQUE constraint requires an operator to run a
+// one-time dedup pass first; that is not done automatically here.
+function buildGuildIndexMigrations() {
+  return [
+    {
+      tableName: "matches",
+      indexName: "idx_matches_game_id",
+      statement:
+        "ALTER TABLE `matches` ADD INDEX `idx_matches_game_id` (`game_id`)",
+    },
+  ];
+}
+
 function createGuildConfigurationError(guildId) {
   const error = new Error(
     `Guild ${guildId} has not been initialized yet.`
@@ -245,6 +264,7 @@ module.exports = {
   buildControlSchemaStatements,
   buildGuildDatabaseName,
   buildGuildColumnMigrations,
+  buildGuildIndexMigrations,
   buildGuildSchemaStatements,
   createGuildConfigurationError,
   formatGuildConfigurationError,

@@ -20,6 +20,13 @@ const { bootstrapApp } = require("./scripts/AppRuntime");
 
 const runtimeConfig = getRuntimeConfig();
 
+process.on("unhandledRejection", (err) => {
+  console.error("unhandledRejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException:", err);
+});
+
 bootstrapApp({
   client,
   runtimeConfig,
